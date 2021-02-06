@@ -10,7 +10,7 @@ local function create_jump_keymap(buf_id, keys)
   -- remap all the jump keys
   for i = 1, #keys do
     local key = keys:sub(i, i)
-    vim.api.nvim_buf_set_keymap(buf_id, '', key, '<cmd>lua require"./lua/easymotion-lua/init":refine_hints(\'' .. key .. '\')<cr>', {})
+    vim.api.nvim_buf_set_keymap(buf_id, '', key, '<cmd>lua require"./lua/easymotion-lua/init":refine_hints(\'' .. key .. '\')<cr>', { nowait = true })
   end
 
   vim.api.nvim_buf_set_keymap(buf_id, '', '<esc>', '<cmd>q<cr>', {})
@@ -56,12 +56,25 @@ local function next_key(keys, key)
 end
 
 local function next_perm(term_keys, seq_keys, perm)
-  local perm_size = #perm
-  for i = perm_size, 1, -1 do
-    local key = next_key(term_keys, perm[i])
+  local perm_len = #perm
 
-    if key then
-      perm[i] = key
+  -- terminal key
+  local term_key = next_key(term_keys, perm[perm_len])
+
+  if term_key then
+    perm[perm_len] = term_key
+
+    return perm
+  end
+
+  perm[perm_len] = first_key(term_keys)
+
+  -- sequence keys
+  for i = perm_len - 1, 1, -1 do
+    local seq_key = next_key(seq_keys, perm[i])
+
+    if seq_key then
+      perm[i] = seq_key
 
       return perm
     else
@@ -69,7 +82,9 @@ local function next_perm(term_keys, seq_keys, perm)
     end
   end
 
-  perm[perm_size + 1] = first_key(term_keys)
+  -- we need to increment the dimension
+  perm[perm_len] = first_key(seq_keys)
+  perm[perm_len + 1] = first_key(term_keys)
 
   return perm
 end
@@ -96,10 +111,10 @@ local function permutations(keys, n)
   local term_keys = keys:sub(1, quarter)
   local seq_keys = keys:sub(quarter + 1)
   local perms = {}
-  local perm = {}
+  local perm = { keys:sub(1, 1) }
 
-  for _ = 1, n do
-    perm = next_perm(keys, seq_keys, perm)
+  for i = 1, n do
+    perm = next_perm(term_keys, seq_keys, perm)
     perms[#perms + 1] = vim.deepcopy(perm)
   end
 
@@ -144,15 +159,20 @@ local function reduce_words(per_line_words, key)
   local output = {}
 
   for _, words in pairs(per_line_words) do
+    local next_words = {}
+
     for _, word in pairs(words) do
+      local prev_hint = word.hint
       word.hint = reduce_hint(word.hint, key)
 
       if word.hint == nil then
         return word
+      elseif prev_hint ~= word.hint then
+        next_words[#next_words + 1] = word
       end
-
-      output[#output + 1] = word
     end
+
+    output[#output + 1] = next_words
   end
 
   return nil, output
@@ -259,6 +279,7 @@ function M:open_hint_window()
 
   -- buffer-local variables so that we can access them later
   vim.api.nvim_buf_set_var(hint_buf_id, 'src_win_id', vim.api.nvim_get_current_win())
+  vim.api.nvim_buf_set_var(hint_buf_id, 'win_top_line', win_top_line)
   vim.api.nvim_buf_set_var(hint_buf_id, 'buf_width', buf_width)
   vim.api.nvim_buf_set_var(hint_buf_id, 'buf_height', buf_height)
   vim.api.nvim_buf_set_var(hint_buf_id, 'per_line_words', per_line_words)
@@ -271,20 +292,19 @@ end
 --
 -- If the key doesn’t end up refining anything, TODO.
 function M:refine_hints(key)
-  print('calling refine_hints with key', key)
   local word, words = reduce_words(vim.b.per_line_words, key)
 
   if word == nil then
-    vim.api.nvim_buf_set_var('per_line_words', words)
+    vim.api.nvim_buf_set_var(0, 'per_line_words', words)
     update_hint_buffer(0, vim.b.buf_width, vim.b.buf_height, words)
   else
-    local src_win_id = vim.b.src_win_id
+    local win_top_line = vim.b.win_top_line
 
     -- TODO: refactor this into its own function
     vim.api.nvim_buf_delete(0, {})
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(0, { word.line, word.col - 1})
+    vim.api.nvim_win_set_cursor(0, { win_top_line + word.line, word.col - 1})
   end
 end
 
