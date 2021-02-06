@@ -1,1 +1,1 @@
-# Vroom, Neovim motion on speed!
+# Vroom, Neovim motions on speed!

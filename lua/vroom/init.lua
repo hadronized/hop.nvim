@@ -1,6 +1,7 @@
 -- Options.
 local opt_winblend = 50
 local opt_keys = 'etisuranvdplqxgyhfmjzwk'
+local opt_reverse_distribution = false
 
 local hint_buf_id = nil
 local M = {}
@@ -250,7 +251,15 @@ function M:open_hint_window()
       indirect_words[#indirect_words + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { w.line, w.col }) }
     end
   end
-  table.sort(indirect_words, function (a, b) return a.dist < b.dist end)
+
+  local dist_comparison = nil
+  if opt_reverse_distribution then
+    dist_comparison = function (a, b) return a.dist > b.dist end
+  else
+    dist_comparison = function (a, b) return a.dist < b.dist end
+  end
+
+  table.sort(indirect_words, dist_comparison)
 
   -- generate permutations and update the lines with hints
   local hints = permutations(opt_keys, #indirect_words)
