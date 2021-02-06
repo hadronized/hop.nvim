@@ -9,11 +9,11 @@ local M = {}
 local function create_jump_keymap(buf_id, keys)
   -- remap all the jump keys
   for i = 1, #keys do
-    vim.api.nvim_buf_set_keymap(buf_id, '', keys:sub(i, i), '<cmd>echo "deleted ' .. keys:sub(i, i) .. '"<cr>', { nowait = true })
+    local key = keys:sub(i, i)
+    vim.api.nvim_buf_set_keymap(buf_id, '', key, '<cmd>lua require"./lua/easymotion-lua/init":refine_hints(\'' .. key .. '\')<cr>', {})
   end
 
-  vim.api.nvim_buf_set_keymap(buf_it, '', '<esc>', '<cmd>q<cr>', {})
-  vim.api.nvim_buf_set_keymap(buf_id, '', 't', '<cmd>lua require"./lua/easymotion-lua/init".test()<cr>', {})
+  vim.api.nvim_buf_set_keymap(buf_id, '', '<esc>', '<cmd>q<cr>', {})
 end
 
 -- Returns the index of all the words in a string.
@@ -112,7 +112,7 @@ end
 -- This function will remove hints not starting with the input key and will reduce the other ones
 -- with one level.
 local function reduce_hint(hint, key)
-  if hint[1] ~= key or hint:len() == 1 then
+  if hint:sub(1, 1) ~= key or hint:len() == 1 then
     return nil
   end
 
@@ -120,67 +120,26 @@ local function reduce_hint(hint, key)
 end
 
 -- Reduce all words’ hints and return the word for which the hint is fully reduced, if any.
-local function reduce_words(words, key)
+local function reduce_words(per_line_words, key)
   local output = {}
 
-  for _, word in pairs(words) do
-    word.hint = reduce_hint(word.hint, key)
+  for _, words in pairs(per_line_words) do
+    for _, word in pairs(words) do
+      word.hint = reduce_hint(word.hint, key)
 
-    if word.hint:len() == 1 then
-      return word
+      if word.hint == nil then
+        return word
+      end
+
+      output[#output + 1] = word
     end
-
-    output[#output + 1] = word
   end
 
   return nil, output
 end
 
-function M:test()
-  print(vim.b.foo)
-end
-
-function M:open_hint_window()
-  local buf_id = 0
-  local win_view = vim.fn.winsaveview()
-  local cursor_line = win_view['lnum']
-  local cursor_col = win_view['col']
-  local win_top_line = win_view['topline'] - 1
-  local screenpos = vim.fn.screenpos(0, cursor_line, 0)
-  local cursor_pos = { screenpos.row, cursor_col }
-  local buf_width = vim.api.nvim_win_get_width(buf_id) - screenpos.col + 1
-  local buf_height = vim.api.nvim_win_get_height(buf_id)
-  local win_lines = vim.api.nvim_buf_get_lines(buf_id, win_top_line, win_top_line + buf_height, true)
-
-
-  -- extract all the words currently visible on screen; the per_line_words variable contains the list
-  -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
-  -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
-  -- cursor, allowing to zip this list with the hints and distribute the hints
-  local per_line_words = {}
-  local indirect_words = {}
-  for i = 1, buf_height do
-    local wds = get_words(i, win_lines[i])
-    per_line_words[i] = wds
-
-    for j = 1, #wds do
-      local w = wds[j]
-      indirect_words[#indirect_words + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { w.line, w.col }) }
-    end
-  end
-  table.sort(indirect_words, function (a, b) return a.dist < b.dist end)
-
-  -- generate permutations and update the lines with hints
-  local hints = permutations(opt_keys, #indirect_words)
-  for i, indirect in pairs(indirect_words) do
-    per_line_words[indirect.i][indirect.j].hint = tbl_to_str(hints[i])
-  end
-
-  -- create a new buffer to contain the hints
-  hint_buf_id = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_var(hint_buf_id, 'foo', 'test')
-
-  -- fill the hint buffer with spaces
+-- Update the hint buffer.
+local function update_hint_buffer(buf_id, buf_width, buf_height, per_line_words)
   local new_lines = {}
   for line = 1, buf_height do
     local col = 1
@@ -219,7 +178,52 @@ function M:open_hint_window()
       end
     end
   end
+end
 
+function M:open_hint_window()
+  local win_view = vim.fn.winsaveview()
+  local cursor_line = win_view['lnum']
+  local cursor_col = win_view['col']
+  local win_top_line = win_view['topline'] - 1
+  local screenpos = vim.fn.screenpos(0, cursor_line, 0)
+  local cursor_pos = { screenpos.row, cursor_col }
+  local buf_width = vim.api.nvim_win_get_position(0)[2] + vim.api.nvim_win_get_width(0) - screenpos.col + 1
+  local buf_height = vim.api.nvim_win_get_height(0)
+  local win_lines = vim.api.nvim_buf_get_lines(0, win_top_line, win_top_line + buf_height, false)
+
+  if #win_lines < buf_height then
+    buf_height = #win_lines
+  end
+
+  -- extract all the words currently visible on screen; the per_line_words variable contains the list
+  -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
+  -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
+  -- cursor, allowing to zip this list with the hints and distribute the hints
+  local per_line_words = {}
+  local indirect_words = {}
+  for i = 1, buf_height do
+    local wds = get_words(i, win_lines[i])
+    per_line_words[i] = wds
+
+    for j = 1, #wds do
+      local w = wds[j]
+      indirect_words[#indirect_words + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { w.line, w.col }) }
+    end
+  end
+  table.sort(indirect_words, function (a, b) return a.dist < b.dist end)
+
+  -- generate permutations and update the lines with hints
+  local hints = permutations(opt_keys, #indirect_words)
+  for i, indirect in pairs(indirect_words) do
+    per_line_words[indirect.i][indirect.j].hint = tbl_to_str(hints[i])
+  end
+
+  -- create a new buffer to contain the hints
+  hint_buf_id = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_var(hint_buf_id, 'foo', 'test')
+
+  -- fill the hint buffer
+  update_hint_buffer(hint_buf_id, buf_width, buf_height, per_line_words)
 
   local win_id = vim.api.nvim_open_win(hint_buf_id, true, {
     relative = 'win',
@@ -233,8 +237,38 @@ function M:open_hint_window()
   vim.api.nvim_win_set_option(win_id, 'winblend', opt_winblend)
   vim.api.nvim_win_set_cursor(win_id, { screenpos.row, cursor_col })
 
+  -- buffer-local variables so that we can access them later
+  vim.api.nvim_buf_set_var(hint_buf_id, 'src_win_id', vim.api.nvim_get_current_win())
+  vim.api.nvim_buf_set_var(hint_buf_id, 'buf_width', buf_width)
+  vim.api.nvim_buf_set_var(hint_buf_id, 'buf_height', buf_height)
+  vim.api.nvim_buf_set_var(hint_buf_id, 'per_line_words', per_line_words)
+
   -- keybindings
   create_jump_keymap(hint_buf_id, opt_keys)
+end
+
+-- Refine hints of the current buffer.
+--
+-- If the key doesn’t end up refining anything, TODO.
+function M:refine_hints(key)
+  print('calling refine_hints with key', key)
+  local word, words = reduce_words(vim.b.per_line_words, key)
+
+  if word == nil then
+    vim.api.nvim_buf_set_var('per_line_words', words)
+    update_hint_buffer(0, vim.b.buf_width, vim.b.buf_height, words)
+  else
+    local src_win_id = vim.b.src_win_id
+
+    -- TODO: refactor this into its own function
+    -- TODO: close the buffer and the window
+    vim.api.nvim_buf_delete(0, {})
+    vim.api.nvim_set_current_win(src_win_id)
+    vim.api.nvim_win_close(vim.api.nvim_get_current_win(), {})
+
+    -- JUMP!
+    vim.api.nvim_win_set_cursor(src_win_id, { word.line, word.col })
+  end
 end
 
 return M
