@@ -112,11 +112,15 @@ end
 -- This function will remove hints not starting with the input key and will reduce the other ones
 -- with one level.
 local function reduce_hint(hint, key)
-  if hint:sub(1, 1) ~= key or hint:len() == 1 then
-    return nil
+  if hint:sub(1, 1) == key then
+    hint = hint:sub(2)
   end
 
-  return hint:sub(2)
+  if hint == '' then
+    hint = nil
+  end
+
+  return hint
 end
 
 -- Reduce all words’ hints and return the word for which the hint is fully reduced, if any.
@@ -263,11 +267,11 @@ function M:refine_hints(key)
     -- TODO: refactor this into its own function
     -- TODO: close the buffer and the window
     vim.api.nvim_buf_delete(0, {})
-    vim.api.nvim_set_current_win(src_win_id)
-    vim.api.nvim_win_close(vim.api.nvim_get_current_win(), {})
+    -- vim.api.nvim_set_current_win(src_win_id)
+    -- vim.api.nvim_win_close(vim.api.nvim_get_current_win(), {})
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(src_win_id, { word.line, word.col })
+    vim.api.nvim_win_set_cursor(0, { word.line, word.col - 1})
   end
 end
 
