@@ -55,35 +55,51 @@ local function next_key(keys, key)
   return keys:sub(i1, i1)
 end
 
-local function next_perm(keys, perm)
+local function next_perm(term_keys, seq_keys, perm)
   local perm_size = #perm
   for i = perm_size, 1, -1 do
-    local key = next_key(keys, perm[i])
+    local key = next_key(term_keys, perm[i])
 
     if key then
       perm[i] = key
 
       return perm
     else
-      perm[i] = first_key(keys)
+      perm[i] = first_key(seq_keys)
     end
   end
 
-  perm[perm_size + 1] = first_key(keys)
+  perm[perm_size + 1] = first_key(term_keys)
 
   return perm
 end
 
 -- Get the first N permutations for a given set of keys.
 --
+-- The way it works is by incrementing a permutation as long it doesn’t reach a sequence key in the keys collection. A
+-- sequence key is a key in the last ¼ part of the initial keys collection. For instance, for keys = "abcdefghijklmnop",
+-- "mnop" is the last ¼ part, so those keys will be used as sequence-keys. The invariant is that, when all the
+-- permutations are generated, any permutation for which the last key is in the ¾ part of keys implies that permutations
+-- at the same level cannot have this key. Said otherwise, terminal sequences cannot share their last key with
+-- non-terminal sequences on the same level. The following are then not possible (given the example keys from above):
+--
+-- - "a", "ab": not possible because even though "b" is okay, "a" is terminal for the first sequence, so it cannot be
+--   used in the second.
+-- - "a", "ma", "mb", mc": okay, as "a" is not shared on the same level.
+-- - "pnac": without even going any further, this sequence is not possible as "a" is only used in terminal sequences, so
+--   this "pnac" sequence would collide with the correct "pna" sequence.
+--
 -- Permutations are sorted by dimensions, so you will get 1-perm first, then 2-perm, 3-perm, etc. depending on the size
 -- of the keys.
 local function permutations(keys, n)
+  local quarter = #keys * 3 / 4
+  local term_keys = keys:sub(1, quarter)
+  local seq_keys = keys:sub(quarter + 1)
   local perms = {}
   local perm = {}
 
   for _ = 1, n do
-    perm = next_perm(keys, perm)
+    perm = next_perm(keys, seq_keys, perm)
     perms[#perms + 1] = vim.deepcopy(perm)
   end
 
@@ -265,10 +281,7 @@ function M:refine_hints(key)
     local src_win_id = vim.b.src_win_id
 
     -- TODO: refactor this into its own function
-    -- TODO: close the buffer and the window
     vim.api.nvim_buf_delete(0, {})
-    -- vim.api.nvim_set_current_win(src_win_id)
-    -- vim.api.nvim_win_close(vim.api.nvim_get_current_win(), {})
 
     -- JUMP!
     vim.api.nvim_win_set_cursor(0, { word.line, word.col - 1})
