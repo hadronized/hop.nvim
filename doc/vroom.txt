@@ -261,7 +261,7 @@ CONFIGURATION                                                     *vroom-config*
     Defaults:
 >
         keys = 'asdghklqwertyuiopzxcvbnmfj'
->
+<
 `reverse_distribution`                        *vroom-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
     concentrate shorter sequences near the cursor, grouping 1-character
@@ -276,8 +276,7 @@ CONFIGURATION                                                     *vroom-config*
     Defaults:
 >
         reverse_distribution = false
->
-
+<
 `term_seq_bias`                                       *vroom-config-term_seq_bias*
     Bias used to alter the proportion of keys used as terminal keys vs. used
     as sequence keys. It is not recommended to tweak around with this value
@@ -290,8 +289,7 @@ CONFIGURATION                                                     *vroom-config*
     Defaults:
 >
         term_seq_bias = 3 / 4
->
-
+<
 `winblend`                                                 *vroom-config-winblend*
     'winblend' value to use for the hint buffer.
 
@@ -302,7 +300,6 @@ CONFIGURATION                                                     *vroom-config*
 >
         winblend = 50
 <
-
 `teasing`                                                   *vroom-config-teasing*
     Boolean value stating whether Vroom should tease you when you do something
     you are not supposed to.
