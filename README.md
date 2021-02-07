@@ -96,7 +96,7 @@ If you want to create a key binding (<kbd>$</kbd> in this example) from within L
 
 ```lua
 -- place this in one of your configuration file(s)
-vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'vroom'.jump_words()<cr>", silent_noremap_opt)
+vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'vroom'.jump_words()<cr>", {})
 ```
 
 For a more complete user guide and help pages:
