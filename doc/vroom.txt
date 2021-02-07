@@ -118,7 +118,7 @@ Most of the functions and values you need to know about are in `vroom`.
 
 Hint API~
 
-The hint API allows to create hints, reduce them and display them.
+The hint API allows to create, reduce and display *hints* in easy ways.
 
 `vroom.hint.by_word_start`                              *vroom.hint.by_word_start*
     |word| hint mode. This mode will highlights the beginnings of all the
