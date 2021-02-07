@@ -33,6 +33,7 @@ Neovim version >0.5 – at least at the time of writing these lines:
 
 * [Features](#features)
 * [Getting started](#getting-started)
+  * [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
   * [Installation](#installation)
 * [Usage](#usage)
 
@@ -53,6 +54,21 @@ This section will guide you through the list of steps you must take to be able t
 
 > This plugin was written against Neovim 0.5, which is currently a nightly version. However, Neovim 0.4 should work
 > too. If you are still on Neovim 0.4, feel free to reach out and tell me how is your experience going.
+
+## Disclaimer and experimental notice
+
+**Please read this section before going on any further.**
+
+The plugin was born from scratch on 5th Febrary of 2021 and, at the time of writing this, is two days old. Even though
+it has reached a usable state, it still has some remaining issues to fix. You can get the full list of them with the
+embedded help, if you are curious:
+
+```vim
+:help vroom-limitations-issues
+```
+
+If you are encountering any of these issues, **you do not have to open an issue as it is already being actively worked
+on.** However, PRs are be greatly appreciated.
 
 ## Installation
 
