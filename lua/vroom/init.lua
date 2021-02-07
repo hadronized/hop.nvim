@@ -11,7 +11,7 @@ local function update_hint_buffer(buf_id, buf_width, buf_height, hints)
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, lines)
 
   for line = 1, buf_height do
-    vim.api.nvim_buf_add_highlight(buf_id, -1, 'EndOfBuffer', line, 0, -1)
+    vim.api.nvim_buf_add_highlight(buf_id, -1, 'EndOfBuffer', line - 1, 0, -1)
 
     for _, w in pairs(hints[line]) do
       local hint_len = #w.hint
