@@ -5,19 +5,19 @@
                                |___/   /_/     \____/ \____/ /_/ /_/ /_/
                                       · Neovim motions on speed! ·
 
-**Vroom** is an “EasyMotion” like plugin allowing you to jump anywhere in a
+**Vroom** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
 document with as few keystrokes as possible. It does so by annotating text in
-your buffer with |hints|, short string sequences for which each character
+your buffer with hints, short string sequences for which each character
 represents a key to type to jump to the annotated text. Most of the time,
 those sequences’ lengths will be between 1 to 3 characters, making every jump
 target in your document reachable in a few keystrokes.
 
-Vroom is a complete from-scratch rewrite of EasyMotion, a famous plugin to
-enhance the native motions of Vim. Even though EasyMotion is usable in
+**Vroom** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
+enhance the native motions of Vim. Even though [EasyMotion] is usable in
 Neovim, it suffers from a few drawbacks making it not comfortable to use with
 Neovim version >0.5 – at least at the time of writing these lines:
 
-- EasyMotion uses an old trick to annotate jump targets by saving the
+- [EasyMotion] uses an old trick to annotate jump targets by saving the
   contents of the buffer, replacing it with the highlighted annotations and
   then restoring the initial buffer after jump. This trick is dangerous as it
   will change the contents of your buffer. A UI plugin should never do anything
@@ -28,6 +28,9 @@ Neovim version >0.5 – at least at the time of writing these lines:
   its treesitter native implementation. For LSP, it means that the connected
   LSP server will receive a buffer with the jump target annotations… not
   ideal.
+
+**Vroom** is a modern take implementing this concept for the latest versions of
+Neovim.
 
 <!-- vim-markdown-toc GFM -->
 
@@ -52,8 +55,10 @@ Neovim version >0.5 – at least at the time of writing these lines:
 
 This section will guide you through the list of steps you must take to be able to get started with **Vroom**.
 
-> This plugin was written against Neovim 0.5, which is currently a nightly version. However, Neovim 0.4 should work
-> too. If you are still on Neovim 0.4, feel free to reach out and tell me how is your experience going.
+This plugin was written against Neovim 0.5, which is currently a nightly version. However, Neovim 0.4 should work
+too. If you are still on Neovim 0.4, feel free to reach out and tell me how is your experience going.
+
+This plugin will not currently work on Vim and no support for Vim is planned.
 
 ## Disclaimer and experimental notice
 
@@ -101,3 +106,5 @@ For a more complete user guide and help pages:
 ```
 
 More functions and commands to come soon.
+
+[EasyMotion]: https://github.com/easymotion/vim-easymotion

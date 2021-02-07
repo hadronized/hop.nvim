@@ -11,7 +11,7 @@
 ==============================================================================
 CONTENTS                                                        *vroom-contents*
 
-  Introduction ············································· |vroom-introduction|
+  Introduction ············································ |vroom-introduction|
   Requirements ············································ |vroom-requirements|
   Limitations and known issues ······················ |vroom-limitations-issues|
   Usage ·························································· |vroom-usage|
@@ -66,6 +66,10 @@ time being. A fix will land to make it work as soon as possible.
 
 Emojis are also a topic of big annoyance. They will make Vroom behave the same
 way it does with |conceal| — i.e. somehow broken right now.
+
+Currently, the cursor is automatically set to the top of your window. Even
+though this is of a minor annoyance, it is still considered a bug and will be
+solved as soon as possible.
 
 ==============================================================================
 USAGE                                                              *vroom-usage*
