@@ -104,7 +104,7 @@ CONFIGURATION                                                     *vroom-config*
         keys = 'TODO'
 >
 `reverse_distribution`                        *vroom-config-reverse_distribution*
-    The default behavior for key sequence distrubtion in your buffer is to
+    The default behavior for key sequence distribution in your buffer is to
     concentrate shorter sequences near the cursor, grouping 1-character
     sequences around. As words get further from the cursor, the dimension of
     the sequences will grow, making the furthest words the longest sequences
