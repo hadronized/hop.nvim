@@ -14,7 +14,7 @@ CONTENTS                                                        *vroom-contents*
     Introduction .......................................... |vroom-introduction|
     Requirements .......................................... |vroom-requirements|
     Usage ........................................................ |vroom-usage|
-    Configuration ........................................ |vroom-configuration|
+    Configuration ............................................... |vroom-config|
     License .................................................... |vroom-license|
 
 ==============================================================================
@@ -53,7 +53,73 @@ recommended to use Neovim version 0.5+.
 ==============================================================================
 USAGE                                                              *vroom-usage*
 
+Commands~
+                                                                    *:VroomWord*
+:VroomWord
+    Annotate all words in the current window with key sequences. Typing a
+    first  key will visually filter the sequences and reduce them. Continue
+    typing key sequences until you reduce a sequence completely, which will
+    bring your cursor at that position.
 
+    This is akin to calling the |vroom.jump_words| Lua function.
 
+Lua API~
+                                                                 *vroom-lua-api*
+The Lua API comprises several modules:
+
+`vroom`           Entry point and main interface. If you just want to use
+                Vroom from within Lua via keybindings, you shouldn’t need to
+                read any other modules.
+`vroom.defaults`  Default options.
+`vroom.hint`      Various functions to create, update and reduce hints.
+`vroom.keymap`    Implementation of the keymap allowing to perform jumps.
+`vroom.perm`      Permutation functions. Permutations are used as labels for
+                the hints.
+
+Most of the functions and values you need to know about are in `vroom`.
+
+`vroom.jump_words(`{opts}`)`                                      *vroom.jump_words*
+    Annotate all words in the current window with key sequences. Typing a
+    first key will visually filter the sequences and reduce them. Continue
+    typing key sequences until you reduce a sequence completely, which will
+    bring your cursor at that position. See |vroom-lua-opts| for a complete list
+    of the options you can pass as arguments.
+
+==============================================================================
+CONFIGURATION                                                     *vroom-config*
+
+`keys`                                                         *vroom-config-keys*
+    A string representing all the keys that can be part of a sequence. Every
+    character (key) used in the string will be used as part of a sequence. The
+    shortest sequence is a sequence of a single character, and depending on
+    the content of your buffer, you might end up with 3-character sequences in
+    worst situations.
+
+    However, it is important to notice that if you decide to provide `keys`,
+    you have to ensure to use enough characters in the string, otherwise you
+    might get very long sequences and a not so pleasant experience.
+
+    Defaults:
+>
+        keys = 'TODO'
+>
+`reverse_distribution`                        *vroom-config-reverse_distribution*
+    The default behavior for key sequence distrubtion in your buffer is to
+    concentrate shorter sequences near the cursor, grouping 1-character
+    sequences around. As words get further from the cursor, the dimension of
+    the sequences will grow, making the furthest words the longest sequences
+    to type.
+
+    Set this option to `true` to reverse the density and concentrate the
+    shortest sequences (1-character) around the furthest words and the longest
+    sequences around the cursor.
+
+    Defaults:
+>
+        reverse_distribution = false
+>
+
+`term_seq_bias`                                       *vroom-config-term_seq_bias*
+    Bias used to alter the alog
 ==============================================================================
 vim:tw=78:sw=4:ts=8:ft=help:norl:
