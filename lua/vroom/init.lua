@@ -79,7 +79,8 @@ function M.jump_words(opts)
     style = 'minimal'
   })
   vim.api.nvim_win_set_option(win_id, 'winblend', winblend)
-  vim.api.nvim_win_set_cursor(win_id, { screenpos.row, cursor_col })
+  -- FIXME: the cursor line is outside of the screen for vertical splits with this code
+  -- vim.api.nvim_win_set_cursor(win_id, { cursor_line, cursor_col })
 
   -- buffer-local variables so that we can access them later
   vim.api.nvim_buf_set_var(hint_buf_id, 'src_win_id', vim.api.nvim_get_current_win())
