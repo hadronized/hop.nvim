@@ -5,22 +5,22 @@ local keymap = require'vroom.keymap'
 local M = {}
 
 -- Update the hint buffer.
-local function update_hint_buffer(buf_id, buf_width, buf_height, hints)
-  local lines = hint.create_buffer_lines(buf_id, buf_width, buf_height, hints)
+local function update_hint_buffer(buf_handle, buf_width, buf_height, hints)
+  local lines = hint.create_buffer_lines(buf_width, buf_height, hints)
 
-  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, lines)
+  vim.api.nvim_buf_set_lines(buf_handle, 0, -1, true, lines)
 
   for line = 1, buf_height do
-    vim.api.nvim_buf_add_highlight(buf_id, -1, 'EndOfBuffer', line - 1, 0, -1)
+    vim.api.nvim_buf_add_highlight(buf_handle, -1, 'EndOfBuffer', line - 1, 0, -1)
 
     for _, w in pairs(hints[line]) do
       local hint_len = #w.hint
 
       if hint_len == 1 then
-        vim.api.nvim_buf_add_highlight(buf_id, -1, 'VroomNextKey', w.line - 1, w.col - 1, w.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey', w.line - 1, w.col - 1, w.col)
       else
-        vim.api.nvim_buf_add_highlight(buf_id, -1, 'VroomNextKey1', w.line - 1, w.col - 1, w.col)
-        vim.api.nvim_buf_add_highlight(buf_id, -1, 'VroomNextKey2', w.line - 1, w.col, w.col + #w.hint - 1)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey1', w.line - 1, w.col - 1, w.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey2', w.line - 1, w.col, w.col + #w.hint - 1)
       end
     end
   end
@@ -63,13 +63,13 @@ function M.jump_words(opts)
 
   -- create a new buffer to contain the hints and mark it as ours with b:vroom#marked; this will allow us to know
   -- whether we try to call vroom again from within such a buffer (and actually prevent it)
-  local hint_buf_id = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_var(hint_buf_id, 'vroom#marked', true)
+  local hint_buf_handle = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'vroom#marked', true)
 
   -- fill the hint buffer
-  update_hint_buffer(hint_buf_id, buf_width, buf_height, hints)
+  update_hint_buffer(hint_buf_handle, buf_width, buf_height, hints)
 
-  local win_id = vim.api.nvim_open_win(hint_buf_id, true, {
+  local win_id = vim.api.nvim_open_win(hint_buf_handle, true, {
     relative = 'win',
     width = buf_width,
     height = buf_height,
@@ -83,20 +83,20 @@ function M.jump_words(opts)
   -- vim.api.nvim_win_set_cursor(win_id, { cursor_line, cursor_col })
 
   -- buffer-local variables so that we can access them later
-  vim.api.nvim_buf_set_var(hint_buf_id, 'src_win_id', vim.api.nvim_get_current_win())
-  vim.api.nvim_buf_set_var(hint_buf_id, 'win_top_line', win_top_line)
-  vim.api.nvim_buf_set_var(hint_buf_id, 'buf_width', buf_width)
-  vim.api.nvim_buf_set_var(hint_buf_id, 'buf_height', buf_height)
-  vim.api.nvim_buf_set_var(hint_buf_id, 'hints', hints)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'src_win_id', vim.api.nvim_get_current_win())
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_top_line', win_top_line)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'buf_width', buf_width)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'buf_height', buf_height)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'hints', hints)
 
   -- keybindings
-  keymap.create_jump_keymap(hint_buf_id, opts)
+  keymap.create_jump_keymap(hint_buf_handle, opts)
 end
 
 -- Refine hints of the current buffer.
 --
 -- If the key doesn’t end up refining anything, TODO.
-function M.refine_hints(key)
+function M.refine_hints(buf_handle, key)
   local h, hints, update_count = hint.reduce_hints_lines(vim.b.hints, key)
 
   if h == nil then
@@ -106,14 +106,14 @@ function M.refine_hints(key)
       return
     end
 
-    vim.api.nvim_buf_set_var(0, 'hints', hints)
-    update_hint_buffer(0, vim.b.buf_width, vim.b.buf_height, hints)
+    vim.api.nvim_buf_set_var(buf_handle, 'hints', hints)
+    update_hint_buffer(buf_handle, vim.b.buf_width, vim.b.buf_height, hints)
   else
     local win_top_line = vim.b.win_top_line
 
     -- JUMP!
-    vim.api.nvim_buf_delete(0, {})
-    vim.api.nvim_win_set_cursor(0, { win_top_line + h.line, h.real_col - 1})
+    vim.api.nvim_buf_delete(buf_handle, {})
+    vim.api.nvim_win_set_cursor(buf_handle, { win_top_line + h.line, h.real_col - 1})
   end
 end
 

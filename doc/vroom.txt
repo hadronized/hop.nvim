@@ -11,11 +11,14 @@
 ==============================================================================
 CONTENTS                                                        *vroom-contents*
 
-    Introduction .......................................... |vroom-introduction|
-    Requirements .......................................... |vroom-requirements|
-    Usage ........................................................ |vroom-usage|
-    Configuration ............................................... |vroom-config|
-    License .................................................... |vroom-license|
+  Introduction ············································· |vroom-introduction|
+  Requirements ············································ |vroom-requirements|
+  Limitations and known issues ······················ |vroom-limitations-issues|
+  Usage ·························································· |vroom-usage|
+    Commands ·················································· |vroom-commands|
+    Lua API ···················································· |vroom-lua-api|
+  Configuration ················································· |vroom-config|
+  License ······················································ |vroom-license|
 
 ==============================================================================
 INTRODUCTION                                          *vroom* *vroom-introduction*
@@ -51,9 +54,26 @@ Vroom works only with Neovim and was written Neovim-0.5, so it is highly
 recommended to use Neovim version 0.5+.
 
 ==============================================================================
+LIMITATIONS AND KNOWN ISSUES                          *vroom-limitations-issues*
+
+Vroom currently has difficulties to correctly set the hints if you are using
+'conceallevel', 'concealcursor' or any kind of features related to |conceal|.
+Most of the time, the hints will be slightly offset but jumping to them will
+place your cursor at the right place.
+
+Vroom has big issues with 'wrap'. It is recommended to disable 'wrap' for the
+time being. A fix will land to make it work as soon as possible.
+
+Emojis are also a topic of big annoyance. They will make Vroom behave the same
+way it does with |conceal| — i.e. somehow broken right now.
+
+==============================================================================
 USAGE                                                              *vroom-usage*
 
 Commands~
+                                                                *vroom-commands*
+You can try those commands by typing them in your command line.
+
                                                                     *:VroomWord*
 :VroomWord
     Annotate all words in the current window with key sequences. Typing a
@@ -76,6 +96,8 @@ The Lua API comprises several modules:
 `vroom.perm`      Permutation functions. Permutations are used as labels for
                 the hints.
 
+Main API~
+
 Most of the functions and values you need to know about are in `vroom`.
 
 `vroom.jump_words(`{opts}`)`                                      *vroom.jump_words*
@@ -84,6 +106,143 @@ Most of the functions and values you need to know about are in `vroom`.
     typing key sequences until you reduce a sequence completely, which will
     bring your cursor at that position. See |vroom-lua-opts| for a complete list
     of the options you can pass as arguments.
+
+`vroom.refine_hints(`{buf_handle}`,` {key}`)`                     *vroom.refine_hints*
+    Refine hints in buffer {buf_handle} by reducing sequences starting with
+    {key}. If a sequence has only one key remaining and that key is {key},
+    the associated hint jump target is triggered.
+
+    If {key} is not found as the first key in any sequence currently visible,
+    the function will abort and report an error to the user stating that no
+    remaining sequence starts with {key}.
+
+Hint API~
+
+The hint API allows to create hints, reduce them and display them.
+
+`vroom.hint.by_word_start`                              *vroom.hint.by_word_start*
+    |word| hint mode. This mode will highlights the beginnings of all the
+    words in the document and will make the cursor jump to the one fully
+    reduced.
+
+`vroom.hint.mark_hints_line(`                         *vroom.hint.mark_hints_line*
+  {hint_mode}`,`
+  {line_nr}`,`
+  {line}
+`)`
+    Mark the given {line} with hints according to the input {hint_mode}. The
+    {line_nr} must be the row where the {line} comes from.
+
+    This function returns all the hints for {line} as a table consisting of
+    three information:
+>
+        { line, col, real_col }
+<
+    `line` is the same as {line_nr} and is simply forwarded. `col` is the
+    column at which the hint visually starts. `real_col` is the column at
+    which the hint starts taking into account multi-byte characters.
+
+    Use `col` for displaying the hints and `real_col` to jump to it.
+
+    The returned hint is to be considered as a placeholder, as it doesn’t have
+    its hint label yet. Have a look at |vroom.hint.create_hints| for further
+    information about how the `hint` field is added.
+
+`vroom.hint.reduce_hint(`{hint}`,` {key}`)`                   *vroom.hint.reduce_hint*
+    Reduce {hint} with {key}.
+
+    If {hint} didn’t start with {key}, it is returned as-is. If {hint} started
+    with {key}, that {key} is removed from its beginning. If the remaining
+    hint is empty, `nil` is returned, otherwise the reduction is returned.
+
+`vroom.hint.reduce_hints_lines(`                   *vroom.hint.reduce_hints_lines*
+  {per_line_hints}`,`
+  {key}
+`)`
+    Reduce all hints in {per_line_hints} and return the fully reduced one, if
+    any.
+
+    If a hint is fully reduced, its `hint` field will be `nil` but its `line`,
+    `col` and `real_col` fields can still be used to jump to it.
+
+`vroom.hint.create_hints(`                               *vroom.hint.create_hints*
+  {hint_mode}`,`
+  {buf_heigth}`,`
+  {cursor_pos}`,`
+  {lines}`,`
+  {opts}
+`)`
+    Given a set of {lines}, this function creates the hints for each line in
+    {lines} by respecting the {hint_mode}. The {cursor_pos} is used to alter
+    the sequence distribution over the buffer.
+
+    The returned value is a table containing the following fields:
+>
+        { line, col, real_col, hint }
+<
+    The meaning of `line`, `col` and `real_col` is the same as with
+    |vroom.hint.mark_hints_line|. `hint` contains the permutation making the
+    sequence that can be displayed and typed by a user to jump to.
+
+`vroom.hint.create_buffer_lines(`                 *vroom.hint.create_buffer_lines*
+  {buf_width}`,`
+  {buf_height}`,`
+  {per_line_hints}
+`)`
+    Create the lines that can be put in a buffer to show the hints. The lines
+    are created by using an algorithm allowing the hints to be cut if they
+    overlap with others. {per_line_hints} should be an object returned by
+    |vroom.hint_create_hints|.
+
+    This function returns the content of the buffer as a list of lines, and
+    each line is represented with a single string.
+
+Permutation API~
+
+The permutation API is the core part of the algorithm used in Vroom.
+Permutations in Vroom are made out of a source sequence of characters, called
+a key set and represented with {keys}. A good choice of key set is important
+to yield short and concise permutations, allowing to jump to targets with
+fewer keystrokes.
+
+`vroom.perm.permutations(`{keys}`,` {n}`,` {opts}`)`           *vroom.perm.permutations*
+    Get the first {n} permutations out of {keys}.
+
+    This function will generate shorter permutations first, and when a given
+    dimension is fully exhausted, will switch to the next dimension. The first
+    permutations will be of dimension 1 (i.e. a single character), taken out
+    from {keys}. Once all keys are exhausted for 1-character permutations, the
+    next permutations will be generated for dimension 2 (i.e. two characters),
+    also taken out from {keys}.
+
+    {keys} is split into two sets: terminal keys are keys that, when press,
+    immediately trigger a jump. They can be found in the 1-character
+    permutations and at the end of longer sequences, but never in the at the
+    beginning nor the middle of a longer permutations. Sequence keys represent
+    the second set and can never be found in 1-character permutations, nor in
+    terminal positions of longer ones.
+
+    For a permutation `perm` which length is greater or equal than 2, any keys
+    for which the index in the permutation is between `1` and `#perm - 1` are
+    sequence keys and the last key in the permutation at index `#perm` is a
+    terminal key.
+
+Keymap API~
+
+The keymap API allows to create buffer-local bindings to be able to jump to
+hints targets. Those keymaps are automatically inserted when you call
+functions such as |vroom.jump_words|. They are made out of the {keys} in your
+{opts}.
+
+`vroom.keymap.create_jump_keymap(`               *vroom.keymap.create_jump_keymap*
+  {buf_handle}`,`
+  {opts}
+`)`
+    Create the dynamic keymap in the buffer referred to by {buf_handle} by
+    mapping all the keys found in {opts}.{keys}.
+
+    If {opts} is `nil` or if {opts}.{keys} is `nil`, the appropriate {keys}
+    value will be taken out from |vroom.defaults.opts|.
 
 ==============================================================================
 CONFIGURATION                                                     *vroom-config*
@@ -101,7 +260,7 @@ CONFIGURATION                                                     *vroom-config*
 
     Defaults:
 >
-        keys = 'TODO'
+        keys = 'asdghklqwertyuiopzxcvbnmfj'
 >
 `reverse_distribution`                        *vroom-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
@@ -120,6 +279,73 @@ CONFIGURATION                                                     *vroom-config*
 >
 
 `term_seq_bias`                                       *vroom-config-term_seq_bias*
-    Bias used to alter the alog
+    Bias used to alter the proportion of keys used as terminal keys vs. used
+    as sequence keys. It is not recommended to tweak around with this value
+    too much as it will degrade the experience, but if you really want to give
+    it a try, you should set this value to a number representing the ratio of
+    terminal keys and sequence keys. A ratio of `3/4`, for instance, means
+    that for 12 keys, 9 will be used as terminal keys and 3 will be used as
+    sequence keys.
+
+    Defaults:
+>
+        term_seq_bias = 3 / 4
+>
+
+`winblend`                                                 *vroom-config-winblend*
+    'winblend' value to use for the hint buffer.
+
+    Remember that setting a fully opaque hint buffer will make it impossible
+    to see where you are jumping.
+
+    Defaults:
+>
+        winblend = 50
+<
+
+`teasing`                                                   *vroom-config-teasing*
+    Boolean value stating whether Vroom should tease you when you do something
+    you are not supposed to.
+
+    If you find this setting annoying, feel free to turn it to `false`.
+
+    Defaults:
+>
+        teasing = true
+<
+==============================================================================
+LICENSE                                                          *vroom-license*
+
+Copyright (c) 2021, Dimitri Sabadie <dimitri.sabadie@gmail.com>
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of Dimitri Sabadie <dimitri.sabadie@gmail.com> nor the
+      names of other contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 ==============================================================================
 vim:tw=78:sw=4:ts=8:ft=help:norl:

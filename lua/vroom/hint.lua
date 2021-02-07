@@ -3,7 +3,7 @@ local perm = require'vroom.perm'
 
 local M = {}
 
--- Word regex.
+-- Word hint mode.
 --
 -- Used to tag words with hints.
 M.by_word_start = vim.regex('\\<\\w\\+')
@@ -25,7 +25,7 @@ local function manh_dist(a, b, x_bias)
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
 
--- Mark the current line with hints whenever the input regex matches.
+-- Mark the current line with hints for the given hint mode.
 --
 -- This function applies reg repeatedly until it fails (typically at the end of
 -- the line). For every match of the regex, a hint placeholder is generated, which
@@ -34,13 +34,13 @@ end
 --   { line, col }
 --
 -- The input line_nr is the line number of the line currently being marked.
-function M.mark_hints_line(reg, line_nr, line)
+function M.mark_hints_line(hint_mode, line_nr, line)
   local hints = {}
 
   local col = 1
   while true do
     local s = line:sub(col)
-    local b, e = reg:match_str(s)
+    local b, e = hint_mode:match_str(s)
 
     if b == nil then
       break
@@ -97,7 +97,7 @@ function M.reduce_hints_lines(per_line_hints, key)
   return nil, output, update_count
 end
 
-function M.create_hints(reg, buf_height, cursor_pos, lines, opts)
+function M.create_hints(hint_mode, buf_height, cursor_pos, lines, opts)
   local keys = opts and opts.keys or defaults.keys
   local reverse_distribution = opts and opts.reverse_distribution or defaults.reverse_distribution
 
@@ -108,7 +108,7 @@ function M.create_hints(reg, buf_height, cursor_pos, lines, opts)
   local hints = {}
   local indirect_hints = {}
   for i = 1, buf_height do
-    local line_hints = M.mark_hints_line(reg, i, lines[i])
+    local line_hints = M.mark_hints_line(hint_mode, i, lines[i])
     hints[i] = line_hints
 
     for j = 1, #line_hints do
@@ -161,7 +161,7 @@ end
 -- If the user reduces once again by typing w:
 --
 --   p q
-function M.create_buffer_lines(buf_id, buf_width, buf_height, per_line_hints)
+function M.create_buffer_lines(buf_width, buf_height, per_line_hints)
   local lines = {}
   for line = 1, buf_height do
     local col = 1

@@ -14,7 +14,7 @@ function M.create_jump_keymap(buf_handle, opts)
   -- remap all the jump keys
   for i = 1, #keys do
     local key = keys:sub(i, i)
-    vim.api.nvim_buf_set_keymap(buf_handle, '', key, "<cmd>lua require'vroom'.refine_hints('" .. key .. "')<cr>", { nowait = true })
+    vim.api.nvim_buf_set_keymap(buf_handle, '', key, "<cmd>lua require'vroom'.refine_hints(0, '" .. key .. "')<cr>", { nowait = true })
   end
 
   vim.api.nvim_buf_set_keymap(buf_handle, '', '<esc>', '<cmd>q<cr>', {})
