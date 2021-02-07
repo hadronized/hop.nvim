@@ -135,24 +135,68 @@ function M.create_hints(reg, buf_height, cursor_pos, lines, opts)
 end
 
 -- Create the lines for the hint buffer.
-function M.create_buffer_lines(buf_id, buf_width, buf_height, hints)
+--
+-- If a hint is too close to another one, it will not be displayed entirely. For instance, imagine the following text
+-- to hint by word:
+--
+--   a b
+--
+-- If a is associated with x and b is associated with y, the hint buffer will look like this:
+--
+--   x y
+--
+-- If a is associated with xw and b is associated with xz, the hint buffer will look like this:
+--
+--   xwxz
+--
+-- However, if a is now associated with xwp and b is associated with xwq, the hint buffer will look like this:
+--
+--   xwxw
+--
+-- If the user reduces hints by typing x, this last buffer will get reduced to:
+--
+--   wpwq
+--
+-- If the user reduces once again by typing w:
+--
+--   p q
+function M.create_buffer_lines(buf_id, buf_width, buf_height, per_line_hints)
   local lines = {}
   for line = 1, buf_height do
     local col = 1
     local content = ''
+    local hints = per_line_hints[line]
 
-    for _, w in pairs(hints[line]) do
-      -- put spaces until we hit the beginning of the word
-      if col < w.col then
-        content = content .. string.rep(' ', w.col - col)
+    if #hints > 0 then
+      for i = 1, #hints - 1 do
+        local hint = hints[i]
+
+        -- put spaces until we hit the beginning of the hint
+        if col < hint.col then
+          content = content .. string.rep(' ', hint.col - col)
+        end
+
+        -- compute the length the hint will take
+        local hint_len = math.min(#hint.hint, hints[i + 1].col - hint.col)
+        content = content .. hint.hint:sub(1, hint_len)
+        col = hint.col + hint_len
       end
 
-      content = content .. w.hint
-      col = w.col + #w.hint
+      -- the last hint is special as it doesn’t have a next hint; instead, we will use the buf_width
+      local hint = hints[#hints]
+      local hint_len = math.min(#hint.hint, buf_width - hint.col)
+
+      -- put spaces until we hit the beginning of the hint
+      if col < hint.col then
+        content = content .. string.rep(' ', hint.col - col)
+      end
+
+      content = content .. hint.hint:sub(1, hint_len)
+      col = hint.col + hint_len
     end
 
     if col < buf_width then
-      content = content .. string.rep(' ', buf_width - col)
+      content = content .. string.rep(' ', buf_width - col + 1)
     end
 
     lines[line] = content
