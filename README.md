@@ -73,7 +73,7 @@ embedded help, if you are curious:
 ```
 
 If you are encountering any of these issues, **you do not have to open an issue as it is already being actively worked
-on.** However, PRs are be greatly appreciated.
+on.** However, PRs are greatly appreciated.
 
 ## Installation
 
