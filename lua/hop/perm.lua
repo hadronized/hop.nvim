@@ -1,4 +1,4 @@
-local defaults = require'vroom.defaults'
+local defaults = require'hop.defaults'
 
 local M = {}
 

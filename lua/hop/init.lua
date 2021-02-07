@@ -1,6 +1,6 @@
-local defaults = require'vroom.defaults'
-local hint = require'vroom.hint'
-local keymap = require'vroom.keymap'
+local defaults = require'hop.defaults'
+local hint = require'hop.hint'
+local keymap = require'hop.keymap'
 
 local M = {}
 
@@ -17,18 +17,18 @@ local function update_hint_buffer(buf_handle, buf_width, buf_height, hints)
       local hint_len = #w.hint
 
       if hint_len == 1 then
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey', w.line - 1, w.col - 1, w.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey', w.line - 1, w.col - 1, w.col)
       else
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey1', w.line - 1, w.col - 1, w.col)
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'VroomNextKey2', w.line - 1, w.col, w.col + #w.hint - 1)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey1', w.line - 1, w.col - 1, w.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey2', w.line - 1, w.col, w.col + #w.hint - 1)
       end
     end
   end
 end
 
 function M.jump_words(opts)
-  -- abort if we’re already in a vroom buffer
-  if vim.b['vroom#marked'] then
+  -- abort if we’re already in a hop buffer
+  if vim.b['hop#marked'] then
     local teasing = nil
     if opts and opts.teasing ~= nil then
       teasing = opts.teasing
@@ -37,7 +37,7 @@ function M.jump_words(opts)
     end
 
     if teasing then
-      vim.cmd('echohl Error|echo "eh, don’t open vroom from within vroom, that’s super dangerous!"')
+      vim.cmd('echohl Error|echo "eh, don’t open hop from within hop, that’s super dangerous!"')
     end
 
     return
@@ -61,10 +61,10 @@ function M.jump_words(opts)
 
   local hints = hint.create_hints(hint.by_word_start, buf_height, cursor_pos, win_lines, opts)
 
-  -- create a new buffer to contain the hints and mark it as ours with b:vroom#marked; this will allow us to know
-  -- whether we try to call vroom again from within such a buffer (and actually prevent it)
+  -- create a new buffer to contain the hints and mark it as ours with b:hop#marked; this will allow us to know
+  -- whether we try to call hop again from within such a buffer (and actually prevent it)
   local hint_buf_handle = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'vroom#marked', true)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'hop#marked', true)
 
   -- fill the hint buffer
   update_hint_buffer(hint_buf_handle, buf_width, buf_height, hints)

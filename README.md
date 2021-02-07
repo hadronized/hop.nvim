@@ -1,18 +1,19 @@
-                                _    __
-                               | |  / /   _____  ____   ____    ____ ___
-                               | | / /   / ___/ / __ \ / __ \  / __ `__ \
-                               | |/ /   / /    / /_/ // /_/ / / / / / / /
-                               |___/   /_/     \____/ \____/ /_/ /_/ /_/
+                                              __
+                                             / /_  ____  ____
+                                            / __ \/ __ \/ __ \
+                                           / / / / /_/ / /_/ /
+                                          /_/ /_/\____/ .___/
+                                                     /_/
                                       · Neovim motions on speed! ·
 
-**Vroom** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
+**Hop** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
 document with as few keystrokes as possible. It does so by annotating text in
 your buffer with hints, short string sequences for which each character
 represents a key to type to jump to the annotated text. Most of the time,
 those sequences’ lengths will be between 1 to 3 characters, making every jump
 target in your document reachable in a few keystrokes.
 
-**Vroom** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
+**Hop** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
 enhance the native motions of Vim. Even though [EasyMotion] is usable in
 Neovim, it suffers from a few drawbacks making it not comfortable to use with
 Neovim version >0.5 – at least at the time of writing these lines:
@@ -29,7 +30,7 @@ Neovim version >0.5 – at least at the time of writing these lines:
   LSP server will receive a buffer with the jump target annotations… not
   ideal.
 
-**Vroom** is a modern take implementing this concept for the latest versions of
+**Hop** is a modern take implementing this concept for the latest versions of
 Neovim.
 
 <!-- vim-markdown-toc GFM -->
@@ -53,7 +54,7 @@ Neovim.
 
 # Getting started
 
-This section will guide you through the list of steps you must take to be able to get started with **Vroom**.
+This section will guide you through the list of steps you must take to be able to get started with **Hop**.
 
 This plugin was written against Neovim 0.5, which is currently a nightly version. However, Neovim 0.4 should work
 too. If you are still on Neovim 0.4, feel free to reach out and tell me how is your experience going.
@@ -69,7 +70,7 @@ it has reached a usable state, it still has some remaining issues to fix. You ca
 embedded help, if you are curious:
 
 ```vim
-:help vroom-limitations-issues
+:help hop-limitations-issues
 ```
 
 If you are encountering any of these issues, **you do not have to open an issue as it is already being actively worked
@@ -80,29 +81,29 @@ on.** However, PRs are greatly appreciated.
 Using [vim-plug](https://github.com/junegunn/vim-plug):
 
 ```vim
-Plug 'phaazon/vroom'
+Plug 'phaazon/hop.nvim'
 ```
 
 # Usage
 
-A simple vim command is available to test with the default options: `:VroomWord`. If you would rather use the Lua API,
+A simple vim command is available to test with the default options: `:HopWord`. If you would rather use the Lua API,
 you can test it via the command prompt:
 
 ```vim
-:lua require'vroom'.jump_words()
+:lua require'hop'.jump_words()
 ```
 
 If you want to create a key binding (<kbd>$</kbd> in this example) from within Lua:
 
 ```lua
 -- place this in one of your configuration file(s)
-vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'vroom'.jump_words()<cr>", {})
+vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'hop'.jump_words()<cr>", {})
 ```
 
 For a more complete user guide and help pages:
 
 ```vim
-:help vroom
+:help hop
 ```
 
 More functions and commands to come soon.

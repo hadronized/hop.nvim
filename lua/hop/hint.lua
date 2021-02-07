@@ -1,5 +1,5 @@
-local defaults = require'vroom.defaults'
-local perm = require'vroom.perm'
+local defaults = require'hop.defaults'
+local perm = require'hop.perm'
 
 local M = {}
 

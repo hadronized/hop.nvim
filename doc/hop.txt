@@ -1,36 +1,36 @@
-*vroom.txt*    For Neovim version 0.5                  Last change: 2021 Feb 6
+*hop.txt*    For Neovim version 0.5                  Last change: 2021 Feb 6
 
-
-                   _    __
-                  | |  / /   _____  ____   ____    ____ ___
-                  | | / /   / ___/ / __ \ / __ \  / __ `__ \
-                  | |/ /   / /    / /_/ // /_/ / / / / / / /
-                  |___/   /_/     \____/ \____/ /_/ /_/ /_/
+                                 __
+                                / /_  ____  ____
+                               / __ \/ __ \/ __ \
+                              / / / / /_/ / /_/ /
+                             /_/ /_/\____/ .___/
+                                        /_/
                          · Neovim motions on speed! ·
 
 ==============================================================================
-CONTENTS                                                        *vroom-contents*
+CONTENTS                                                          *hop-contents*
 
-  Introduction ············································ |vroom-introduction|
-  Requirements ············································ |vroom-requirements|
-  Limitations and known issues ······················ |vroom-limitations-issues|
-  Usage ·························································· |vroom-usage|
-    Commands ·················································· |vroom-commands|
-    Lua API ···················································· |vroom-lua-api|
-  Configuration ················································· |vroom-config|
-  License ······················································ |vroom-license|
+  Introduction ·············································· |hop-introduction|
+  Requirements ·············································· |hop-requirements|
+  Limitations and known issues ························ |hop-limitations-issues|
+  Usage ···························································· |hop-usage|
+    Commands ···················································· |hop-commands|
+    Lua API ······················································ |hop-lua-api|
+  Configuration ··················································· |hop-config|
+  License ························································ |hop-license|
 
 ==============================================================================
-INTRODUCTION                                          *vroom* *vroom-introduction*
+INTRODUCTION                                              *hop* *hop-introduction*
 
-Vroom is an “EasyMotion” like plugin allowing you to jump anywhere in a
-document with as few keystrokes as possible. It does so by annotating text in
-your buffer with |hints|, short string sequences for which each character
-represents a key to type to jump to the annotated text. Most of the time,
-those sequences’ lengths will be between 1 to 3 characters, making every jump
-target in your document reachable in a few keystrokes.
+Hop is an “EasyMotion” like plugin allowing you to jump anywhere in a document
+with as few keystrokes as possible. It does so by annotating text in your
+buffer with |hints|, short string sequences for which each character represents
+a key to type to jump to the annotated text. Most of the time, those
+sequences’ lengths will be between 1 to 3 characters, making every jump target
+in your document reachable in a few keystrokes.
 
-Vroom is a complete from-scratch rewrite of EasyMotion, a famous plugin to
+Hop is a complete from-scratch rewrite of EasyMotion, a famous plugin to
 enhance the native motions of Vim. Even though EasyMotion is usable in
 Neovim, it suffers from a few drawbacks making it not comfortable to use with
 Neovim version >0.5 – at least at the time of writing these lines:
@@ -48,23 +48,23 @@ Neovim version >0.5 – at least at the time of writing these lines:
   ideal.
 
 ==============================================================================
-REQUIREMENTS                                                *vroom-requirements*
+REQUIREMENTS                                                  *hop-requirements*
 
-Vroom works only with Neovim and was written Neovim-0.5, so it is highly
+Hop works only with Neovim and was written Neovim-0.5, so it is highly
 recommended to use Neovim version 0.5+.
 
 ==============================================================================
-LIMITATIONS AND KNOWN ISSUES                          *vroom-limitations-issues*
+LIMITATIONS AND KNOWN ISSUES                            *hop-limitations-issues*
 
-Vroom currently has difficulties to correctly set the hints if you are using
+Hop currently has difficulties to correctly set the hints if you are using
 'conceallevel', 'concealcursor' or any kind of features related to |conceal|.
 Most of the time, the hints will be slightly offset but jumping to them will
 place your cursor at the right place.
 
-Vroom has big issues with 'wrap'. It is recommended to disable 'wrap' for the
+Hop has big issues with 'wrap'. It is recommended to disable 'wrap' for the
 time being. A fix will land to make it work as soon as possible.
 
-Emojis are also a topic of big annoyance. They will make Vroom behave the same
+Emojis are also a topic of big annoyance. They will make Hop behave the same
 way it does with |conceal| — i.e. somehow broken right now.
 
 Currently, the cursor is automatically set to the top of your window. Even
@@ -72,46 +72,46 @@ though this is of a minor annoyance, it is still considered a bug and will be
 solved as soon as possible.
 
 ==============================================================================
-USAGE                                                              *vroom-usage*
+USAGE                                                                *hop-usage*
 
 Commands~
-                                                                *vroom-commands*
+                                                                  *hop-commands*
 You can try those commands by typing them in your command line.
 
-                                                                    *:VroomWord*
-:VroomWord
+                                                                      *:HopWord*
+:HopWord
     Annotate all words in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
     bring your cursor at that position.
 
-    This is akin to calling the |vroom.jump_words| Lua function.
+    This is akin to calling the |hop.jump_words| Lua function.
 
 Lua API~
-                                                                 *vroom-lua-api*
+                                                                   *hop-lua-api*
 The Lua API comprises several modules:
 
-`vroom`           Entry point and main interface. If you just want to use
-                Vroom from within Lua via keybindings, you shouldn’t need to
-                read any other modules.
-`vroom.defaults`  Default options.
-`vroom.hint`      Various functions to create, update and reduce hints.
-`vroom.keymap`    Implementation of the keymap allowing to perform jumps.
-`vroom.perm`      Permutation functions. Permutations are used as labels for
-                the hints.
+`hop`           Entry point and main interface. If you just want to use
+              Hop from within Lua via keybindings, you shouldn’t need to
+              read any other modules.
+`hop.defaults`  Default options.
+`hop.hint`      Various functions to create, update and reduce hints.
+`hop.keymap`    Implementation of the keymap allowing to perform jumps.
+`hop.perm`      Permutation functions. Permutations are used as labels for
+              the hints.
 
 Main API~
 
-Most of the functions and values you need to know about are in `vroom`.
+Most of the functions and values you need to know about are in `hop`.
 
-`vroom.jump_words(`{opts}`)`                                      *vroom.jump_words*
+`hop.jump_words(`{opts}`)`                                          *hop.jump_words*
     Annotate all words in the current window with key sequences. Typing a
     first key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
-    bring your cursor at that position. See |vroom-lua-opts| for a complete list
+    bring your cursor at that position. See |hop-lua-opts| for a complete list
     of the options you can pass as arguments.
 
-`vroom.refine_hints(`{buf_handle}`,` {key}`)`                     *vroom.refine_hints*
+`hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
     Refine hints in buffer {buf_handle} by reducing sequences starting with
     {key}. If a sequence has only one key remaining and that key is {key},
     the associated hint jump target is triggered.
@@ -124,12 +124,12 @@ Hint API~
 
 The hint API allows to create, reduce and display *hints* in easy ways.
 
-`vroom.hint.by_word_start`                              *vroom.hint.by_word_start*
+`hop.hint.by_word_start`                                  *hop.hint.by_word_start*
     |word| hint mode. This mode will highlights the beginnings of all the
     words in the document and will make the cursor jump to the one fully
     reduced.
 
-`vroom.hint.mark_hints_line(`                         *vroom.hint.mark_hints_line*
+`hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
   {hint_mode}`,`
   {line_nr}`,`
   {line}
@@ -149,17 +149,17 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     Use `col` for displaying the hints and `real_col` to jump to it.
 
     The returned hint is to be considered as a placeholder, as it doesn’t have
-    its hint label yet. Have a look at |vroom.hint.create_hints| for further
+    its hint label yet. Have a look at |hop.hint.create_hints| for further
     information about how the `hint` field is added.
 
-`vroom.hint.reduce_hint(`{hint}`,` {key}`)`                   *vroom.hint.reduce_hint*
+`hop.hint.reduce_hint(`{hint}`,` {key}`)`                       *hop.hint.reduce_hint*
     Reduce {hint} with {key}.
 
     If {hint} didn’t start with {key}, it is returned as-is. If {hint} started
     with {key}, that {key} is removed from its beginning. If the remaining
     hint is empty, `nil` is returned, otherwise the reduction is returned.
 
-`vroom.hint.reduce_hints_lines(`                   *vroom.hint.reduce_hints_lines*
+`hop.hint.reduce_hints_lines(`                       *hop.hint.reduce_hints_lines*
   {per_line_hints}`,`
   {key}
 `)`
@@ -169,7 +169,7 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     If a hint is fully reduced, its `hint` field will be `nil` but its `line`,
     `col` and `real_col` fields can still be used to jump to it.
 
-`vroom.hint.create_hints(`                               *vroom.hint.create_hints*
+`hop.hint.create_hints(`                                   *hop.hint.create_hints*
   {hint_mode}`,`
   {buf_heigth}`,`
   {cursor_pos}`,`
@@ -185,10 +185,10 @@ The hint API allows to create, reduce and display *hints* in easy ways.
         { line, col, real_col, hint }
 <
     The meaning of `line`, `col` and `real_col` is the same as with
-    |vroom.hint.mark_hints_line|. `hint` contains the permutation making the
+    |hop.hint.mark_hints_line|. `hint` contains the permutation making the
     sequence that can be displayed and typed by a user to jump to.
 
-`vroom.hint.create_buffer_lines(`                 *vroom.hint.create_buffer_lines*
+`hop.hint.create_buffer_lines(`                     *hop.hint.create_buffer_lines*
   {buf_width}`,`
   {buf_height}`,`
   {per_line_hints}
@@ -196,20 +196,20 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     Create the lines that can be put in a buffer to show the hints. The lines
     are created by using an algorithm allowing the hints to be cut if they
     overlap with others. {per_line_hints} should be an object returned by
-    |vroom.hint_create_hints|.
+    |hop.hint_create_hints|.
 
     This function returns the content of the buffer as a list of lines, and
     each line is represented with a single string.
 
 Permutation API~
 
-The permutation API is the core part of the algorithm used in Vroom.
-Permutations in Vroom are made out of a source sequence of characters, called
+The permutation API is the core part of the algorithm used in Hop.
+Permutations in Hop are made out of a source sequence of characters, called
 a key set and represented with {keys}. A good choice of key set is important
 to yield short and concise permutations, allowing to jump to targets with
 fewer keystrokes.
 
-`vroom.perm.permutations(`{keys}`,` {n}`,` {opts}`)`           *vroom.perm.permutations*
+`hop.perm.permutations(`{keys}`,` {n}`,` {opts}`)`               *hop.perm.permutations*
     Get the first {n} permutations out of {keys}.
 
     This function will generate shorter permutations first, and when a given
@@ -235,10 +235,10 @@ Keymap API~
 
 The keymap API allows to create buffer-local bindings to be able to jump to
 hints targets. Those keymaps are automatically inserted when you call
-functions such as |vroom.jump_words|. They are made out of the {keys} in your
+functions such as |hop.jump_words|. They are made out of the {keys} in your
 {opts}.
 
-`vroom.keymap.create_jump_keymap(`               *vroom.keymap.create_jump_keymap*
+`hop.keymap.create_jump_keymap(`                   *hop.keymap.create_jump_keymap*
   {buf_handle}`,`
   {opts}
 `)`
@@ -246,12 +246,12 @@ functions such as |vroom.jump_words|. They are made out of the {keys} in your
     mapping all the keys found in {opts}.{keys}.
 
     If {opts} is `nil` or if {opts}.{keys} is `nil`, the appropriate {keys}
-    value will be taken out from |vroom.defaults.opts|.
+    value will be taken out from |hop.defaults.opts|.
 
 ==============================================================================
-CONFIGURATION                                                     *vroom-config*
+CONFIGURATION                                                       *hop-config*
 
-`keys`                                                         *vroom-config-keys*
+`keys`                                                           *hop-config-keys*
     A string representing all the keys that can be part of a sequence. Every
     character (key) used in the string will be used as part of a sequence. The
     shortest sequence is a sequence of a single character, and depending on
@@ -266,7 +266,7 @@ CONFIGURATION                                                     *vroom-config*
 >
         keys = 'asdghklqwertyuiopzxcvbnmfj'
 <
-`reverse_distribution`                        *vroom-config-reverse_distribution*
+`reverse_distribution`                           *hop-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
     concentrate shorter sequences near the cursor, grouping 1-character
     sequences around. As words get further from the cursor, the dimension of
@@ -281,7 +281,7 @@ CONFIGURATION                                                     *vroom-config*
 >
         reverse_distribution = false
 <
-`term_seq_bias`                                       *vroom-config-term_seq_bias*
+`term_seq_bias`                                         *hop-config-term_seq_bias*
     Bias used to alter the proportion of keys used as terminal keys vs. used
     as sequence keys. It is not recommended to tweak around with this value
     too much as it will degrade the experience, but if you really want to give
@@ -294,7 +294,7 @@ CONFIGURATION                                                     *vroom-config*
 >
         term_seq_bias = 3 / 4
 <
-`winblend`                                                 *vroom-config-winblend*
+`winblend`                                                   *hop-config-winblend*
     'winblend' value to use for the hint buffer.
 
     Remember that setting a fully opaque hint buffer will make it impossible
@@ -304,8 +304,8 @@ CONFIGURATION                                                     *vroom-config*
 >
         winblend = 50
 <
-`teasing`                                                   *vroom-config-teasing*
-    Boolean value stating whether Vroom should tease you when you do something
+`teasing`                                                     *hop-config-teasing*
+    Boolean value stating whether Hop should tease you when you do something
     you are not supposed to.
 
     If you find this setting annoying, feel free to turn it to `false`.
@@ -315,7 +315,7 @@ CONFIGURATION                                                     *vroom-config*
         teasing = true
 <
 ==============================================================================
-LICENSE                                                          *vroom-license*
+LICENSE                                                            *hop-license*
 
 Copyright (c) 2021, Dimitri Sabadie <dimitri.sabadie@gmail.com>
 
