@@ -96,9 +96,9 @@ end
 --
 -- If the key doesn’t end up refining anything, TODO.
 function M.refine_hints(key)
-  local word, hints, update_count = hint.reduce_hints_lines(vim.b.hints, key)
+  local h, hints, update_count = hint.reduce_hints_lines(vim.b.hints, key)
 
-  if word == nil then
+  if h == nil then
     if update_count == 0 then
       -- TODO: vim.fn.echo_hl doesn’t seem to be implemented right now :(
       vim.cmd('echohl Error|echo "no remaining sequence starts with ' .. key .. '"')
@@ -112,7 +112,7 @@ function M.refine_hints(key)
 
     -- JUMP!
     vim.api.nvim_buf_delete(0, {})
-    vim.api.nvim_win_set_cursor(0, { win_top_line + word.line, word.col - 1})
+    vim.api.nvim_win_set_cursor(0, { win_top_line + h.line, h.real_col - 1})
   end
 end
 

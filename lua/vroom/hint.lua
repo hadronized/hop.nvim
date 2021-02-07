@@ -46,7 +46,8 @@ function M.mark_hints_line(reg, line_nr, line)
       break
     end
 
-    hints[#hints + 1] = { line = line_nr; col = vim.str_utfindex(line, col + b) }
+    local colb = col + b
+    hints[#hints + 1] = { line = line_nr; col = vim.str_utfindex(line, colb); real_col = colb }
 
     col = col + e
   end
