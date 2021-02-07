@@ -50,7 +50,7 @@ Neovim.
 - [ ] Go to any bigrams in the current buffer.
 - [ ] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
 
-![](.github/img/jump_words_demo.png)
+![](.github/img/jump_words_demo.gif)
 
 # Getting started
 
