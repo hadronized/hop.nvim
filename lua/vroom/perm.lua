@@ -41,6 +41,10 @@ end
 local function next_perm(term_keys, seq_keys, perm)
   local perm_len = #perm
 
+  if perm_len == 0 then
+    return { first_key(term_keys) }
+  end
+
   -- try to increment the terminal key; if it’s possible, then we can directly return the permutation as it’s the next
   -- one
   local term_key = next_key(term_keys, perm[perm_len])
@@ -88,7 +92,7 @@ function M.permutations(keys, n, opts)
   local term_keys = keys:sub(1, quarter)
   local seq_keys = keys:sub(quarter + 1)
   local perms = {}
-  local perm = { keys:sub(1, 1) }
+  local perm = {}
 
   for _ = 1, n do
     perm = next_perm(term_keys, seq_keys, perm)
