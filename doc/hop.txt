@@ -217,12 +217,12 @@ fewer keystrokes.
     permutations will be of dimension 1 (i.e. a single character), taken out
     from {keys}. Once all keys are exhausted for 1-character permutations, the
     next permutations will be generated for dimension 2 (i.e. two characters),
-    also taken out from {keys}.
+    also taken out from {keys}, then dimension 3, etc. etc.
 
-    {keys} is split into two sets: terminal keys are keys that, when press,
+    {keys} is split into two sets: terminal keys are keys that, when pressed,
     immediately trigger a jump. They can be found in the 1-character
-    permutations and at the end of longer sequences, but never in the at the
-    beginning nor the middle of a longer permutations. Sequence keys represent
+    permutations and at the end of longer sequences, but never at the
+    beginning nor the middle of longer permutations. Sequence keys represent
     the second set and can never be found in 1-character permutations, nor in
     terminal positions of longer ones.
 
@@ -246,21 +246,27 @@ functions such as |hop.jump_words|. They are made out of the {keys} in your
     mapping all the keys found in {opts}.{keys}.
 
     If {opts} is `nil` or if {opts}.{keys} is `nil`, the appropriate {keys}
-    value will be taken out from |hop.defaults.opts|.
+    value will be taken out from the default value — see |hop-config|.
 
 ==============================================================================
 CONFIGURATION                                                       *hop-config*
 
 `keys`                                                           *hop-config-keys*
-    A string representing all the keys that can be part of a sequence. Every
-    character (key) used in the string will be used as part of a sequence. The
-    shortest sequence is a sequence of a single character, and depending on
-    the content of your buffer, you might end up with 3-character sequences in
-    worst situations.
+    A string representing all the keys that can be part of a permutation.
+    Every character (key) used in the string will be used as part of a
+    permutation. The shortest permutation is a permutation of a single
+    character, and, depending on the content of your buffer, you might end up
+    with 3-character (or more) permutations in worst situations.
 
     However, it is important to notice that if you decide to provide `keys`,
     you have to ensure to use enough characters in the string, otherwise you
     might get very long sequences and a not so pleasant experience.
+
+    Another important aspect is that the order of the characters you put in
+    your `keys` is important. Depending on the value you use in
+    |hop-config-term_seq_bias|, the keys will be split in two and the first
+    part of it will be used for terminal keys and the second part for sequence
+    keys.
 
     Defaults:
 >
