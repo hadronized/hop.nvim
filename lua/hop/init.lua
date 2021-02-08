@@ -111,8 +111,12 @@ function M.refine_hints(buf_handle, key)
   else
     local win_top_line = vim.b.win_top_line
 
-    -- JUMP!
     vim.api.nvim_buf_delete(buf_handle, {})
+
+    -- prior to jump, register the current position into the jump list
+    vim.cmd("normal m'")
+
+    -- JUMP!
     vim.api.nvim_win_set_cursor(buf_handle, { win_top_line + h.line, h.real_col - 1})
   end
 end
