@@ -46,12 +46,21 @@ function M.jump_words(opts)
   local winblend = opts and opts.winblend or defaults.winblend
 
   local win_view = vim.fn.winsaveview()
+  local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
   local cursor_line = win_view['lnum']
   local cursor_col = win_view['col']
   local win_top_line = win_view['topline'] - 1
-  local screenpos = vim.fn.screenpos(0, cursor_line, 0)
-  local cursor_pos = { screenpos.row, cursor_col }
-  local buf_width = vim.api.nvim_win_get_position(0)[2] + vim.api.nvim_win_get_width(0) - screenpos.col + 1
+  -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
+  -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
+  -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
+  -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
+
+  -- hack to get the left column offset
+  vim.api.nvim_win_set_cursor(0, { cursor_line, 0 })
+  local left_col_offset = vim.fn.wincol() - 1
+  vim.fn.winrestview(win_view)
+
+  local buf_width = win_info.width - left_col_offset
   local buf_height = vim.api.nvim_win_get_height(0)
   local win_lines = vim.api.nvim_buf_get_lines(0, win_top_line, win_top_line + buf_height, false)
 
@@ -59,7 +68,17 @@ function M.jump_words(opts)
     buf_height = #win_lines
   end
 
-  local hints = hint.create_hints(hint.by_word_start, buf_height, cursor_pos, win_lines, opts)
+  local screenpos = vim.fn.screenpos(0, cursor_line, cursor_col)
+  local cursor_pos = { screenpos.row, cursor_col }
+  local hints = hint.create_hints(
+    hint.by_word_start,
+    buf_width,
+    buf_height,
+    cursor_pos,
+    win_view.leftcol,
+    win_lines,
+    opts
+  )
 
   -- create a new buffer to contain the hints and mark it as ours with b:hop#marked; this will allow us to know
   -- whether we try to call hop again from within such a buffer (and actually prevent it)
@@ -74,8 +93,7 @@ function M.jump_words(opts)
     width = buf_width,
     height = buf_height,
     row = 0,
-    col = 0,
-    bufpos = { win_top_line, 0 },
+    col = left_col_offset,
     style = 'minimal'
   })
   vim.api.nvim_win_set_option(win_id, 'winblend', winblend)

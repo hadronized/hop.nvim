@@ -34,12 +34,13 @@ end
 --   { line, col }
 --
 -- The input line_nr is the line number of the line currently being marked.
-function M.mark_hints_line(hint_mode, line_nr, line)
+function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
   local hints = {}
+  local the_line = line:sub(1 + col_offset, col_offset + buf_width)
 
   local col = 1
   while true do
-    local s = line:sub(col)
+    local s = the_line:sub(col)
     local b, e = hint_mode:match_str(s)
 
     if b == nil then
@@ -47,7 +48,11 @@ function M.mark_hints_line(hint_mode, line_nr, line)
     end
 
     local colb = col + b
-    hints[#hints + 1] = { line = line_nr; col = vim.str_utfindex(line, colb); real_col = colb }
+    hints[#hints + 1] = {
+      line = line_nr;
+      col = vim.str_utfindex(line, colb);
+      real_col = colb + col_offset
+    }
 
     col = col + e
   end
@@ -97,7 +102,7 @@ function M.reduce_hints_lines(per_line_hints, key)
   return nil, output, update_count
 end
 
-function M.create_hints(hint_mode, buf_height, cursor_pos, lines, opts)
+function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset, lines, opts)
   local keys = opts and opts.keys or defaults.keys
   local reverse_distribution = opts and opts.reverse_distribution or defaults.reverse_distribution
 
@@ -108,7 +113,7 @@ function M.create_hints(hint_mode, buf_height, cursor_pos, lines, opts)
   local hints = {}
   local indirect_hints = {}
   for i = 1, buf_height do
-    local line_hints = M.mark_hints_line(hint_mode, i, lines[i])
+    local line_hints = M.mark_hints_line(hint_mode, i, lines[i], col_offset, buf_width)
     hints[i] = line_hints
 
     for j = 1, #line_hints do
@@ -185,7 +190,7 @@ function M.create_buffer_lines(buf_width, buf_height, per_line_hints)
 
       -- the last hint is special as it doesn’t have a next hint; instead, we will use the buf_width
       local hint = hints[#hints]
-      local hint_len = math.min(#hint.hint, buf_width - hint.col)
+      local hint_len = math.min(#hint.hint, buf_width - hint.col + 1)
 
       -- put spaces until we hit the beginning of the hint
       if col < hint.col then
