@@ -36,11 +36,11 @@ end
 -- The input line_nr is the line number of the line currently being marked.
 function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
   local hints = {}
-  local the_line = line:sub(1 + col_offset, col_offset + buf_width)
+  local shifted_line = line:sub(1 + col_offset, col_offset + buf_width)
 
   local col = 1
   while true do
-    local s = the_line:sub(col)
+    local s = shifted_line:sub(col)
     local b, e = hint_mode:match_str(s)
 
     if b == nil then
@@ -50,7 +50,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
     local colb = col + b
     hints[#hints + 1] = {
       line = line_nr;
-      col = vim.str_utfindex(line, colb);
+      col = vim.str_utfindex(shifted_line, colb);
       real_col = colb + col_offset
     }
 
