@@ -361,4 +361,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ==============================================================================
+HIGHLIGHTS                                                      *hop-highlights*
+
+Anywhere on the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
+highlight is used. For the rest:
+
+`HopNextKey`                                                   *hop-hl-HopNextkey*
+    Highlight used for the mono-sequence keys (i.e. sequence of 1).
+
+`HopNextKey1`                                                 *hop-hl-HopNextKey1*
+    Highlight used for the first key in a sequence.
+
+`HopNextKey2`                                                 *hop-hl-HopNextKey2*
+    Highlight used for the second and remaining keys in a sequence.
+
+==============================================================================
 vim:tw=78:sw=4:ts=8:ft=help:norl:
