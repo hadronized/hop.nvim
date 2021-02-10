@@ -69,7 +69,7 @@ function M.jump_words(opts)
   end
 
   local screenpos = vim.fn.screenpos(0, cursor_line, cursor_col)
-  local cursor_pos = { screenpos.row, cursor_col }
+  local cursor_pos = { screenpos.row - win_info.winrow + 1, cursor_col }
   local hints = hint.create_hints(
     hint.by_word_start,
     buf_width,
