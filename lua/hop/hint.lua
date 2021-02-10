@@ -3,6 +3,11 @@ local perm = require'hop.perm'
 
 local M = {}
 
+-- Small utility functions for alignments / filling.
+local function next_mul(x, m)
+  return x + m - x % m
+end
+
 -- Word hint mode.
 --
 -- Used to tag words with hints.
@@ -34,9 +39,19 @@ end
 --   { line, col }
 --
 -- The input line_nr is the line number of the line currently being marked.
+--
+-- This function returns the list of hints as well as the length of the line.
 function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
   local hints = {}
-  local shifted_line = line:sub(1 + col_offset, col_offset + buf_width)
+  local end_index = nil
+
+  if buf_width ~= nil then
+    end_index = col_offset + buf_width
+  else
+    end_index = vim.fn.strdisplaywidth(line)
+  end
+
+  local shifted_line = line:sub(1 + col_offset, end_index)
 
   local col = 1
   while true do
@@ -57,7 +72,10 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
     col = col + e
   end
 
-  return hints
+  return {
+    hints = hints;
+    length = vim.fn.strdisplaywidth(line)
+  }
 end
 
 -- Reduce a hint.
@@ -84,7 +102,7 @@ function M.reduce_hints_lines(per_line_hints, key)
   for _, hints in pairs(per_line_hints) do
     local next_hints = {}
 
-    for _, h in pairs(hints) do
+    for _, h in pairs(hints.hints) do
       local prev_hint = h.hint
       h.hint = M.reduce_hint(h.hint, key)
 
@@ -96,7 +114,7 @@ function M.reduce_hints_lines(per_line_hints, key)
       end
     end
 
-    output[#output + 1] = next_hints
+    output[#output + 1] = { hints = next_hints; length = hints.length }
   end
 
   return nil, output, update_count
@@ -116,9 +134,9 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
     local line_hints = M.mark_hints_line(hint_mode, i, lines[i], col_offset, buf_width)
     hints[i] = line_hints
 
-    for j = 1, #line_hints do
-      local w = line_hints[j]
-      indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { w.line, w.col }) }
+    for j = 1, #line_hints.hints do
+      local hint = line_hints.hints[j]
+      indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
     end
   end
 
@@ -134,7 +152,7 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   -- generate permutations and update the lines with hints
   local perms = perm.permutations(keys, #indirect_hints, opts)
   for i, indirect in pairs(indirect_hints) do
-    hints[indirect.i][indirect.j].hint = tbl_to_str(perms[i])
+    hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end
 
   return hints
@@ -166,16 +184,16 @@ end
 -- If the user reduces once again by typing w:
 --
 --   p q
-function M.create_buffer_lines(buf_width, buf_height, per_line_hints)
+function M.create_buffer_lines(win_width, win_height, per_line_hints)
   local lines = {}
-  for line = 1, buf_height do
+  for line = 1, win_height do
     local col = 1
     local content = ''
-    local hints = per_line_hints[line]
+    local line_hints = per_line_hints[line]
 
-    if #hints > 0 then
-      for i = 1, #hints - 1 do
-        local hint = hints[i]
+    if #line_hints.hints > 0 then
+      for i = 1, #line_hints.hints - 1 do
+        local hint = line_hints.hints[i]
 
         -- put spaces until we hit the beginning of the hint
         if col < hint.col then
@@ -183,14 +201,17 @@ function M.create_buffer_lines(buf_width, buf_height, per_line_hints)
         end
 
         -- compute the length the hint will take
-        local hint_len = math.min(#hint.hint, hints[i + 1].col - hint.col)
+        local hint_len = math.min(#hint.hint, line_hints.hints[i + 1].col - hint.col)
         content = content .. hint.hint:sub(1, hint_len)
         col = hint.col + hint_len
       end
 
-      -- the last hint is special as it doesn’t have a next hint; instead, we will use the buf_width
-      local hint = hints[#hints]
-      local hint_len = math.min(#hint.hint, buf_width - hint.col + 1)
+      -- the last hint is special as it doesn’t have a next hint; instead, we will use the buf_width as ending column;
+      -- because of wrapping lines, we have to compute the right “length”, which is the next multiple buf_width after
+      -- hint.col
+      local hint = line_hints.hints[#line_hints.hints]
+      local logical_width = next_mul(line_hints.length - 1, win_width)
+      local hint_len = math.min(#hint.hint, logical_width - hint.col + 1)
 
       -- put spaces until we hit the beginning of the hint
       if col < hint.col then
@@ -201,8 +222,11 @@ function M.create_buffer_lines(buf_width, buf_height, per_line_hints)
       col = hint.col + hint_len
     end
 
-    if col < buf_width then
-      content = content .. string.rep(' ', buf_width - col + 1)
+    -- local logical_width = next_mul(col, win_width)
+    local logical_width = next_mul(math.max(1, line_hints.length) - 1, win_width)
+    -- local logical_width = line_hints.length
+    if col < logical_width then
+      content = content .. string.rep(' ', logical_width - col + 1)
     end
 
     lines[line] = content

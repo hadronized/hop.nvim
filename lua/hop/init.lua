@@ -5,22 +5,22 @@ local keymap = require'hop.keymap'
 local M = {}
 
 -- Update the hint buffer.
-local function update_hint_buffer(buf_handle, buf_width, buf_height, hints)
-  local lines = hint.create_buffer_lines(buf_width, buf_height, hints)
+local function update_hint_buffer(buf_handle, win_width, win_height, hints)
+  local lines = hint.create_buffer_lines(win_width, win_height, hints)
 
   vim.api.nvim_buf_set_lines(buf_handle, 0, -1, true, lines)
 
-  for line = 1, buf_height do
+  for line = 1, win_height do
     vim.api.nvim_buf_add_highlight(buf_handle, -1, 'EndOfBuffer', line - 1, 0, -1)
 
-    for _, w in pairs(hints[line]) do
-      local hint_len = #w.hint
+    for _, h in pairs(hints[line].hints) do
+      local hint_len = #h.hint
 
       if hint_len == 1 then
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey', w.line - 1, w.col - 1, w.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey', h.line - 1, h.col - 1, h.col)
       else
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey1', w.line - 1, w.col - 1, w.col)
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey2', w.line - 1, w.col, w.col + #w.hint - 1)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey1', h.line - 1, h.col - 1, h.col)
+        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey2', h.line - 1, h.col, h.col + #h.hint - 1)
       end
     end
   end
@@ -60,20 +60,25 @@ function M.jump_words(opts)
   local left_col_offset = vim.fn.wincol() - 1
   vim.fn.winrestview(win_view)
 
-  local buf_width = win_info.width - left_col_offset
-  local buf_height = vim.api.nvim_win_get_height(0)
-  local win_lines = vim.api.nvim_buf_get_lines(0, win_top_line, win_top_line + buf_height, false)
-
-  if #win_lines < buf_height then
-    buf_height = #win_lines
-  end
+  local win_width = win_info.width - left_col_offset
+  local win_real_height = vim.api.nvim_win_get_height(0)
+  local win_height = win_info.botline - win_info.topline + 1
+  local win_lines = vim.api.nvim_buf_get_lines(0, win_info.topline - 1, win_info.botline, false)
 
   local screenpos = vim.fn.screenpos(0, cursor_line, cursor_col)
-  local cursor_pos = { screenpos.row - win_info.winrow + 1, cursor_col }
+  local cursor_pos = { cursor_line - win_info.topline + 1, cursor_col }
+
+  -- in wrap, we do not pass the width of the window so that we get lines
+  -- wrapping around correctly
+  local buf_width = nil
+  if not vim.wo.wrap then
+    buf_width = win_width
+  end
+
   local hints = hint.create_hints(
     hint.by_word_start,
     buf_width,
-    buf_height,
+    win_height,
     cursor_pos,
     win_view.leftcol,
     win_lines,
@@ -86,12 +91,12 @@ function M.jump_words(opts)
   vim.api.nvim_buf_set_var(hint_buf_handle, 'hop#marked', true)
 
   -- fill the hint buffer
-  update_hint_buffer(hint_buf_handle, buf_width, buf_height, hints)
+  update_hint_buffer(hint_buf_handle, win_width, win_height, hints)
 
   local win_id = vim.api.nvim_open_win(hint_buf_handle, true, {
     relative = 'win',
-    width = buf_width,
-    height = buf_height,
+    width = win_width,
+    height = win_real_height,
     row = 0,
     col = left_col_offset,
     style = 'minimal'
@@ -103,8 +108,8 @@ function M.jump_words(opts)
   -- buffer-local variables so that we can access them later
   vim.api.nvim_buf_set_var(hint_buf_handle, 'src_win_id', vim.api.nvim_get_current_win())
   vim.api.nvim_buf_set_var(hint_buf_handle, 'win_top_line', win_top_line)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'buf_width', buf_width)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'buf_height', buf_height)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_width', win_width)
+  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_height', win_height)
   vim.api.nvim_buf_set_var(hint_buf_handle, 'hints', hints)
 
   -- keybindings
@@ -125,7 +130,7 @@ function M.refine_hints(buf_handle, key)
     end
 
     vim.api.nvim_buf_set_var(buf_handle, 'hints', hints)
-    update_hint_buffer(buf_handle, vim.b.buf_width, vim.b.buf_height, hints)
+    update_hint_buffer(buf_handle, vim.b.win_width, vim.b.win_height, hints)
   else
     local win_top_line = vim.b.win_top_line
 
