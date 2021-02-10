@@ -138,15 +138,21 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     {line_nr} must be the row where the {line} comes from.
 
     This function returns all the hints for {line} as a table consisting of
-    three information:
+    three information gathered under two keys:
 >
-        { line, col, real_col }
+        {
+          hints = { line, col, real_col };
+          length
+        }
 <
     `line` is the same as {line_nr} and is simply forwarded. `col` is the
     column at which the hint visually starts. `real_col` is the column at
     which the hint starts taking into account multi-byte characters.
 
     Use `col` for displaying the hints and `real_col` to jump to it.
+
+    `length` is the length of the initial hinted line. This is an important
+    information used to correctly implement 'wrap' and 'nowrap' support.
 
     The returned hint is to be considered as a placeholder, as it doesn’t have
     its hint label yet. Have a look at |hop.hint.create_hints| for further
