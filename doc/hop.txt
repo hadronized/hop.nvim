@@ -61,9 +61,6 @@ Hop currently has difficulties to correctly set the hints if you are using
 Most of the time, the hints will be slightly offset but jumping to them will
 place your cursor at the right place.
 
-Hop has big issues with 'wrap'. It is recommended to disable 'wrap' for the
-time being. A fix will land to make it work as soon as possible.
-
 Emojis are also a topic of big annoyance. They will make Hop behave the same
 way it does with |conceal| — i.e. somehow broken right now.
 
