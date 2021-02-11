@@ -88,18 +88,24 @@ Plug 'phaazon/hop.nvim'
 
 # Usage
 
-A simple vim command is available to test with the default options: `:HopWord`. If you would rather use the Lua API,
-you can test it via the command prompt:
+A bunch of vim commands are available to get your finger wrapped around **Hop** quickly:
+
+- `:HopWord`: hop around by highlighting words.
+- `:HopPattern`: hop around by matching against a pattern (as with `/`).
+- `:HopChar1`: type a single key and hop to any occurrence of that key in the document.
+- `:HopChar2`: type a bigram (two keys) and hop to any occurrence of that bigram in the document.
+
+If you would rather use the Lua API, you can test it via the command prompt:
 
 ```vim
-:lua require'hop'.jump_words()
+:lua require'hop'.hint_words()
 ```
 
 If you want to create a key binding (<kbd>$</kbd> in this example) from within Lua:
 
 ```lua
 -- place this in one of your configuration file(s)
-vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'hop'.jump_words()<cr>", {})
+vim.api.nvim_set_keymap('n', '$', "<cmd>lua require'hop'.hint_words()<cr>", {})
 ```
 
 For a more complete user guide and help pages:
