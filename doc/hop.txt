@@ -74,6 +74,8 @@ If you are using a plugin highlighting whitespaces, you will get a weird
 experience where empty areas in the hint buffer will be highlighted by the
 plugin. A patch is on the go to fix this with autocommands.
 
+Folds are currently not supported, so they will break Hop pretty badly.
+
 ==============================================================================
 USAGE                                                                *hop-usage*
 
@@ -398,7 +400,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================
 HIGHLIGHTS                                                      *hop-highlights*
 
-Anywhere on the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
+Anywhere in the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
 highlight is used. For the rest:
 
 `HopNextKey`                                                   *hop-hl-HopNextkey*
