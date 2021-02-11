@@ -46,11 +46,13 @@ Neovim.
 # Features
 
 - [x] Go to any word in the current buffer.
-- [ ] Go to any character in the current buffer.
-- [ ] Go to any bigrams in the current buffer.
-- [ ] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
+- [x] Go to any character in the current buffer.
+- [x] Go to any bigrams in the current buffer.
+- [x] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
 
 ![](.github/img/jump_words_demo.gif)
+
+![](.github/img/modes.gif)
 
 # Getting started
 

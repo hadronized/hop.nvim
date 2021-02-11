@@ -26,15 +26,6 @@ local function update_hint_buffer(buf_handle, win_width, win_height, hints)
   end
 end
 
-function M.hint_words(opts)
-  M.hint_with(hint.by_word_start, opts)
-end
-
-function M.hint_patterns(opts)
-  local pat = vim.fn.input('Search: ')
-  M.hint_with(hint.by_searching(pat), opts)
-end
-
 local function hint_with(mode, opts)
   -- abort if we’re already in a hop buffer
   if vim.b['hop#marked'] then
@@ -151,6 +142,26 @@ function M.refine_hints(buf_handle, key)
     -- JUMP!
     vim.api.nvim_win_set_cursor(buf_handle, { win_top_line + h.line, h.real_col - 1})
   end
+end
+
+function M.hint_words(opts)
+  hint_with(hint.by_word_start, opts)
+end
+
+function M.hint_patterns(opts)
+  local pat = vim.fn.input('Search: ')
+  hint_with(hint.by_searching(pat), opts)
+end
+
+function M.hint_char1(opts)
+  local c = vim.fn.nr2char(vim.fn.getchar())
+  hint_with(hint.by_searching(c), opts)
+end
+
+function M.hint_char2(opts)
+  local a = vim.fn.nr2char(vim.fn.getchar())
+  local b = vim.fn.nr2char(vim.fn.getchar())
+  hint_with(hint.by_searching(a .. b), opts)
 end
 
 return M

@@ -91,6 +91,16 @@ You can try those commands by typing them in your command line.
 
     This is akin to calling the |hop.hint_patterns| Lua function.
 
+`:HopChar1`                                                            *:HopChar1*
+    Type a key and immediately hint the document for this key.
+
+    This is akin to calling the |hop.hint_char1| Lua Function
+
+`:HopChar2`                                                            *:HopChar2*
+    Type two keys and immediately hint the document for this bigram.
+
+    This is akin to calling the |hop.hint_char2| Lua Function
+
                                                                    *hop-lua-api*
 Lua API~
 
@@ -119,6 +129,13 @@ Most of the functions and values you need to know about are in `hop`.
 `hop.hint_patterns(`{opts}`)`                                    *hop.hint_patterns*
     Annotate all patterns in the current window with key sequences after
     having prompted the user for the pattern to search.
+
+`hop.hint_char1(`{opts}`)`                                          *hop.hint_char1*
+    Let the user type a key and immediately hint all of its occurrences.
+
+`hop.hint_char2(`{opts}`)`                                          *hop.hint_char2*
+    Let the user type a bigram (two concatenated keys) and immediately hint
+    all of its occurrences.
 
 `hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
     Refine hints in buffer {buf_handle} by reducing sequences starting with
