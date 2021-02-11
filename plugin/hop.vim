@@ -6,7 +6,10 @@ if !has('nvim')
 endif
 
 " The jump-to-word command.
-command! HopWord lua require'hop'.jump_words()
+command! HopWord lua require'hop'.hint_words()
+
+" The jump-to-pattern command.
+command! HopPattern lua require'hop'.hint_patterns()
 
 " Highlight used for the mono-sequence keys (i.e. sequence of 1).
 highlight default HopNextKey  guifg=#ff007c gui=bold blend=0

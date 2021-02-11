@@ -26,7 +26,16 @@ local function update_hint_buffer(buf_handle, win_width, win_height, hints)
   end
 end
 
-function M.jump_words(opts)
+function M.hint_words(opts)
+  M.hint_with(hint.by_word_start, opts)
+end
+
+function M.hint_patterns(opts)
+  local pat = vim.fn.input('Search: ')
+  M.hint_with(hint.by_searching(pat), opts)
+end
+
+local function hint_with(mode, opts)
   -- abort if we’re already in a hop buffer
   if vim.b['hop#marked'] then
     local teasing = nil
@@ -76,7 +85,7 @@ function M.jump_words(opts)
   end
 
   local hints = hint.create_hints(
-    hint.by_word_start,
+    mode,
     buf_width,
     win_height,
     cursor_pos,

@@ -18,6 +18,7 @@ CONTENTS                                                          *hop-contents*
     Commands ···················································· |hop-commands|
     Lua API ······················································ |hop-lua-api|
   Configuration ··················································· |hop-config|
+  Highlights ·················································· |hop-highlights|
   License ························································ |hop-license|
 
 ==============================================================================
@@ -64,28 +65,35 @@ place your cursor at the right place.
 Emojis are also a topic of big annoyance. They will make Hop behave the same
 way it does with |conceal| — i.e. somehow broken right now.
 
-Currently, the cursor is automatically set to the top of your window. Even
-though this is of a minor annoyance, it is still considered a bug and will be
+Currently, the cursor is automatically set to the top of your window – or a
+random place on screen, sorry about that. Even though this is of a minor
+annoyance, it is still considered a bug and will be
 solved as soon as possible.
 
 ==============================================================================
 USAGE                                                                *hop-usage*
 
-Commands~
                                                                   *hop-commands*
+Commands~
+
 You can try those commands by typing them in your command line.
 
-                                                                      *:HopWord*
-:HopWord
+`:HopWord`                                                              *:HopWord*
     Annotate all words in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
     bring your cursor at that position.
 
-    This is akin to calling the |hop.jump_words| Lua function.
+    This is akin to calling the |hop.hint_words| Lua function.
 
-Lua API~
+`:HopPattern`                                                        *:HopPattern*
+    Ask the user for a pattern and hint the document with it.
+
+    This is akin to calling the |hop.hint_patterns| Lua function.
+
                                                                    *hop-lua-api*
+Lua API~
+
 The Lua API comprises several modules:
 
 `hop`           Entry point and main interface. If you just want to use
@@ -101,12 +109,16 @@ Main API~
 
 Most of the functions and values you need to know about are in `hop`.
 
-`hop.jump_words(`{opts}`)`                                          *hop.jump_words*
+`hop.hint_words(`{opts}`)`                                          *hop.hint_words*
     Annotate all words in the current window with key sequences. Typing a
     first key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
     bring your cursor at that position. See |hop-lua-opts| for a complete list
     of the options you can pass as arguments.
+
+`hop.hint_patterns(`{opts}`)`                                    *hop.hint_patterns*
+    Annotate all patterns in the current window with key sequences after
+    having prompted the user for the pattern to search.
 
 `hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
     Refine hints in buffer {buf_handle} by reducing sequences starting with
@@ -125,6 +137,11 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     |word| hint mode. This mode will highlights the beginnings of all the
     words in the document and will make the cursor jump to the one fully
     reduced.
+
+`hop.hint.by_searching(`{pat}`)`                             *hop.hint.by_searching*
+    |pattern| hint mode. This mode will highlights the beginnings of a pattern
+    you will be prompted for in the document and will make the cursor jump to
+    the one fully reduced.
 
 `hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
   {hint_mode}`,`

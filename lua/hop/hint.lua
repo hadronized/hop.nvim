@@ -13,6 +13,13 @@ end
 -- Used to tag words with hints.
 M.by_word_start = vim.regex('\\<\\w\\+')
 
+-- Regex hint mode.
+--
+-- Used to hint result of a search.
+function M.by_searching(pat)
+  return vim.regex(pat)
+end
+
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
   local s = ''
