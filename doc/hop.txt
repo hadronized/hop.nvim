@@ -70,6 +70,10 @@ random place on screen, sorry about that. Even though this is of a minor
 annoyance, it is still considered a bug and will be
 solved as soon as possible.
 
+If you are using a plugin highlighting whitespaces, you will get a weird
+experience where empty areas in the hint buffer will be highlighted by the
+plugin. A patch is on the go to fix this with autocommands.
+
 ==============================================================================
 USAGE                                                                *hop-usage*
 
