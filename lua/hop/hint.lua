@@ -8,17 +8,21 @@ local function next_mul(x, m)
   return x + m - x % m
 end
 
--- Word hint mode.
---
--- Used to tag words with hints.
-M.by_word_start = vim.regex('\\<\\w\\+')
-
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
 function M.by_searching(pat)
-  return vim.regex(pat)
+  return {
+    match = function(s)
+      return vim.regex(pat):match_str(s)
+    end
+  }
 end
+
+-- Word hint mode.
+--
+-- Used to tag words with hints.
+M.by_word_start = M.by_searching('\\<\\w\\+')
 
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
@@ -65,7 +69,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = hint_mode:match_str(s)
+    local b, e = hint_mode.match(s)
 
     if b == nil then
       break
