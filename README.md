@@ -67,7 +67,7 @@ This plugin will not currently work on Vim and no support for Vim is planned.
 
 **Please read this section before going on any further.**
 
-The plugin was born from scratch on 5th Febrary of 2021 and, at the time of writing this, is two days old. Even though
+The plugin was born from scratch on 5th February of 2021 and, at the time of writing this, is two days old. Even though
 it has reached a usable state, it still has some remaining issues to fix. You can get the full list of them with the
 embedded help, if you are curious:
 
