@@ -164,4 +164,8 @@ function M.hint_char2(opts)
   hint_with(hint.by_searching(a .. b), opts)
 end
 
+function M.hint_lines(opts)
+  hint_with(hint.by_line_start, opts)
+end
+
 return M

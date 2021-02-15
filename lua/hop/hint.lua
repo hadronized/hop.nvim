@@ -24,6 +24,21 @@ end
 -- Used to tag words with hints.
 M.by_word_start = M.by_searching('\\<\\w\\+')
 
+-- Line hint mode.
+--
+-- Used to tag the beginning of each lines with ihnts.
+M.by_line_start = {
+  match = function(s)
+    local len = vim.fn.strdisplaywidth(s)
+
+    if len == 0 then
+      return nil
+    else
+      return 0, len
+    end
+  end
+}
+
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
   local s = ''
@@ -66,6 +81,11 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
 
   local shifted_line = line:sub(1 + col_offset, end_index)
 
+  -- prevent empty lines from being really empty; useful for some modes
+  if #shifted_line == 0 then
+    shifted_line = ' '
+  end
+
   local col = 1
   while true do
     local s = shifted_line:sub(col)
@@ -87,7 +107,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
 
   return {
     hints = hints;
-    length = vim.fn.strdisplaywidth(line)
+    length = vim.fn.strdisplaywidth(shifted_line)
   }
 end
 
