@@ -45,6 +45,8 @@ local function hint_with(mode, opts)
 
   local winblend = opts and opts.winblend or defaults.winblend
 
+  local save_virtualedit = vim.api.nvim_get_option('virtualedit')
+  vim.api.nvim_set_option('virtualedit', 'all')
   local win_view = vim.fn.winsaveview()
   local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
   local cursor_line = win_view['lnum']
@@ -113,6 +115,7 @@ local function hint_with(mode, opts)
 
   -- keybindings
   keymap.create_jump_keymap(hint_buf_handle, opts)
+  vim.api.nvim_set_option('virtualedit', save_virtualedit)
 end
 
 -- Refine hints of the current buffer.
