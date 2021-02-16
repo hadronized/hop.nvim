@@ -49,6 +49,7 @@ Neovim.
 - [x] Go to any character in the current buffer.
 - [x] Go to any bigrams in the current buffer.
 - [x] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
+- [x] Go to any line.
 
 ![](.github/img/jump_words_demo.gif)
 
@@ -94,6 +95,7 @@ A bunch of vim commands are available to get your finger wrapped around **Hop** 
 - `:HopPattern`: hop around by matching against a pattern (as with `/`).
 - `:HopChar1`: type a single key and hop to any occurrence of that key in the document.
 - `:HopChar2`: type a bigram (two keys) and hop to any occurrence of that bigram in the document.
+- `:HopLine`: jump to any visible line in your buffer.
 
 If you would rather use the Lua API, you can test it via the command prompt:
 

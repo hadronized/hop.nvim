@@ -107,6 +107,11 @@ You can try those commands by typing them in your command line.
 
     This is akin to calling the |hop.hint_char2| Lua Function
 
+`:HopLine`                                                              *:HopLine*
+    Jump to the beginning of the line of your choice inside your buffer.
+
+    This is akin to calling the |hop.hint_lines| Lua function.
+
                                                                    *hop-lua-api*
 Lua API~
 
@@ -142,6 +147,12 @@ Most of the functions and values you need to know about are in `hop`.
 `hop.hint_char2(`{opts}`)`                                          *hop.hint_char2*
     Let the user type a bigram (two concatenated keys) and immediately hint
     all of its occurrences.
+
+`hop.hint_lines(`{opts}`)`                                          *hop.hint_lines*
+    Hint the beginning of each lines currently visible in the buffer view and
+    allow to jump to them.
+
+    This works with empty lines as well.
 
 `hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
     Refine hints in buffer {buf_handle} by reducing sequences starting with
