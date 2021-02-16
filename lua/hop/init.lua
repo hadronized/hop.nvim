@@ -65,7 +65,6 @@ local function hint_with(mode, opts)
   local win_height = win_info.botline - win_info.topline + 1
   local win_lines = vim.api.nvim_buf_get_lines(0, win_info.topline - 1, win_info.botline, false)
 
-  local screenpos = vim.fn.screenpos(0, cursor_line, cursor_col)
   local cursor_pos = { cursor_line - win_info.topline + 1, cursor_col }
 
   -- in wrap, we do not pass the width of the window so that we get lines
