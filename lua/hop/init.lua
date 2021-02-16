@@ -87,9 +87,12 @@ local function hint_with(mode, opts)
   )
 
   -- create a new buffer to contain the hints and mark it as ours with b:hop#marked; this will allow us to know
-  -- whether we try to call hop again from within such a buffer (and actually prevent it)
+  -- whether we try to call hop again from within such a buffer (and actually prevent it); also, the buffer is created
+  -- with bufhidden set to wipe so that if the user quit it without using the API, it will automatically be wiped away
+  -- from the list of buffers
   local hint_buf_handle = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_var(hint_buf_handle, 'hop#marked', true)
+  vim.api.nvim_buf_set_option(hint_buf_handle, 'bufhidden', 'wipe')
 
   -- fill the hint buffer
   update_hint_buffer(hint_buf_handle, win_width, win_height, hints)
@@ -136,13 +139,22 @@ function M.refine_hints(buf_handle, key)
   else
     local win_top_line = vim.b.win_top_line
 
-    vim.api.nvim_buf_delete(buf_handle, {})
+    M.quit(buf_handle)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal m'")
 
     -- JUMP!
     vim.api.nvim_win_set_cursor(buf_handle, { win_top_line + h.line, h.real_col - 1})
+  end
+end
+
+-- Quit Hop and delete its resources.
+--
+-- This works only if the current buffer is Hop one.
+function M.quit(buf_handle)
+  if vim.b['hop#marked'] then
+    vim.api.nvim_buf_delete(buf_handle, { force = true })
   end
 end
 

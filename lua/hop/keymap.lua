@@ -17,7 +17,7 @@ function M.create_jump_keymap(buf_handle, opts)
     vim.api.nvim_buf_set_keymap(buf_handle, '', key, "<cmd>lua require'hop'.refine_hints(0, '" .. key .. "')<cr>", { nowait = true })
   end
 
-  vim.api.nvim_buf_set_keymap(buf_handle, '', '<esc>', '<cmd>close<cr>', {})
+  vim.api.nvim_buf_set_keymap(buf_handle, '', '<esc>', "<cmd>lua require'hop'.quit(0)<cr>", {})
 end
 
 return M
