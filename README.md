@@ -51,9 +51,9 @@ Neovim.
 - [x] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
 - [x] Go to any line.
 
-![](.github/img/jump_words_demo.gif)
+![](https://phaazon.net/media/uploads/hop_nvim_jump_words_demo.gif)
 
-![](.github/img/modes.gif)
+![](https://phaazon.net/media/uploads/hop_nvim_modes.gif)
 
 # Getting started
 
