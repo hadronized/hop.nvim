@@ -1,5 +1,3 @@
-local defaults = require'hop.defaults'
-
 local M = {}
 
 -- Create the keymap based on the input keys and insert it in the input buffer via its handle.
@@ -9,7 +7,7 @@ local M = {}
 -- - Jump to a target hint.
 -- - Quit with q.
 function M.create_jump_keymap(buf_handle, opts)
-  local keys = opts and opts.keys or defaults.keys
+  local keys = opts.keys
 
   -- remap all the jump keys
   for i = 1, #keys do

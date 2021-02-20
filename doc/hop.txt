@@ -82,7 +82,9 @@ USAGE                                                                *hop-usage*
                                                                   *hop-commands*
 Commands~
 
-You can try those commands by typing them in your command line.
+You can try those commands by typing them in your command line. By default,
+they will use the default options for the configuration of Hop. If you want to
+customize how those functions work, have a look at |hop.setup|.
 
 `:HopWord`                                                              *:HopWord*
     Annotate all words in the current window with key sequences. Typing a
@@ -130,11 +132,19 @@ Main API~
 
 Most of the functions and values you need to know about are in `hop`.
 
+`hop.setup(`{opts}`)`                                                    *hop.setup*
+    Setup the library with options.
+
+    This functional will setup the Lua API and commands in a way that respects
+    the options you pass.
+
+    The list of available options is available in the |hop-config| section.
+
 `hop.hint_words(`{opts}`)`                                          *hop.hint_words*
     Annotate all words in the current window with key sequences. Typing a
     first key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
-    bring your cursor at that position. See |hop-lua-opts| for a complete list
+    bring your cursor at that position. See |hop-config| for a complete list
     of the options you can pass as arguments.
 
 `hop.hint_patterns(`{opts}`)`                                    *hop.hint_patterns*
@@ -304,6 +314,12 @@ functions such as |hop.jump_words|. They are made out of the {keys} in your
 
 ==============================================================================
 CONFIGURATION                                                       *hop-config*
+
+The configuration can be provided in two different ways:
+
+- Either by explicitly passing an {opts} table to the various Lua
+  functions.
+- Or by passing an {opts} table to the Lua |hop.setup| function.
 
 `keys`                                                           *hop-config-keys*
     A string representing all the keys that can be part of a permutation.

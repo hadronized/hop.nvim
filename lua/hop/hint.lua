@@ -1,4 +1,3 @@
-local defaults = require'hop.defaults'
 local perm = require'hop.perm'
 
 local M = {}
@@ -154,8 +153,8 @@ function M.reduce_hints_lines(per_line_hints, key)
 end
 
 function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset, lines, opts)
-  local keys = opts and opts.keys or defaults.keys
-  local reverse_distribution = opts and opts.reverse_distribution or defaults.reverse_distribution
+  local keys = opts.keys
+  local reverse_distribution = opts.reverse_distribution
 
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
