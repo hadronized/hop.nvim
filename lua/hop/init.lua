@@ -4,6 +4,19 @@ local keymap = require'hop.keymap'
 
 local M = {}
 
+-- Setup various settings.
+function M.setup(opts)
+  M.opts = {}
+
+  if opts then
+    M.opts.keys = opts.keys or defaults.keys
+    M.opts.reverse_distribution = opts.reverse_distribution or defaults.reverse_distribution
+    M.opts.term_seq_bias = opts.term_seq_bias or defaults.term_seq_bias
+    M.opts.winblend = opts.winblend or defaults.winblend
+    M.opts.teasing = opts.teasing or defaults.teasing
+  end
+end
+
 -- Update the hint buffer.
 local function update_hint_buffer(buf_handle, win_width, win_height, hints)
   local lines = hint.create_buffer_lines(win_width, win_height, hints)
@@ -159,27 +172,27 @@ function M.quit(buf_handle)
 end
 
 function M.hint_words(opts)
-  hint_with(hint.by_word_start, opts)
+  hint_with(hint.by_word_start, opts or M.opts)
 end
 
 function M.hint_patterns(opts)
   local pat = vim.fn.input('Search: ')
-  hint_with(hint.by_searching(pat), opts)
+  hint_with(hint.by_searching(pat), opts or M.opts)
 end
 
 function M.hint_char1(opts)
   local c = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(c), opts)
+  hint_with(hint.by_searching(c), opts or M.opts)
 end
 
 function M.hint_char2(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
   local b = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(a .. b), opts)
+  hint_with(hint.by_searching(a .. b), opts or M.opts)
 end
 
 function M.hint_lines(opts)
-  hint_with(hint.by_line_start, opts)
+  hint_with(hint.by_line_start, opts or M.opts)
 end
 
 return M
