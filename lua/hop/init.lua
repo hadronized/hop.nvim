@@ -4,17 +4,17 @@ local keymap = require'hop.keymap'
 
 local M = {}
 
--- Setup various settings.
-function M.setup(opts)
-  M.opts = {}
+M.opts = defaults
 
-  if opts then
-    M.opts.keys = opts.keys or defaults.keys
-    M.opts.reverse_distribution = opts.reverse_distribution or defaults.reverse_distribution
-    M.opts.term_seq_bias = opts.term_seq_bias or defaults.term_seq_bias
-    M.opts.winblend = opts.winblend or defaults.winblend
-    M.opts.teasing = opts.teasing or defaults.teasing
-  end
+-- Setup user settings.
+function M.setup(opts)
+  -- Look up keys in user-defined table with fallback to defaults.
+  M.opts = setmetatable(opts, {__index = defaults})
+end
+
+local function get_command_opts(local_opts)
+  -- In case, local opts are defined, chain opts lookup: [user_local] -> [user_global] -> [default]
+  return local_opts and setmetatable(local_opts, {__index = M.opts}) or M.opts
 end
 
 -- Update the hint buffer.
@@ -42,21 +42,11 @@ end
 local function hint_with(mode, opts)
   -- abort if we’re already in a hop buffer
   if vim.b['hop#marked'] then
-    local teasing = nil
-    if opts and opts.teasing ~= nil then
-      teasing = opts.teasing
-    else
-      teasing = defaults.teasing
-    end
-
-    if teasing then
+    if opts.teasing then
       vim.cmd('echohl Error|echo "eh, don’t open hop from within hop, that’s super dangerous!"')
     end
-
     return
   end
-
-  local winblend = opts and opts.winblend or defaults.winblend
 
   local save_virtualedit = vim.api.nvim_get_option('virtualedit')
   vim.api.nvim_set_option('virtualedit', 'all')
@@ -118,7 +108,7 @@ local function hint_with(mode, opts)
     col = left_col_offset,
     style = 'minimal'
   })
-  vim.api.nvim_win_set_option(win_id, 'winblend', winblend)
+  vim.api.nvim_win_set_option(win_id, 'winblend', opts.winblend)
   -- FIXME: the cursor line is outside of the screen for vertical splits with this code
   -- vim.api.nvim_win_set_cursor(win_id, { cursor_line, cursor_col })
 
@@ -172,27 +162,27 @@ function M.quit(buf_handle)
 end
 
 function M.hint_words(opts)
-  hint_with(hint.by_word_start, opts or M.opts)
+  hint_with(hint.by_word_start, get_command_opts(opts))
 end
 
 function M.hint_patterns(opts)
   local pat = vim.fn.input('Search: ')
-  hint_with(hint.by_searching(pat), opts or M.opts)
+  hint_with(hint.by_searching(pat), get_command_opts(opts))
 end
 
 function M.hint_char1(opts)
   local c = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(c), opts or M.opts)
+  hint_with(hint.by_searching(c), get_command_opts(opts))
 end
 
 function M.hint_char2(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
   local b = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(a .. b), opts or M.opts)
+  hint_with(hint.by_searching(a .. b), get_command_opts(opts))
 end
 
 function M.hint_lines(opts)
-  hint_with(hint.by_line_start, opts or M.opts)
+  hint_with(hint.by_line_start, get_command_opts(opts))
 end
 
 return M
