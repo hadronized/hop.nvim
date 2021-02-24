@@ -87,8 +87,7 @@ end
 -- Permutations are sorted by dimensions, so you will get 1-perm first, then 2-perm, 3-perm, etc. depending on the size
 -- of the keys.
 function M.permutations(keys, n, opts)
-  local term_seq_bias = opts and opts.term_seq_bias or defaults.term_seq_bias
-  local quarter = #keys * term_seq_bias
+  local quarter = #keys * opts.term_seq_bias
   local term_keys = keys:sub(1, quarter)
   local seq_keys = keys:sub(quarter + 1)
   local perms = {}

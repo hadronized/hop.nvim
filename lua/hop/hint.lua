@@ -153,9 +153,6 @@ function M.reduce_hints_lines(per_line_hints, key)
 end
 
 function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset, lines, opts)
-  local keys = opts.keys
-  local reverse_distribution = opts.reverse_distribution
-
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -173,7 +170,7 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   end
 
   local dist_comparison = nil
-  if reverse_distribution then
+  if opts.reverse_distribution then
     dist_comparison = function (a, b) return a.dist > b.dist end
   else
     dist_comparison = function (a, b) return a.dist < b.dist end
@@ -182,7 +179,7 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   table.sort(indirect_hints, dist_comparison)
 
   -- generate permutations and update the lines with hints
-  local perms = perm.permutations(keys, #indirect_hints, opts)
+  local perms = perm.permutations(opts.keys, #indirect_hints, opts)
   for i, indirect in pairs(indirect_hints) do
     hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end
