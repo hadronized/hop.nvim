@@ -321,6 +321,9 @@ The configuration can be provided in two different ways:
   functions.
 - Or by passing an {opts} table to the Lua |hop.setup| function.
 
+Not providing any of the two above will use the _default values_, as described
+below.
+
 `keys`                                                           *hop-config-keys*
     A string representing all the keys that can be part of a permutation.
     Every character (key) used in the string will be used as part of a

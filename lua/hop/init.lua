@@ -12,6 +12,7 @@ function M.setup(opts)
   M.opts = setmetatable(opts, {__index = defaults})
 end
 
+-- Allows to override global options with user local overrides.
 local function get_command_opts(local_opts)
   -- In case, local opts are defined, chain opts lookup: [user_local] -> [user_global] -> [default]
   return local_opts and setmetatable(local_opts, {__index = M.opts}) or M.opts
