@@ -40,6 +40,7 @@ Neovim.
   * [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
   * [Installation](#installation)
 * [Usage](#usage)
+* [Configuration](#configuration)
 
 <!-- vim-markdown-toc -->
 
@@ -89,7 +90,7 @@ Plug 'phaazon/hop.nvim'
 
 # Usage
 
-A bunch of vim commands are available to get your finger wrapped around **Hop** quickly:
+A bunch of vim commands are available to get your fingers wrapped around **Hop** quickly:
 
 - `:HopWord`: hop around by highlighting words.
 - `:HopPattern`: hop around by matching against a pattern (as with `/`).
@@ -116,6 +117,29 @@ For a more complete user guide and help pages:
 :help hop
 ```
 
-More functions and commands to come soon.
+# Configuration
+
+You can configure Hop via several different mechanisms:
+
+- _Global configuration_ uses the Lua `setup` API (`:h hop.setup`). This allows you to setup global options that will be
+  used by all Hop Lua functions as well as the vim commands (e.g. `:HopWord`). This is the easiest way to configure Hop
+  on a global scale. You can do this in your `init.lua` or any `.vim` file by using the `lua` vim command.
+  Example:
+  ```vim
+  " init.vim
+  "
+  " Use better keys for the bépo keyboard layout and set
+  " a balanced distribution of terminal / sequence keys
+  lua require'hop'.setup { keys = 'etovxqpdygfblzhckisuran', term_seq_bias = 0.5 }
+  ```
+- _Local configuration overrides_ are available only on the Lua API and are `{opts}` Lua tables passed to the various
+  Lua functions. Those options have precedence over global options, so they allow to locally override options. Useful if
+  you want to test a special option for a single Lua function, such as `require'hop'.hint_lines()`. You can test them
+  inside the command line, such as:
+  ```
+  :lua require'hop'.hint_words({ term_seq_bias = 0.5 })
+  ```
+- In the case of none of the above are provided, options are automatically read from the _default_ options. See `:h
+  hop-config` for a list of default values.
 
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
