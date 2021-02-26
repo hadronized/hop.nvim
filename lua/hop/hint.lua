@@ -10,7 +10,10 @@ end
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
-function M.by_searching(pat)
+function M.by_searching(pat, plain_search)
+  if plain_search then
+    pat = vim.fn.escape(pat, '\\/.$^~')
+  end
   return {
     match = function(s)
       return vim.regex(pat):match_str(s)

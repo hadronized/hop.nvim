@@ -172,13 +172,13 @@ end
 
 function M.hint_char1(opts)
   local c = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(c), get_command_opts(opts))
+  hint_with(hint.by_searching(c, true), get_command_opts(opts))
 end
 
 function M.hint_char2(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
   local b = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_searching(a .. b), get_command_opts(opts))
+  hint_with(hint.by_searching(a .. b, true), get_command_opts(opts))
 end
 
 function M.hint_lines(opts)
