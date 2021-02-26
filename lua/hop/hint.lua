@@ -162,9 +162,12 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   -- cursor, allowing to zip this list with the hints and distribute the hints
   local hints = {}
   local indirect_hints = {}
+  local hint_counts = 0
   for i = 1, buf_height do
     local line_hints = M.mark_hints_line(hint_mode, i, lines[i], col_offset, buf_width)
     hints[i] = line_hints
+
+    hint_counts = hint_counts + #line_hints.hints
 
     for j = 1, #line_hints.hints do
       local hint = line_hints.hints[j]
@@ -187,7 +190,7 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
     hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end
 
-  return hints
+  return hints,  hint_counts
 end
 
 -- Create the lines for the hint buffer.

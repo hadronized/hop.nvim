@@ -85,7 +85,7 @@ local function hint_with(mode, opts)
     buf_width = win_width
   end
 
-  local hints = hint.create_hints(
+  local hints, hint_counts = hint.create_hints(
     mode,
     buf_width,
     win_height,
@@ -94,6 +94,11 @@ local function hint_with(mode, opts)
     win_lines,
     opts
   )
+
+  if hint_counts == 0 then
+    eprintln(opts, 'there’s no such thing we can see…')
+    return
+  end
 
   -- create a new buffer to contain the hints and mark it as ours with b:hop#marked; this will allow us to know
   -- whether we try to call hop again from within such a buffer (and actually prevent it); also, the buffer is created
