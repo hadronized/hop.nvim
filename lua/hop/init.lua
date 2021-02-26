@@ -18,6 +18,13 @@ local function get_command_opts(local_opts)
   return local_opts and setmetatable(local_opts, {__index = M.opts}) or M.opts
 end
 
+-- Display error messages.
+local function eprintln(opts, msg)
+  if opts.teasing then
+    vim.cmd(string.format('echohl Error|echo "%s"', msg))
+  end
+end
+
 -- Update the hint buffer.
 local function update_hint_buffer(buf_handle, win_width, win_height, hints)
   local lines = hint.create_buffer_lines(win_width, win_height, hints)
@@ -43,9 +50,7 @@ end
 local function hint_with(mode, opts)
   -- abort if we’re already in a hop buffer
   if vim.b['hop#marked'] then
-    if opts.teasing then
-      vim.cmd('echohl Error|echo "eh, don’t open hop from within hop, that’s super dangerous!"')
-    end
+    eprintln(opts, 'eh, don’t open hop from within hop, that’s super dangerous!')
     return
   end
 
