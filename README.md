@@ -56,6 +56,8 @@ Neovim.
 
 ![](https://phaazon.net/media/uploads/hop_nvim_modes.gif)
 
+![](https://phaazon.net/media/uploads/hop_nvim_visual_extend.gif)
+
 # Getting started
 
 This section will guide you through the list of steps you must take to be able to get started with **Hop**.
