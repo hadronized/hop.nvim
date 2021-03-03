@@ -51,6 +51,7 @@ Neovim.
 - [x] Go to any bigrams in the current buffer.
 - [x] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
 - [x] Go to any line.
+- [x] Visual extend mode, which allows you to extend a visual selection by hopping elsewhere in the document.
 
 ![](https://phaazon.net/media/uploads/hop_nvim_jump_words_demo.gif)
 
