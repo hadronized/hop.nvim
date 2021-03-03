@@ -111,6 +111,16 @@ local function hint_with(mode, opts)
   -- fill the hint buffer
   update_hint_buffer(hint_buf_handle, win_width, win_height, hints)
 
+  -- check whether we are currently in visual mode
+  if opts.extend_visual then
+    local mode = vim.api.nvim_get_mode().mode
+    local visual_modes = 'vV'
+    if visual_modes:find(mode) ~= nil then
+      vim.cmd('normal ' .. mode)
+      vim.api.nvim_buf_set_var(hint_buf_handle, 'previously_visual', true)
+    end
+  end
+
   local win_id = vim.api.nvim_open_win(hint_buf_handle, true, {
     relative = 'win',
     width = win_width,
@@ -152,6 +162,7 @@ function M.refine_hints(buf_handle, key)
     update_hint_buffer(buf_handle, vim.b.win_width, vim.b.win_height, hints)
   else
     local win_top_line = vim.b.win_top_line
+    local previously_visual = vim.b.previously_visual
 
     M.quit(buf_handle)
 
@@ -159,7 +170,11 @@ function M.refine_hints(buf_handle, key)
     vim.cmd("normal m'")
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(buf_handle, { win_top_line + h.line, h.real_col - 1})
+    if previously_visual then
+      vim.cmd('normal gv')
+    end
+
+    vim.api.nvim_win_set_cursor(0, { win_top_line + h.line, h.real_col - 1})
   end
 end
 
