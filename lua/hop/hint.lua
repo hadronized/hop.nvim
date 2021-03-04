@@ -75,10 +75,16 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
   local hints = {}
   local end_index = nil
 
+  -- nowrap mode (buf_width defined); compute the “visible” part of the line to display
   if buf_width ~= nil then
+    -- FIXME: this computation is wrong for two reasons:
+    --   1. The col_offset is not correctly computed
+    --   2. buf_width is likely to be bigger than the actual “display” width
     end_index = col_offset + buf_width
   else
-    end_index = vim.fn.strdisplaywidth(line)
+    -- FIXME: same as above
+    -- end_index = vim.fn.strdisplaywidth(line)
+    end_index = #line
   end
 
   local shifted_line = line:sub(1 + col_offset, end_index)
@@ -100,7 +106,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
     local colb = col + b
     hints[#hints + 1] = {
       line = line_nr;
-      col = vim.str_utfindex(shifted_line, colb);
+      col = vim.fn.strdisplaywidth(shifted_line:sub(1, colb));
       real_col = colb + col_offset
     }
 
