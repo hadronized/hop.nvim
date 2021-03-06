@@ -36,16 +36,17 @@ Neovim.
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
-	* [Word mode (`:HopWord`)](#word-mode-hopword)
-	* [Line mode (`:HopLine`)](#line-mode-hopline)
-	* [1-char mode (`:HopChar1`)](#1-char-mode-hopchar1)
-	* [2-char mode (`:HopChar2`)](#2-char-mode-hopchar2)
-	* [Pattern mode (`:HopPattern`)](#pattern-mode-hoppattern)
-	* [Visual extend](#visual-extend)
-	* [Jump on sole occurrence](#jump-on-sole-occurrence)
+  * [Word mode (`:HopWord`)](#word-mode-hopword)
+  * [Line mode (`:HopLine`)](#line-mode-hopline)
+  * [1-char mode (`:HopChar1`)](#1-char-mode-hopchar1)
+  * [2-char mode (`:HopChar2`)](#2-char-mode-hopchar2)
+  * [Pattern mode (`:HopPattern`)](#pattern-mode-hoppattern)
+  * [Visual extend](#visual-extend)
+  * [Jump on sole occurrence](#jump-on-sole-occurrence)
 * [Getting started](#getting-started)
-	* [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
-	* [Installation](#installation)
+  * [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
+  * [Installation](#installation)
+    * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
 * [Configuration](#configuration)
 
@@ -134,11 +135,24 @@ on.** However, PRs are greatly appreciated.
 
 ## Installation
 
-Using [vim-plug](https://github.com/junegunn/vim-plug):
+Using [vim-plug]:
 
 ```vim
 Plug 'phaazon/hop.nvim'
 ```
+
+### Special notes regarding extended marks and virtual text
+
+Extended marks and virtual text is a very recent addition to Neovim-0.5. The feature is still experimental but so far no
+bug related to them were found in Hop. However, if you would rather stick to the legacy implementation, you are advised
+to pinpoint the `pre-extmarks` branch. For instance, with [vim-plug]:
+
+```vim
+Plug 'phaazon/hop.nvim', { 'branch': 'pre-extmarks' }
+```
+
+Keep in mind that this branch is provided as-is until Neovim bugs are fixed regarding extended marks (if any). I don’t
+plan on maintaining this branch and it should be short-living.
 
 # Usage
 
@@ -195,3 +209,4 @@ You can configure Hop via several different mechanisms:
   hop-config` for a list of default values.
 
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
+[vim-plug]: https://github.com/junegunn/vim-plug
