@@ -51,28 +51,11 @@ Neovim version >0.5 – at least at the time of writing these lines:
 ==============================================================================
 REQUIREMENTS                                                  *hop-requirements*
 
-Hop works only with Neovim and was written Neovim-0.5, so it is highly
+Hop works only with Neovim and was written with Neovim-0.5, so it is highly
 recommended to use Neovim version 0.5+.
 
 ==============================================================================
 LIMITATIONS AND KNOWN ISSUES                            *hop-limitations-issues*
-
-Hop currently has difficulties to correctly set the hints if you are using
-'conceallevel', 'concealcursor' or any kind of features related to |conceal|.
-Most of the time, the hints will be slightly offset but jumping to them will
-place your cursor at the right place.
-
-Emojis are also a topic of big annoyance. They will make Hop behave the same
-way it does with |conceal| — i.e. somehow broken right now.
-
-Currently, the cursor is automatically set to the top of your window – or a
-random place on screen, sorry about that. Even though this is of a minor
-annoyance, it is still considered a bug and will be
-solved as soon as possible.
-
-If you are using a plugin highlighting whitespaces, you will get a weird
-experience where empty areas in the hint buffer will be highlighted by the
-plugin. A patch is on the go to fix this with autocommands.
 
 Folds are currently not supported, so they will break Hop pretty badly.
 
@@ -86,14 +69,6 @@ You can try those commands by typing them in your command line. By default,
 they will use the default options for the configuration of Hop. If you want to
 customize how those functions work, have a look at |hop.setup|.
 
-Some commands accept a `Visual` suffix. Those commands work the same way as
-their counterparts but are to be used in visual modes — either
-|charwise-visual|, |linewise-visual| or |blockwise-visual|. They allow to
-to hop to a location and extend the visual region to this location. The
-starting position of the visual selection is left untouched. It is also
-possible to enable this feature for regular commands by using the
-|hop-config-extend_visual| configuration option.
-
 `:HopWord`                                                              *:HopWord*
     Annotate all words in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
@@ -102,40 +77,25 @@ possible to enable this feature for regular commands by using the
 
     This is akin to calling the |hop.hint_words| Lua function.
 
-`:HopWordVisual`                                                  *:HopWordVisual*
-    Same as |:HopWord| but allows extending a visual selection.
-
 `:HopPattern`                                                        *:HopPattern*
     Ask the user for a pattern and hint the document with it.
 
     This is akin to calling the |hop.hint_patterns| Lua function.
-
-`:HopPatternVisual`                                            *:HopPatternVisual*
-    Same as |:HopPattern| but allows extending a visual selection.
 
 `:HopChar1`                                                            *:HopChar1*
     Type a key and immediately hint the document for this key.
 
     This is akin to calling the |hop.hint_char1| Lua Function
 
-`:HopChar1Visual`                                                *:HopChar1Visual*
-    Same as |:HopChar1| but allows extending a visual selection.
-
 `:HopChar2`                                                            *:HopChar2*
     Type two keys and immediately hint the document for this bigram.
 
     This is akin to calling the |hop.hint_char2| Lua Function
 
-`:HopChar2Visual`                                                *:HopChar2Visual*
-    Same as |:HopChar2| but allows extending a visual selection.
-
 `:HopLine`                                                              *:HopLine*
     Jump to the beginning of the line of your choice inside your buffer.
 
     This is akin to calling the |hop.hint_lines| Lua function.
-
-`:HopLineVisual`                                                  *:HopLineVisual*
-    Same as |:HopLine| but allows extending a visual selection.
 
                                                                    *hop-lua-api*
 Lua API~
@@ -417,19 +377,12 @@ below.
         teasing = true
 <
 
-`extend_visual`                                         *hop-config-extend_visual*
-    Make functions visual-aware and allow to extend selections.
-
-    This option allows commands and Lua API functions to extend visual
-    selections when called from visual mode.
-
-    Most of the time, you shouldn’t need this and instead should pass this
-    option directly to the Lua API functions, or use the various `Visual`
-    counterparts of the normal commands.
+`jump_on_sole_occurrence`                     *hop-config-jump_on_sole_occurrence*
+    Immediately jump without displaying hints if only one occurrence exists.
 
     Defaults:
 >
-        extend_visual = false
+        jump_on_sole_occurrence = true
 <
 ==============================================================================
 LICENSE                                                            *hop-license*
@@ -479,6 +432,10 @@ highlight is used. For the rest:
 
 `HopNextKey2`                                                 *hop-hl-HopNextKey2*
     Highlight used for the second and remaining keys in a sequence.
+
+`HopUnmatched`                                               *hop-hl-HopUnmatched*
+    Highlight used for unmatched part of the buffer when running a Hop command
+    / Lua functions.
 
 ==============================================================================
 vim:tw=78:sw=4:ts=8:ft=help:norl:

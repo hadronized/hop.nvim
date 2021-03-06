@@ -26,10 +26,13 @@ command! HopLine lua require'hop'.hint_lines()
 command! HopLineVisual lua require'hop'.hint_lines({ extend_visual = true })
 
 " Highlight used for the mono-sequence keys (i.e. sequence of 1).
-highlight default HopNextKey  guifg=#ff007c gui=bold blend=0
+highlight default HopNextKey  guifg=#ff007c gui=bold
 
 " Highlight used for the first key in a sequence.
-highlight default HopNextKey1 guifg=#00dfff gui=bold blend=0
+highlight default HopNextKey1 guifg=#00dfff gui=bold
 
 " Highlight used for the second and remaining keys in a sequence.
-highlight default HopNextKey2 guifg=#2b8db3          blend=0
+highlight default HopNextKey2 guifg=#2b8db3
+
+" Highlight used for the unmatched part of the buffer.
+highlight default HopUnmatched guifg=#666666

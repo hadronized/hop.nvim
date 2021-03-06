@@ -12,7 +12,7 @@ end
 -- Used to hint result of a search.
 function M.by_searching(pat, plain_search)
   if plain_search then
-    pat = vim.fn.escape(pat, '\\/.$^~')
+    pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   return {
     match = function(s)
@@ -24,7 +24,8 @@ end
 -- Word hint mode.
 --
 -- Used to tag words with hints.
-M.by_word_start = M.by_searching('\\<\\w\\+')
+-- M.by_word_start = M.by_searching('\\<\\w\\+')
+M.by_word_start = M.by_searching('\\w\\+')
 
 -- Line hint mode.
 --
@@ -64,19 +65,19 @@ end
 -- the line). For every match of the regex, a hint placeholder is generated, which
 -- contains three fields giving the line, hint column and real column of the hint:
 --
---   { line, col, real_col }
+--   { line, col }
 --
 -- The input line_nr is the line number of the line currently being marked.
 --
 -- This function returns the list of hints as well as the length of the line in the form of table:
 --
 --   { hints, length }
-function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
+function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
   local hints = {}
   local end_index = nil
 
-  if buf_width ~= nil then
-    end_index = col_offset + buf_width
+  if win_width ~= nil then
+    end_index = col_offset + win_width
   else
     end_index = vim.fn.strdisplaywidth(line)
   end
@@ -100,8 +101,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, buf_width)
     local colb = col + b
     hints[#hints + 1] = {
       line = line_nr;
-      col = vim.str_utfindex(shifted_line, colb);
-      real_col = colb + col_offset
+      col = colb + col_offset;
     }
 
     col = col + e
@@ -155,7 +155,7 @@ function M.reduce_hints_lines(per_line_hints, key)
   return nil, output, update_count
 end
 
-function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset, lines, opts)
+function M.create_hints(hint_mode, win_width, lines_count, cursor_pos, col_offset, top_line, lines, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -163,8 +163,8 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   local hints = {}
   local indirect_hints = {}
   local hint_counts = 0
-  for i = 1, buf_height do
-    local line_hints = M.mark_hints_line(hint_mode, i, lines[i], col_offset, buf_width)
+  for i = 1, lines_count do
+    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width)
     hints[i] = line_hints
 
     hint_counts = hint_counts + #line_hints.hints
@@ -193,81 +193,16 @@ function M.create_hints(hint_mode, buf_width, buf_height, cursor_pos, col_offset
   return hints,  hint_counts
 end
 
--- Create the lines for the hint buffer.
---
--- If a hint is too close to another one, it will not be displayed entirely. For instance, imagine the following text
--- to hint by word:
---
---   a b
---
--- If a is associated with x and b is associated with y, the hint buffer will look like this:
---
---   x y
---
--- If a is associated with xw and b is associated with xz, the hint buffer will look like this:
---
---   xwxz
---
--- However, if a is now associated with xwp and b is associated with xwq, the hint buffer will look like this:
---
---   xwxw
---
--- If the user reduces hints by typing x, this last buffer will get reduced to:
---
---   wpwq
---
--- If the user reduces once again by typing w:
---
---   p q
-function M.create_buffer_lines(win_width, win_height, per_line_hints)
-  local lines = {}
-  for line = 1, win_height do
-    local col = 1
-    local content = ''
-    local line_hints = per_line_hints[line]
-
-    if #line_hints.hints > 0 then
-      for i = 1, #line_hints.hints - 1 do
-        local hint = line_hints.hints[i]
-
-        -- put spaces until we hit the beginning of the hint
-        if col < hint.col then
-          content = content .. string.rep(' ', hint.col - col)
-        end
-
-        -- compute the length the hint will take
-        local hint_len = math.min(#hint.hint, line_hints.hints[i + 1].col - hint.col)
-        content = content .. hint.hint:sub(1, hint_len)
-        col = hint.col + hint_len
+function M.set_hint_extmarks(hl_ns, per_line_hints)
+  for _, hints in pairs(per_line_hints) do
+    for _, hint in pairs(hints.hints) do
+      if #hint.hint == 1 then
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint, "HopNextKey"} }; virt_text_pos = 'overlay' })
+      else
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint:sub(1, 1), "HopNextKey1"}, { hint.hint:sub(2), "HopNextKey2" } }; virt_text_pos = 'overlay' })
       end
-
-      -- the last hint is special as it doesn’t have a next hint; instead, we will use the buf_width as ending column;
-      -- because of wrapping lines, we have to compute the right “length”, which is the next multiple buf_width after
-      -- hint.col
-      local hint = line_hints.hints[#line_hints.hints]
-      local logical_width = next_mul(line_hints.length - 1, win_width)
-      local hint_len = math.min(#hint.hint, logical_width - hint.col + 1)
-
-      -- put spaces until we hit the beginning of the hint
-      if col < hint.col then
-        content = content .. string.rep(' ', hint.col - col)
-      end
-
-      content = content .. hint.hint:sub(1, hint_len)
-      col = hint.col + hint_len
     end
-
-    -- local logical_width = next_mul(col, win_width)
-    local logical_width = next_mul(math.max(1, line_hints.length) - 1, win_width)
-    -- local logical_width = line_hints.length
-    if col < logical_width then
-      content = content .. string.rep(' ', logical_width - col + 1)
-    end
-
-    lines[line] = content
   end
-
-  return lines
 end
 
 return M
