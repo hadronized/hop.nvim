@@ -48,6 +48,7 @@ Neovim.
   * [Installation](#installation)
     * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
+* [Keybindings](#keybindings)
 * [Configuration](#configuration)
 
 <!-- vim-markdown-toc -->
@@ -182,6 +183,15 @@ For a more complete user guide and help pages:
 ```vim
 :help hop
 ```
+
+# Keybindings
+
+Hop doesn’t set any keybindings; you will have to define them by yourself.
+
+However, once Hop is started in any mode, it will override your buffer-local keybindings, if any (so that you can jump
+around). After a jump or quitting Hop, your keybindings are restored.
+
+> Note: if you find any issue with the buffer-local keymaps, please open an issue.
 
 # Configuration
 

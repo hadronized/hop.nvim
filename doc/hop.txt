@@ -54,6 +54,9 @@ REQUIREMENTS                                                  *hop-requirements*
 Hop works only with Neovim and was written with Neovim-0.5, so it is highly
 recommended to use Neovim version 0.5+.
 
+Especially, hop uses |api-extended-marks|, which are not available before
+Neovim-0.5.
+
 ==============================================================================
 LIMITATIONS AND KNOWN ISSUES                            *hop-limitations-issues*
 
