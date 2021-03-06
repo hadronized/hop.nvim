@@ -36,10 +36,19 @@ Neovim.
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
+  * [Word mode (`:HopWord`)](#word-mode-hopword)
+  * [Line mode (`:HopLine`)](#line-mode-hopline)
+  * [1-char mode (`:HopChar1`)](#1-char-mode-hopchar1)
+  * [2-char mode (`:HopChar2`)](#2-char-mode-hopchar2)
+  * [Pattern mode (`:HopPattern`)](#pattern-mode-hoppattern)
+  * [Visual extend](#visual-extend)
+  * [Jump on sole occurrence](#jump-on-sole-occurrence)
 * [Getting started](#getting-started)
   * [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
   * [Installation](#installation)
+    * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
+* [Keybindings](#keybindings)
 * [Configuration](#configuration)
 
 <!-- vim-markdown-toc -->
@@ -53,11 +62,53 @@ Neovim.
 - [x] Go to any line.
 - [x] Visual extend mode, which allows you to extend a visual selection by hopping elsewhere in the document.
 
-![](https://phaazon.net/media/uploads/hop_nvim_jump_words_demo.gif)
+## Word mode (`:HopWord`)
 
-![](https://phaazon.net/media/uploads/hop_nvim_modes.gif)
+This mode highlights all the recognized words in the visible part of the buffer and allows you to jump to any.
 
-![](https://phaazon.net/media/uploads/hop_nvim_visual_extend.gif)
+![](https://phaazon.net/media/uploads/hop_word_mode.gif)
+
+## Line mode (`:HopLine`)
+
+This mode highlights the beginnings of each line in the visible part of the buffer for quick line hopping.
+
+![](https://phaazon.net/media/uploads/hop_line_mode.gif)
+
+## 1-char mode (`:HopChar1`)
+
+This mode expects the user to type a single character. That character will then be highlighted in the visible part of
+the buffer, allowing to jump to any of its occurrence. This mode is especially useful to jump to operators, punctuations
+or any symbols not recognized as parts of words.
+
+![](https://phaazon.net/media/uploads/hop_char1_mode.gif)
+
+## 2-char mode (`:HopChar2`)
+
+A variant of the 1-char mode, this mode exacts the user to type two characters, representing a _bigram_ (they follow
+each other, in order). The bigram occurrences in the visible part of the buffer will then be highlighted for you to jump
+to any.
+
+![](https://phaazon.net/media/uploads/hop_char2_mode.gif)
+
+## Pattern mode (`:HopPattern`)
+
+Akin to `/`, this mode prompts you for a pattern (regex) to search. Occurrences will be highlighted, allowing you to
+jump to any.
+
+![](https://phaazon.net/media/uploads/hop_pattern_mode.gif)
+
+## Visual extend
+
+If you call any Hop commands / Lua functions from one of the visual modes, the visual selection will be extended.
+
+![](https://phaazon.net/media/uploads/hop_visual_extend.gif)
+
+## Jump on sole occurrence
+
+If only a single occurrence is visible in the buffer, Hop will automatically jump to it without requiring pressing any
+extra key.
+
+![](https://phaazon.net/media/uploads/hop_sole_occurrence.gif)
 
 # Getting started
 
@@ -85,11 +136,24 @@ on.** However, PRs are greatly appreciated.
 
 ## Installation
 
-Using [vim-plug](https://github.com/junegunn/vim-plug):
+Using [vim-plug]:
 
 ```vim
 Plug 'phaazon/hop.nvim'
 ```
+
+### Special notes regarding extended marks and virtual text
+
+Extended marks and virtual text is a very recent addition to Neovim-0.5. The feature is still experimental but so far no
+bug related to them were found in Hop. However, if you would rather stick to the legacy implementation, you are advised
+to pinpoint the `pre-extmarks` branch. For instance, with [vim-plug]:
+
+```vim
+Plug 'phaazon/hop.nvim', { 'branch': 'pre-extmarks' }
+```
+
+Keep in mind that this branch is provided as-is until Neovim bugs are fixed regarding extended marks (if any). I don’t
+plan on maintaining this branch and it should be short-living.
 
 # Usage
 
@@ -120,6 +184,15 @@ For a more complete user guide and help pages:
 :help hop
 ```
 
+# Keybindings
+
+Hop doesn’t set any keybindings; you will have to define them by yourself.
+
+However, once Hop is started in any mode, it will override your buffer-local keybindings, if any (so that you can jump
+around). After a jump or quitting Hop, your keybindings are restored.
+
+> Note: if you find any issue with the buffer-local keymaps, please open an issue.
+
 # Configuration
 
 You can configure Hop via several different mechanisms:
@@ -146,3 +219,4 @@ You can configure Hop via several different mechanisms:
   hop-config` for a list of default values.
 
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
+[vim-plug]: https://github.com/junegunn/vim-plug

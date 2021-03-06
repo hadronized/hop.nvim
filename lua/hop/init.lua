@@ -25,131 +25,110 @@ local function eprintln(opts, msg)
   end
 end
 
--- Update the hint buffer.
-local function update_hint_buffer(buf_handle, win_width, win_height, hints)
-  local lines = hint.create_buffer_lines(win_width, win_height, hints)
-
-  vim.api.nvim_buf_set_lines(buf_handle, 0, -1, true, lines)
-
-  for line = 1, win_height do
-    vim.api.nvim_buf_add_highlight(buf_handle, -1, 'EndOfBuffer', line - 1, 0, -1)
-
-    for _, h in pairs(hints[line].hints) do
-      local hint_len = #h.hint
-
-      if hint_len == 1 then
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey', h.line - 1, h.col - 1, h.col)
-      else
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey1', h.line - 1, h.col - 1, h.col)
-        vim.api.nvim_buf_add_highlight(buf_handle, -1, 'HopNextKey2', h.line - 1, h.col, h.col + #h.hint - 1)
-      end
-    end
+-- Grey everything out to prepare the Hop session.
+--
+-- - hl_ns is the highlight namespace.
+-- - top_line is the top line in the buffer to start highlighting at
+-- - bottom_line is the bottom line in the buffer to stop highlighting at
+local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line)
+  for line_i = top_line, bottom_line do
+    vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
   end
 end
 
-local function hint_with(mode, opts)
-  -- abort if we’re already in a hop buffer
+-- Cleanup Hop highlights and unmark the buffer.
+local function unhl_and_unmark(buf_handle, hl_ns, top_line, bot_line)
+  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, top_line, bot_line)
+  vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
+end
+
+local function hint_with(hint_mode, opts)
+  -- first, we ensure we’re not already hopping around; if not, we mark the current buffer (this mark will be removed
+  -- when a jump is performed or if the user stops hopping)
+  -- abort if we’re already hopping
   if vim.b['hop#marked'] then
     eprintln(opts, 'eh, don’t open hop from within hop, that’s super dangerous!')
     return
   end
 
-  local save_virtualedit = vim.api.nvim_get_option('virtualedit')
-  vim.api.nvim_set_option('virtualedit', 'all')
-  local win_view = vim.fn.winsaveview()
+  vim.api.nvim_buf_set_var(0, 'hop#marked', true)
+
+  -- get a bunch of information about the window and the cursor
   local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
-  local cursor_line = win_view['lnum']
-  local cursor_col = win_view['col']
-  local win_top_line = win_view['topline'] - 1
+  local win_view = vim.fn.winsaveview()
+  local top_line = win_info.topline - 1
+  local bot_line = win_info.botline - 1
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
   -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
   -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
+  local win_width = nil
 
-  -- hack to get the left column offset
-  vim.api.nvim_win_set_cursor(0, { cursor_line, 0 })
-  local left_col_offset = vim.fn.wincol() - 1
-  vim.fn.winrestview(win_view)
-
-  local win_width = win_info.width - left_col_offset
-  local win_real_height = vim.api.nvim_win_get_height(0)
-  local win_height = win_info.botline - win_info.topline + 1
-  local win_lines = vim.api.nvim_buf_get_lines(0, win_info.topline - 1, win_info.botline, false)
-
-  local cursor_pos = { cursor_line - win_info.topline + 1, cursor_col }
-
-  -- in wrap, we do not pass the width of the window so that we get lines
-  -- wrapping around correctly
-  local buf_width = nil
+  -- hack to get the left column offset in nowrap
   if not vim.wo.wrap then
-    buf_width = win_width
+    vim.api.nvim_win_set_cursor(0, { cursor_pos[1], 0 })
+    local left_col_offset = vim.fn.wincol() - 1
+    vim.fn.winrestview(win_view)
+    win_width = win_info.width - left_col_offset
   end
 
+  -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
+  -- when hop quits
+  local hl_ns = vim.api.nvim_create_namespace('')
+  grey_things_out(0, hl_ns, top_line, bot_line)
+
+  -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
+  -- or even perform direct jump in the case of a single match
+  local win_lines = vim.api.nvim_buf_get_lines(0, top_line, bot_line + 1, false)
   local hints, hint_counts = hint.create_hints(
-    mode,
-    buf_width,
-    win_height,
+    hint_mode,
+    win_width,
+    #win_lines,
     cursor_pos,
     win_view.leftcol,
+    top_line,
     win_lines,
     opts
   )
 
   if hint_counts == 0 then
     eprintln(opts, 'there’s no such thing we can see…')
+    unhl_and_unmark(0, hl_ns, top_line, bot_line)
+    return
+  elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
+    -- search the hint and jump to it
+    for _, line_hints in pairs(hints) do
+      if #line_hints.hints == 1 then
+        local h = line_hints.hints[1]
+        unhl_and_unmark(0, hl_ns, top_line, bot_line)
+        vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
+        break
+      end
+    end
+
     return
   end
 
-  -- create a new buffer to contain the hints and mark it as ours with b:hop#marked; this will allow us to know
-  -- whether we try to call hop again from within such a buffer (and actually prevent it); also, the buffer is created
-  -- with bufhidden set to wipe so that if the user quit it without using the API, it will automatically be wiped away
-  -- from the list of buffers
-  local hint_buf_handle = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'hop#marked', true)
-  vim.api.nvim_buf_set_option(hint_buf_handle, 'bufhidden', 'wipe')
-
-  -- fill the hint buffer
-  update_hint_buffer(hint_buf_handle, win_width, win_height, hints)
-
-  -- check whether we are currently in visual mode
-  if opts.extend_visual then
-    local mode = vim.api.nvim_get_mode().mode
-    local visual_modes = 'vV'
-    if visual_modes:find(mode) ~= nil then
-      vim.cmd('normal ' .. mode)
-      vim.api.nvim_buf_set_var(hint_buf_handle, 'previously_visual', true)
-    end
-  end
-
-  local win_id = vim.api.nvim_open_win(hint_buf_handle, true, {
-    relative = 'win',
-    width = win_width,
-    height = win_real_height,
-    row = 0,
-    col = left_col_offset,
-    style = 'minimal'
+  vim.api.nvim_buf_set_var(0, 'hop#hint_state', {
+    hints = hints;
+    hl_ns = hl_ns;
+    top_line = top_line;
+    bot_line = bot_line
   })
-  vim.api.nvim_win_set_option(win_id, 'winblend', opts.winblend)
-  -- FIXME: the cursor line is outside of the screen for vertical splits with this code
-  -- vim.api.nvim_win_set_cursor(win_id, { cursor_line, cursor_col })
 
-  -- buffer-local variables so that we can access them later
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'src_win_id', vim.api.nvim_get_current_win())
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_top_line', win_top_line)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_width', win_width)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'win_height', win_height)
-  vim.api.nvim_buf_set_var(hint_buf_handle, 'hints', hints)
-
-  -- keybindings
-  keymap.create_jump_keymap(hint_buf_handle, opts)
-  vim.api.nvim_set_option('virtualedit', save_virtualedit)
+  hint.set_hint_extmarks(hl_ns, hints)
+  keymap.create_jump_keymap(0, opts)
 end
 
--- Refine hints of the current buffer.
+-- Refine hints in the given buffer.
 --
--- If the key doesn’t end up refining anything, TODO.
+-- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
+-- the location. Otherwise, it stores the new state machine.
 function M.refine_hints(buf_handle, key)
-  local h, hints, update_count = hint.reduce_hints_lines(vim.b.hints, key)
+  local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
+  local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
   if h == nil then
     if update_count == 0 then
@@ -158,23 +137,20 @@ function M.refine_hints(buf_handle, key)
       return
     end
 
-    vim.api.nvim_buf_set_var(buf_handle, 'hints', hints)
-    update_hint_buffer(buf_handle, vim.b.win_width, vim.b.win_height, hints)
-  else
-    local win_top_line = vim.b.win_top_line
-    local previously_visual = vim.b.previously_visual
+    hint_state.hints = hints
+    vim.api.nvim_buf_set_var(buf_handle, 'hop#hint_state', hint_state)
 
+    vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
+    grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
+    hint.set_hint_extmarks(hint_state.hl_ns, hints)
+  else
     M.quit(buf_handle)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal m'")
 
     -- JUMP!
-    if previously_visual then
-      vim.cmd('normal gv')
-    end
-
-    vim.api.nvim_win_set_cursor(0, { win_top_line + h.line, h.real_col - 1})
+    vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
   end
 end
 
@@ -182,9 +158,13 @@ end
 --
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle)
-  if vim.b['hop#marked'] then
-    vim.api.nvim_buf_delete(buf_handle, { force = true })
-  end
+  local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
+  unhl_and_unmark(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line + 1)
+  keymap.restore_keymap(buf_handle)
+end
+
+function M.hint_words(opts)
+  hint_with(hint.by_word_start, get_command_opts(opts))
 end
 
 function M.hint_words(opts)
