@@ -1,0 +1,444 @@
+*hop.txt*    For Neovim version 0.5                  Last change: 2021 Feb 6
+
+                                 __
+                                / /_  ____  ____
+                               / __ \/ __ \/ __ \
+                              / / / / /_/ / /_/ /
+                             /_/ /_/\____/ .___/
+                                        /_/
+                         · Neovim motions on speed! ·
+
+==============================================================================
+CONTENTS                                                          *hop-contents*
+
+  Introduction ·············································· |hop-introduction|
+  Requirements ·············································· |hop-requirements|
+  Limitations and known issues ························ |hop-limitations-issues|
+  Usage ···························································· |hop-usage|
+    Commands ···················································· |hop-commands|
+    Lua API ······················································ |hop-lua-api|
+  Configuration ··················································· |hop-config|
+  Highlights ·················································· |hop-highlights|
+  License ························································ |hop-license|
+
+==============================================================================
+INTRODUCTION                                              *hop* *hop-introduction*
+
+Hop is an “EasyMotion” like plugin allowing you to jump anywhere in a document
+with as few keystrokes as possible. It does so by annotating text in your
+buffer with |hints|, short string sequences for which each character represents
+a key to type to jump to the annotated text. Most of the time, those
+sequences’ lengths will be between 1 to 3 characters, making every jump target
+in your document reachable in a few keystrokes.
+
+Hop is a complete from-scratch rewrite of EasyMotion, a famous plugin to
+enhance the native motions of Vim. Even though EasyMotion is usable in
+Neovim, it suffers from a few drawbacks making it not comfortable to use with
+Neovim version >0.5 – at least at the time of writing these lines:
+
+- EasyMotion uses an old trick to annotate jump targets by saving the
+  contents of the buffer, replacing it with the highlighted annotations and
+  then restoring the initial buffer after jump. This trick is dangerous as it
+  will change the contents of your buffer. A UI plugin should never do anything
+  to existing buffers’ contents.
+- Because the contents of buffers will temporarily change, other parts of the
+  editor and/or plugins relying on buffer change events will react and will go
+  mad. An example is the internal LSP client implementation of Neovim >0.5 or
+  its treesitter native implementation. For LSP, it means that the connected
+  LSP server will receive a buffer with the jump target annotations… not
+  ideal.
+
+==============================================================================
+REQUIREMENTS                                                  *hop-requirements*
+
+Hop works only with Neovim and was written with Neovim-0.5, so it is highly
+recommended to use Neovim version 0.5+.
+
+Especially, hop uses |api-extended-marks|, which are not available before
+Neovim-0.5.
+
+==============================================================================
+LIMITATIONS AND KNOWN ISSUES                            *hop-limitations-issues*
+
+Folds are currently not supported, so they will break Hop pretty badly.
+
+==============================================================================
+USAGE                                                                *hop-usage*
+
+                                                                  *hop-commands*
+Commands~
+
+You can try those commands by typing them in your command line. By default,
+they will use the default options for the configuration of Hop. If you want to
+customize how those functions work, have a look at |hop.setup|.
+
+`:HopWord`                                                              *:HopWord*
+    Annotate all words in the current window with key sequences. Typing a
+    first  key will visually filter the sequences and reduce them. Continue
+    typing key sequences until you reduce a sequence completely, which will
+    bring your cursor at that position.
+
+    This is akin to calling the |hop.hint_words| Lua function.
+
+`:HopPattern`                                                        *:HopPattern*
+    Ask the user for a pattern and hint the document with it.
+
+    This is akin to calling the |hop.hint_patterns| Lua function.
+
+`:HopChar1`                                                            *:HopChar1*
+    Type a key and immediately hint the document for this key.
+
+    This is akin to calling the |hop.hint_char1| Lua Function
+
+`:HopChar2`                                                            *:HopChar2*
+    Type two keys and immediately hint the document for this bigram.
+
+    This is akin to calling the |hop.hint_char2| Lua Function
+
+`:HopLine`                                                              *:HopLine*
+    Jump to the beginning of the line of your choice inside your buffer.
+
+    This is akin to calling the |hop.hint_lines| Lua function.
+
+                                                                   *hop-lua-api*
+Lua API~
+
+The Lua API comprises several modules:
+
+`hop`           Entry point and main interface. If you just want to use
+              Hop from within Lua via keybindings, you shouldn’t need to
+              read any other modules.
+`hop.defaults`  Default options.
+`hop.hint`      Various functions to create, update and reduce hints.
+`hop.keymap`    Implementation of the keymap allowing to perform jumps.
+`hop.perm`      Permutation functions. Permutations are used as labels for
+              the hints.
+
+Main API~
+
+Most of the functions and values you need to know about are in `hop`.
+
+`hop.setup(`{opts}`)`                                                    *hop.setup*
+    Setup the library with options.
+
+    This functional will setup the Lua API and commands in a way that respects
+    the options you pass.
+
+    The list of available options is available in the |hop-config| section.
+
+`hop.hint_words(`{opts}`)`                                          *hop.hint_words*
+    Annotate all words in the current window with key sequences. Typing a
+    first key will visually filter the sequences and reduce them. Continue
+    typing key sequences until you reduce a sequence completely, which will
+    bring your cursor at that position. See |hop-config| for a complete list
+    of the options you can pass as arguments.
+
+`hop.hint_patterns(`{opts}`)`                                    *hop.hint_patterns*
+    Annotate all patterns in the current window with key sequences after
+    having prompted the user for the pattern to search.
+
+`hop.hint_char1(`{opts}`)`                                          *hop.hint_char1*
+    Let the user type a key and immediately hint all of its occurrences.
+
+`hop.hint_char2(`{opts}`)`                                          *hop.hint_char2*
+    Let the user type a bigram (two concatenated keys) and immediately hint
+    all of its occurrences.
+
+`hop.hint_lines(`{opts}`)`                                          *hop.hint_lines*
+    Hint the beginning of each lines currently visible in the buffer view and
+    allow to jump to them.
+
+    This works with empty lines as well.
+
+`hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
+    Refine hints in buffer {buf_handle} by reducing sequences starting with
+    {key}. If a sequence has only one key remaining and that key is {key},
+    the associated hint jump target is triggered.
+
+    If {key} is not found as the first key in any sequence currently visible,
+    the function will abort and report an error to the user stating that no
+    remaining sequence starts with {key}.
+
+Hint API~
+
+The hint API allows to create, reduce and display *hints* in easy ways.
+
+`hop.hint.by_word_start`                                  *hop.hint.by_word_start*
+    |word| hint mode. This mode will highlights the beginnings of all the
+    words in the document and will make the cursor jump to the one fully
+    reduced.
+
+`hop.hint.by_searching(`{pat}`)`                             *hop.hint.by_searching*
+    |pattern| hint mode. This mode will highlights the beginnings of a pattern
+    you will be prompted for in the document and will make the cursor jump to
+    the one fully reduced.
+
+`hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
+  {hint_mode}`,`
+  {line_nr}`,`
+  {line}
+`)`
+    Mark the given {line} with hints according to the input {hint_mode}. The
+    {line_nr} must be the row where the {line} comes from.
+
+    This function returns all the hints for {line} as a table consisting of
+    three information gathered under two keys:
+>
+        {
+          hints = { line, col, real_col };
+          length
+        }
+<
+    `line` is the same as {line_nr} and is simply forwarded. `col` is the
+    column at which the hint visually starts. `real_col` is the column at
+    which the hint starts taking into account multi-byte characters.
+
+    Use `col` for displaying the hints and `real_col` to jump to it.
+
+    `length` is the length of the initial hinted line. This is an important
+    information used to correctly implement 'wrap' and 'nowrap' support.
+
+    The returned hint is to be considered as a placeholder, as it doesn’t have
+    its hint label yet. Have a look at |hop.hint.create_hints| for further
+    information about how the `hint` field is added.
+
+`hop.hint.reduce_hint(`{hint}`,` {key}`)`                       *hop.hint.reduce_hint*
+    Reduce {hint} with {key}.
+
+    If {hint} didn’t start with {key}, it is returned as-is. If {hint} started
+    with {key}, that {key} is removed from its beginning. If the remaining
+    hint is empty, `nil` is returned, otherwise the reduction is returned.
+
+`hop.hint.reduce_hints_lines(`                       *hop.hint.reduce_hints_lines*
+  {per_line_hints}`,`
+  {key}
+`)`
+    Reduce all hints in {per_line_hints} and return the fully reduced one, if
+    any.
+
+    If a hint is fully reduced, its `hint` field will be `nil` but its `line`,
+    `col` and `real_col` fields can still be used to jump to it.
+
+`hop.hint.create_hints(`                                   *hop.hint.create_hints*
+  {hint_mode}`,`
+  {buf_heigth}`,`
+  {cursor_pos}`,`
+  {lines}`,`
+  {opts}
+`)`
+    Given a set of {lines}, this function creates the hints for each line in
+    {lines} by respecting the {hint_mode}. The {cursor_pos} is used to alter
+    the sequence distribution over the buffer.
+
+    The returned value is a table containing the following fields:
+>
+        { line, col, real_col, hint }
+<
+    The meaning of `line`, `col` and `real_col` is the same as with
+    |hop.hint.mark_hints_line|. `hint` contains the permutation making the
+    sequence that can be displayed and typed by a user to jump to.
+
+`hop.hint.create_buffer_lines(`                     *hop.hint.create_buffer_lines*
+  {buf_width}`,`
+  {buf_height}`,`
+  {per_line_hints}
+`)`
+    Create the lines that can be put in a buffer to show the hints. The lines
+    are created by using an algorithm allowing the hints to be cut if they
+    overlap with others. {per_line_hints} should be an object returned by
+    |hop.hint_create_hints|.
+
+    This function returns the content of the buffer as a list of lines, and
+    each line is represented with a single string.
+
+Permutation API~
+
+The permutation API is the core part of the algorithm used in Hop.
+Permutations in Hop are made out of a source sequence of characters, called
+a key set and represented with {keys}. A good choice of key set is important
+to yield short and concise permutations, allowing to jump to targets with
+fewer keystrokes.
+
+`hop.perm.permutations(`{keys}`,` {n}`,` {opts}`)`               *hop.perm.permutations*
+    Get the first {n} permutations out of {keys}.
+
+    This function will generate shorter permutations first, and when a given
+    dimension is fully exhausted, will switch to the next dimension. The first
+    permutations will be of dimension 1 (i.e. a single character), taken out
+    from {keys}. Once all keys are exhausted for 1-character permutations, the
+    next permutations will be generated for dimension 2 (i.e. two characters),
+    also taken out from {keys}, then dimension 3, etc. etc.
+
+    {keys} is split into two sets: terminal keys are keys that, when pressed,
+    immediately trigger a jump. They can be found in the 1-character
+    permutations and at the end of longer sequences, but never at the
+    beginning nor the middle of longer permutations. Sequence keys represent
+    the second set and can never be found in 1-character permutations, nor in
+    terminal positions of longer ones.
+
+    For a permutation `perm` which length is greater or equal than 2, any keys
+    for which the index in the permutation is between `1` and `#perm - 1` are
+    sequence keys and the last key in the permutation at index `#perm` is a
+    terminal key.
+
+Keymap API~
+
+The keymap API allows to create buffer-local bindings to be able to jump to
+hints targets. Those keymaps are automatically inserted when you call
+functions such as |hop.jump_words|. They are made out of the {keys} in your
+{opts}.
+
+`hop.keymap.create_jump_keymap(`                   *hop.keymap.create_jump_keymap*
+  {buf_handle}`,`
+  {opts}
+`)`
+    Create the dynamic keymap in the buffer referred to by {buf_handle} by
+    mapping all the keys found in {opts}.{keys}.
+
+    If {opts} is `nil` or if {opts}.{keys} is `nil`, the appropriate {keys}
+    value will be taken out from the default value — see |hop-config|.
+
+==============================================================================
+CONFIGURATION                                                       *hop-config*
+
+The configuration can be provided in two different ways:
+
+- Either by explicitly passing an {opts} table to the various Lua
+  functions.
+- Or by passing an {opts} table to the Lua |hop.setup| function.
+
+Not providing any of the two above will use the _default values_, as described
+below.
+
+`keys`                                                           *hop-config-keys*
+    A string representing all the keys that can be part of a permutation.
+    Every character (key) used in the string will be used as part of a
+    permutation. The shortest permutation is a permutation of a single
+    character, and, depending on the content of your buffer, you might end up
+    with 3-character (or more) permutations in worst situations.
+
+    However, it is important to notice that if you decide to provide `keys`,
+    you have to ensure to use enough characters in the string, otherwise you
+    might get very long sequences and a not so pleasant experience.
+
+    Another important aspect is that the order of the characters you put in
+    your `keys` is important. Depending on the value you use in
+    |hop-config-term_seq_bias|, the keys will be split in two and the first
+    part of it will be used for terminal keys and the second part for sequence
+    keys.
+
+    Defaults:
+>
+        keys = 'asdghklqwertyuiopzxcvbnmfj'
+<
+`reverse_distribution`                           *hop-config-reverse_distribution*
+    The default behavior for key sequence distribution in your buffer is to
+    concentrate shorter sequences near the cursor, grouping 1-character
+    sequences around. As words get further from the cursor, the dimension of
+    the sequences will grow, making the furthest words the longest sequences
+    to type.
+
+    Set this option to `true` to reverse the density and concentrate the
+    shortest sequences (1-character) around the furthest words and the longest
+    sequences around the cursor.
+
+    Defaults:
+>
+        reverse_distribution = false
+<
+`term_seq_bias`                                         *hop-config-term_seq_bias*
+    Bias used to alter the proportion of keys used as terminal keys vs. used
+    as sequence keys. It is not recommended to tweak around with this value
+    too much as it will degrade the experience, but if you really want to give
+    it a try, you should set this value to a number representing the ratio of
+    terminal keys and sequence keys. A ratio of `3/4`, for instance, means
+    that for 12 keys, 9 will be used as terminal keys and 3 will be used as
+    sequence keys.
+
+    Defaults:
+>
+        term_seq_bias = 3 / 4
+<
+`winblend`                                                   *hop-config-winblend*
+    'winblend' value to use for the hint buffer.
+
+    Remember that setting a fully opaque hint buffer will make it impossible
+    to see where you are jumping.
+
+    Defaults:
+>
+        winblend = 50
+<
+`teasing`                                                     *hop-config-teasing*
+    Boolean value stating whether Hop should tease you when you do something
+    you are not supposed to.
+
+    If you find this setting annoying, feel free to turn it to `false`.
+
+    Defaults:
+>
+        teasing = true
+<
+
+`jump_on_sole_occurrence`                     *hop-config-jump_on_sole_occurrence*
+    Immediately jump without displaying hints if only one occurrence exists.
+
+    Defaults:
+>
+        jump_on_sole_occurrence = true
+<
+==============================================================================
+LICENSE                                                            *hop-license*
+
+Copyright (c) 2021, Dimitri Sabadie <dimitri.sabadie@gmail.com>
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of Dimitri Sabadie <dimitri.sabadie@gmail.com> nor the
+      names of other contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+==============================================================================
+HIGHLIGHTS                                                      *hop-highlights*
+
+Anywhere in the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
+highlight is used. For the rest:
+
+`HopNextKey`                                                   *hop-hl-HopNextkey*
+    Highlight used for the mono-sequence keys (i.e. sequence of 1).
+
+`HopNextKey1`                                                 *hop-hl-HopNextKey1*
+    Highlight used for the first key in a sequence.
+
+`HopNextKey2`                                                 *hop-hl-HopNextKey2*
+    Highlight used for the second and remaining keys in a sequence.
+
+`HopUnmatched`                                               *hop-hl-HopUnmatched*
+    Highlight used for unmatched part of the buffer when running a Hop command
+    / Lua functions.
+
+==============================================================================
+vim:tw=78:sw=4:ts=8:ft=help:norl:
