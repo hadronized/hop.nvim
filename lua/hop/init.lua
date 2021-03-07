@@ -244,6 +244,52 @@ function M.hint_char2(opts)
   hint_with(hint.by_case_searching(pat, true, opts), opts)
 end
 
+function M.hint_char2_migemo(opts)
+  local a = vim.fn.nr2char(vim.fn.getchar())
+  local b = vim.fn.nr2char(vim.fn.getchar())
+  local has_error
+  local stdout = vim.loop.new_pipe(false)
+  local stderr = vim.loop.new_pipe(false)
+  local stdout_out = {}
+  local stderr_out = {}
+  local handle, pid
+  handle, pid = vim.loop.spawn('cmigemo', {
+    args = {'-v', '-w', a .. b, '-d', '/usr/local/opt/cmigemo/share/migemo/utf-8/migemo-dict'},
+    stdio = {stdout, stderr},
+  }, vim.schedule_wrap(function(code, signal)
+    print(('exit code: %d, exit signal: %d'):format(code, signal))
+    stdout:read_stop()
+    stderr:read_stop()
+    stdout:close()
+    stderr:close()
+    handle:close()
+    if has_error then return end
+    if #stderr_out > 0 then
+      vim.notify(table.concat(stderr_out), vim.log.levels.ERROR, {})
+    elseif #stdout_out == 0 then
+      vim.notify('no output from migemo', vim.log.levels.ERROR, {})
+    else
+      local re = table.concat(stdout_out)
+      hint_with(hint.by_searching(re, false), get_command_opts(opts))
+    end
+  end))
+  print('process opened', handle, pid)
+  local function onread(output)
+    return function(err, data)
+      if err then
+        vim.notify(err, vim.log.levels.ERROR, {})
+        has_error = true
+        return
+      end
+      if data then
+        table.insert(output, data)
+      end
+    end
+  end
+  vim.loop.read_start(stdout, onread(stdout_out))
+  vim.loop.read_start(stderr, onread(stdout_out))
+end
+
 function M.hint_lines(opts)
   hint_with(hint.by_line_start, get_command_opts(opts))
 end
