@@ -245,6 +245,18 @@ function M.hint_char2(opts)
   hint_with(hint.by_case_searching(pat, true, opts), opts)
 end
 
+function M.hint_char1_migemo(opts)
+  local c = vim.fn.nr2char(vim.fn.getchar())
+  local ok, dict = pcall(require, 'hop.migemo_dict.' .. vim.o.encoding)
+  if not ok then
+    vim.api.nvim_echo({
+      {'hop-migemo does not support encoding: ' .. vim.o.encoding, 'WarningMsg'},
+    }, true, {})
+    return
+  end
+  hint_with(hint.by_searching(dict[c], false), get_command_opts(opts))
+end
+
 function M.hint_char2_migemo(opts)
   opts = opts or {}
   local cmd = opts.migemo_cmd or 'cmigemo'
