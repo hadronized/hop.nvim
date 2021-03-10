@@ -1,5 +1,3 @@
-local defaults = require'hop.defaults'
-
 local M = {}
 
 -- Get the first key of a key set.
