@@ -17,6 +17,8 @@ local function next_key(keys, key)
   return keys:sub(i1, i1)
 end
 
+M.TermSeqBias = {}
+
 -- Generate the next permutation.
 --
 -- term_keys is the terminal key set, seq_keys is the sequence key set and perm is the permutation for which we want
@@ -36,7 +38,7 @@ end
 --
 -- Yet an another – easier – way to picture the idea is that any key from the terminal key set can only appear at the end
 -- of sequence, and any key from the sequence key set can only appear before a terminal key in a sequence.
-local function next_perm(term_keys, seq_keys, perm)
+function M.TermSeqBias:next_perm(term_keys, seq_keys, perm)
   local perm_len = #perm
 
   if perm_len == 0 then
@@ -84,7 +86,7 @@ end
 --
 -- Permutations are sorted by dimensions, so you will get 1-perm first, then 2-perm, 3-perm, etc. depending on the size
 -- of the keys.
-function M.permutations(keys, n, opts)
+function M.TermSeqBias:permutations(keys, n, opts)
   local quarter = #keys * opts.term_seq_bias
   local term_keys = keys:sub(1, quarter)
   local seq_keys = keys:sub(quarter + 1)
@@ -92,7 +94,7 @@ function M.permutations(keys, n, opts)
   local perm = {}
 
   for _ = 1, n do
-    perm = next_perm(term_keys, seq_keys, perm)
+    perm = self:next_perm(term_keys, seq_keys, perm)
     perms[#perms + 1] = vim.deepcopy(perm)
   end
 
