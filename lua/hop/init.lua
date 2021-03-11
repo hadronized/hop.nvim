@@ -18,9 +18,9 @@ local function get_command_opts(local_opts)
 end
 
 -- Display error messages.
-local function eprintln(opts, msg)
-  if opts.teasing then
-    vim.cmd(string.format('echohl Error|echo "%s"', msg))
+local function eprintln(msg, teasing)
+  if teasing then
+    vim.api.nvim_echo({{msg, 'Error'}}, true, {})
   end
 end
 
@@ -52,7 +52,7 @@ local function hint_with(hint_mode, opts)
   -- when a jump is performed or if the user stops hopping)
   -- abort if we’re already hopping
   if vim.b['hop#marked'] then
-    eprintln(opts, 'eh, don’t open hop from within hop, that’s super dangerous!')
+    eprintln('eh, don’t open hop from within hop, that’s super dangerous!', opts.teasing)
     return
   end
 
@@ -99,7 +99,7 @@ local function hint_with(hint_mode, opts)
 
   local h = nil
   if hint_counts == 0 then
-    eprintln(opts, ' -> there’s no such thing we can see…')
+    eprintln(' -> there’s no such thing we can see…', opts.teasing)
     unhl_and_unmark(0, hl_ns)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
@@ -141,7 +141,7 @@ local function hint_with(hint_mode, opts)
       local key_str = vim.fn.nr2char(key)
       if opts.keys:find(key_str, 1, true) then
         -- If this is a key used in hop (via opts.keys), deal with it in hop
-        h = M.refine_hints(0, vim.fn.nr2char(key))
+        h = M.refine_hints(0, vim.fn.nr2char(key), opts.teasing)
         vim.cmd('redraw')
       else
         -- If it's not, quit hop and use the key like normal instead
@@ -159,14 +159,13 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key)
+function M.refine_hints(buf_handle, key, teasing)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
   local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
   if h == nil then
     if update_count == 0 then
-      -- TODO: vim.fn.echo_hl doesn’t seem to be implemented right now :(
-      vim.cmd('echohl Error|echo "no remaining sequence starts with ' .. key .. '"')
+      eprintln('no remaining sequence starts with ' .. key, teasing)
       return
     end
 
@@ -210,7 +209,7 @@ function M.hint_patterns(opts)
   if not ok then return end
 
   if #pat == 0 then
-    eprintln(opts, '-> empty pattern')
+    eprintln('-> empty pattern', opts.teasing)
     return
   end
 
