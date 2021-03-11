@@ -1,6 +1,5 @@
 local defaults = require'hop.defaults'
 local hint = require'hop.hint'
-local keymap = require'hop.keymap'
 
 local M = {}
 
@@ -92,6 +91,7 @@ local function hint_with(hint_mode, opts)
     opts
   )
 
+  local h
   if hint_counts == 0 then
     eprintln(opts, ' -> there’s no such thing we can see…')
     unhl_and_unmark(0, hl_ns, top_line, bot_line)
@@ -100,7 +100,7 @@ local function hint_with(hint_mode, opts)
     -- search the hint and jump to it
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
-        local h = line_hints.hints[1]
+        h = line_hints.hints[1]
         unhl_and_unmark(0, hl_ns, top_line, bot_line)
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
@@ -118,7 +118,18 @@ local function hint_with(hint_mode, opts)
   })
 
   hint.set_hint_extmarks(hl_ns, hints)
-  keymap.create_jump_keymap(0, opts)
+
+  while h == nil do
+    local key = vim.fn.getchar()
+    if type(key) == 'number' then key = vim.fn.nr2char(key) end
+    if #key == 1 and string.find(opts.keys, key, 1, true) then
+      h = M.refine_hints(0, key)
+    else
+      M.quit(0)
+      vim.api.nvim_feedkeys(key, '', true)
+      break
+    end
+  end
 end
 
 -- Refine hints in the given buffer.
@@ -150,6 +161,7 @@ function M.refine_hints(buf_handle, key)
 
     -- JUMP!
     vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
+    return h
   end
 end
 
@@ -159,7 +171,6 @@ end
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
   unhl_and_unmark(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line + 1)
-  keymap.restore_keymap(buf_handle)
 end
 
 function M.hint_words(opts)

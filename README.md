@@ -61,6 +61,7 @@ Neovim.
 - [x] Make an arbitrary search akin to <kbd>/</kbd> and go to any occurrences.
 - [x] Go to any line.
 - [x] Visual extend mode, which allows you to extend a visual selection by hopping elsewhere in the document.
+- [x] Use it with commands like `d`, `c`, `y` to delete/change/yank up to your new cursor position.
 
 ## Word mode (`:HopWord`)
 
@@ -109,6 +110,13 @@ If only a single occurrence is visible in the buffer, Hop will automatically jum
 extra key.
 
 ![](https://phaazon.net/media/uploads/hop_sole_occurrence.gif)
+
+## Use as operator motion
+
+You can use Hop with any command that expects a motion, such as `d`, `y`, `c`, and it does what you would expect:
+Delete/yank/change the document up to the new cursor position.
+
+<!-- TODO: image -->
 
 # Getting started
 
@@ -171,6 +179,10 @@ If you would rather use the Lua API, you can test it via the command prompt:
 :lua require'hop'.hint_words()
 ```
 
+# Keybindings
+
+Hop doesn’t set any keybindings; you will have to define them by yourself.
+
 If you want to create a key binding (<kbd>$</kbd> in this example) from within Lua:
 
 ```lua
@@ -183,15 +195,6 @@ For a more complete user guide and help pages:
 ```vim
 :help hop
 ```
-
-# Keybindings
-
-Hop doesn’t set any keybindings; you will have to define them by yourself.
-
-However, once Hop is started in any mode, it will override your buffer-local keybindings, if any (so that you can jump
-around). After a jump or quitting Hop, your keybindings are restored.
-
-> Note: if you find any issue with the buffer-local keymaps, please open an issue.
 
 # Configuration
 

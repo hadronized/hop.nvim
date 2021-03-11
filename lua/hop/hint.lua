@@ -198,6 +198,7 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
       end
     end
   end
+  vim.cmd('redraw')
 end
 
 return M
