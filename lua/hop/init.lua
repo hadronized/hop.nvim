@@ -191,4 +191,9 @@ function M.hint_lines(opts)
   hint_with(hint.by_line_start, get_command_opts(opts))
 end
 
+-- Insert the highlights and register the autocommand.
+local highlight = require'hop.highlight'
+highlight.insert_highlights()
+highlight.create_autocmd()
+
 return M
