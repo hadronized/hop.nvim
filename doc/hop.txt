@@ -382,7 +382,7 @@ below.
             This algorithm splits your input key set (|hop-config-keys|) into
             two separate sets, a terminal key set and a sequence key set.
             Terminal keys will always be at the end of a sequence and then
-            typing them will always jumps somewhere in your buffer, while
+            typing them will always jump somewhere in your buffer, while
             sequence keys will always be part of a prefix sequence before a
             terminal key.
 
