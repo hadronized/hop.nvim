@@ -110,6 +110,7 @@ The Lua API comprises several modules:
               read any other modules.
 `hop.defaults`  Default options.
 `hop.hint`      Various functions to create, update and reduce hints.
+`hop.highlight` Highlight functions (creation / autocommands / etc.).
 `hop.keymap`    Implementation of the keymap allowing to perform jumps.
 `hop.perm`      Permutation functions. Permutations are used as labels for
               the hints.
@@ -250,6 +251,20 @@ The hint API allows to create, reduce and display *hints* in easy ways.
 
     This function returns the content of the buffer as a list of lines, and
     each line is represented with a single string.
+
+Highlight API~
+
+The highlight API gives two functions to manipulate the highlights Hop uses:
+
+`hop.highlight.insert_highlights()`             *hop.highlight.insert_highlights*
+    Manually insert the highlights by calling the `highlight default` command.
+    See |hop-highlights| for further details about the list of highlights
+    currently available.
+
+`hop.highlight.create_autocmd`                     *hop.highlight.create_autocmd*
+    Register autocommands for the `ColorScheme` event, calling
+    |hop.highlight.insert_highlights|. This is called when you require Hop and
+    you shouldn’t need to call this function by yourself.
 
 Permutation API~
 
