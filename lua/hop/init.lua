@@ -91,7 +91,7 @@ local function hint_with(hint_mode, opts)
     opts
   )
 
-  local h
+  local h = nil
   if hint_counts == 0 then
     eprintln(opts, ' -> there’s no such thing we can see…')
     unhl_and_unmark(0, hl_ns, top_line, bot_line)
@@ -118,14 +118,20 @@ local function hint_with(hint_mode, opts)
   })
 
   hint.set_hint_extmarks(hl_ns, hints)
+  vim.cmd('redraw')
 
   while h == nil do
     local key = vim.fn.getchar()
     if type(key) == 'number' then key = vim.fn.nr2char(key) end
     if #key == 1 and string.find(opts.keys, key, 1, true) then
+      -- If this is a key used in hop (via opts.keys), deal with it in hop
       h = M.refine_hints(0, key)
+      vim.cmd('redraw')
     else
+      -- If it's not, quit hop and use the key like normal instead
       M.quit(0)
+      -- Pass the key captured via getchar() through to nvim, to be handled
+      -- normally (including mappings)
       vim.api.nvim_feedkeys(key, '', true)
       break
     end
@@ -153,6 +159,7 @@ function M.refine_hints(buf_handle, key)
     vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
+    vim.cmd('redraw')
   else
     M.quit(buf_handle)
 
