@@ -85,7 +85,6 @@ local function hint_with(hint_mode, opts)
   local hints, hint_counts = hint.create_hints(
     hint_mode,
     win_width,
-    #win_lines,
     cursor_pos,
     win_view.leftcol,
     top_line,

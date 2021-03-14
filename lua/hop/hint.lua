@@ -150,7 +150,7 @@ function M.reduce_hints_lines(per_line_hints, key)
   return nil, output, update_count
 end
 
-function M.create_hints(hint_mode, win_width, lines_count, cursor_pos, col_offset, top_line, lines, opts)
+function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -158,7 +158,7 @@ function M.create_hints(hint_mode, win_width, lines_count, cursor_pos, col_offse
   local hints = {}
   local indirect_hints = {}
   local hint_counts = 0
-  for i = 1, lines_count do
+  for i = 1, #lines do
     local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width)
     hints[i] = line_hints
 
