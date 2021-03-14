@@ -125,7 +125,8 @@ Most of the functions and values you need to know about are in `hop`.
     This functional will setup the Lua API and commands in a way that respects
     the options you pass.
 
-    The list of available options is available in the |hop-config| section.
+    Arguments:~
+        {opts}  List of options. See the |hop-config| section.
 
 `hop.hint_words(`{opts}`)`                                          *hop.hint_words*
     Annotate all words in the current window with key sequences. Typing a
@@ -134,22 +135,37 @@ Most of the functions and values you need to know about are in `hop`.
     bring your cursor at that position. See |hop-config| for a complete list
     of the options you can pass as arguments.
 
+    Arguments:~
+        {opts}  Hop options.
+
 `hop.hint_patterns(`{opts}`)`                                    *hop.hint_patterns*
     Annotate all patterns in the current window with key sequences after
     having prompted the user for the pattern to search.
 
+    Arguments:~
+        {opts}  Hop options.
+
 `hop.hint_char1(`{opts}`)`                                          *hop.hint_char1*
     Let the user type a key and immediately hint all of its occurrences.
+
+    Arguments:~
+        {opts}  Hop options.
 
 `hop.hint_char2(`{opts}`)`                                          *hop.hint_char2*
     Let the user type a bigram (two concatenated keys) and immediately hint
     all of its occurrences.
+
+    Arguments:~
+        {opts}  Hop options.
 
 `hop.hint_lines(`{opts}`)`                                          *hop.hint_lines*
     Hint the beginning of each lines currently visible in the buffer view and
     allow to jump to them.
 
     This works with empty lines as well.
+
+    Arguments:~
+        {opts}  Hop options.
 
 `hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*
     Refine hints in buffer {buf_handle} by reducing sequences starting with
@@ -160,48 +176,66 @@ Most of the functions and values you need to know about are in `hop`.
     the function will abort and report an error to the user stating that no
     remaining sequence starts with {key}.
 
+    Arguments:~
+        {buf_handle}  Buffer handle on which to operate.
+        {opts}        Hop options.
+
 Hint API~
 
 The hint API allows to create, reduce and display *hints* in easy ways.
 
 `hop.hint.by_word_start`                                  *hop.hint.by_word_start*
-    |word| hint mode. This mode will highlights the beginnings of all the
-    words in the document and will make the cursor jump to the one fully
-    reduced.
+        |word| hint mode. This mode will highlights the beginnings of all the
+        words in the document and will make the cursor jump to the one fully
+        reduced.
 
 `hop.hint.by_searching(`{pat}`)`                             *hop.hint.by_searching*
-    |pattern| hint mode. This mode will highlights the beginnings of a pattern
-    you will be prompted for in the document and will make the cursor jump to
-    the one fully reduced.
+        |pattern| hint mode. This mode will highlights the beginnings of a
+        pattern you will be prompted for in the document and will make the
+        cursor jump to the one fully reduced.
+
+    Arguments:~
+        {pat}  Pattern to search.
 
 `hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
   {hint_mode}`,`
   {line_nr}`,`
   {line}
+  {col_offset}`,`
+  {win_width}`,`
 `)`
     Mark the given {line} with hints according to the input {hint_mode}. The
     {line_nr} must be the row where the {line} comes from.
 
-    This function returns all the hints for {line} as a table consisting of
-    three information gathered under two keys:
+    Arguments:~
+        {hint_mode}   Input hint mode.
+        {line_nr}     Line number referring to the line currently being marked.
+        {line}        Line (string) to mark.
+        {col_offset}  Column at which to start hinting in the buffer. Useful
+                      if you are using 'nowrap'.
+        {win_width}   Width of the window. Useful if you are using 'nowrap'.
+
+    Return:~
+        This function returns all the hints for {line} as a table consisting
+        of three information gathered under two keys:
 >
-        {
-          hints = { line, col, real_col };
-          length
-        }
+            {
+              hints = { line, col, real_col };
+              length
+            }
 <
-    `line` is the same as {line_nr} and is simply forwarded. `col` is the
-    column at which the hint visually starts. `real_col` is the column at
-    which the hint starts taking into account multi-byte characters.
+        `line` is the same as {line_nr} and is simply forwarded. `col` is the
+        column at which the hint visually starts. `real_col` is the column at
+        which the hint starts taking into account multi-byte characters.
 
-    Use `col` for displaying the hints and `real_col` to jump to it.
+        Use `col` for displaying the hints and `real_col` to jump to it.
 
-    `length` is the length of the initial hinted line. This is an important
-    information used to correctly implement 'wrap' and 'nowrap' support.
+        `length` is the length of the initial hinted line. This is an important
+        information used to correctly implement 'wrap' and 'nowrap' support.
 
-    The returned hint is to be considered as a placeholder, as it doesn’t have
-    its hint label yet. Have a look at |hop.hint.create_hints| for further
-    information about how the `hint` field is added.
+        The returned hint is to be considered as a placeholder, as it doesn’t
+        have its hint label yet. Have a look at |hop.hint.create_hints| for
+        further information about how the `hint` field is added.
 
 `hop.hint.reduce_hint(`{hint}`,` {key}`)`                       *hop.hint.reduce_hint*
     Reduce {hint} with {key}.
@@ -210,20 +244,40 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     with {key}, that {key} is removed from its beginning. If the remaining
     hint is empty, `nil` is returned, otherwise the reduction is returned.
 
+    Arguments:~
+        {hint}  Hint to try to reduce.
+        {key}   Key to reduce with.
+
+    Return:~
+        The reduced hint, if reduced, or the original hint otherwise.
+
 `hop.hint.reduce_hints_lines(`                       *hop.hint.reduce_hints_lines*
   {per_line_hints}`,`
   {key}
 `)`
     Reduce all hints in {per_line_hints} and return the fully reduced one, if
-    any.
+    any, along with the modified per-line hints and number of changes.
 
     If a hint is fully reduced, its `hint` field will be `nil` but its `line`,
     `col` and `real_col` fields can still be used to jump to it.
 
+    Arguments:~
+        {per_line_hints}  Array of hints for each line to reduce.
+        {key}             Key to reduce with
+
+    Return:~
+        A tuple-like table, `{ reduced, new_per_line_hints, update_count }`,
+        where `reduced` is the fully reduced hint (if any),
+        `new_per_line_hints` the list of hints for each line, reduced (if it
+        was possible), and `update_count` is the number of changes that have
+        occurred while reducing.
+
 `hop.hint.create_hints(`                                   *hop.hint.create_hints*
   {hint_mode}`,`
-  {buf_heigth}`,`
+  {win_width}`,`
   {cursor_pos}`,`
+  {col_offset}`,`
+  {top_line}`,`
   {lines}`,`
   {opts}
 `)`
@@ -231,26 +285,23 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     {lines} by respecting the {hint_mode}. The {cursor_pos} is used to alter
     the sequence distribution over the buffer.
 
-    The returned value is a table containing the following fields:
+    Arguments:~
+        {hint_mode}   Hint mode to use when generating hints.
+        {win_width}   Window width.
+        {cursor_pos}  Position of the cursor in the buffer.
+        {col_offset}  Left column offset in the buffer to start at.
+        {top_line}    First line in the buffer to create hints for.
+        {lines}       Lines to create hints for.
+        {opts}        Hop options.
+
+    Return:~
+        The returned value is a table containing the following fields:
 >
-        { line, col, real_col, hint }
+            { line, col, real_col, hint }
 <
-    The meaning of `line`, `col` and `real_col` is the same as with
-    |hop.hint.mark_hints_line|. `hint` contains the permutation making the
-    sequence that can be displayed and typed by a user to jump to.
-
-`hop.hint.create_buffer_lines(`                     *hop.hint.create_buffer_lines*
-  {buf_width}`,`
-  {buf_height}`,`
-  {per_line_hints}
-`)`
-    Create the lines that can be put in a buffer to show the hints. The lines
-    are created by using an algorithm allowing the hints to be cut if they
-    overlap with others. {per_line_hints} should be an object returned by
-    |hop.hint_create_hints|.
-
-    This function returns the content of the buffer as a list of lines, and
-    each line is represented with a single string.
+        The meaning of `line`, `col` and `real_col` is the same as with
+        |hop.hint.mark_hints_line|. `hint` contains the permutation making the
+        sequence that can be displayed and typed by a user to jump to.
 
 Highlight API~
 
@@ -277,41 +328,14 @@ fewer keystrokes.
 `hop.perm.permutations(`{keys}`,` {n}`,` {opts}`)`               *hop.perm.permutations*
     Get the first {n} permutations out of {keys}.
 
-    This function will generate shorter permutations first, and when a given
-    dimension is fully exhausted, will switch to the next dimension. The first
-    permutations will be of dimension 1 (i.e. a single character), taken out
-    from {keys}. Once all keys are exhausted for 1-character permutations, the
-    next permutations will be generated for dimension 2 (i.e. two characters),
-    also taken out from {keys}, then dimension 3, etc. etc.
+    Arguments:~
+        {keys}  Input key set to use to create permutations.
+        {n}     Number of permutations to generate.
+        {opts}  Hop options.
 
-    {keys} is split into two sets: terminal keys are keys that, when pressed,
-    immediately trigger a jump. They can be found in the 1-character
-    permutations and at the end of longer sequences, but never at the
-    beginning nor the middle of longer permutations. Sequence keys represent
-    the second set and can never be found in 1-character permutations, nor in
-    terminal positions of longer ones.
-
-    For a permutation `perm` which length is greater or equal than 2, any keys
-    for which the index in the permutation is between `1` and `#perm - 1` are
-    sequence keys and the last key in the permutation at index `#perm` is a
-    terminal key.
-
-Keymap API~
-
-The keymap API allows to create buffer-local bindings to be able to jump to
-hints targets. Those keymaps are automatically inserted when you call
-functions such as |hop.jump_words|. They are made out of the {keys} in your
-{opts}.
-
-`hop.keymap.create_jump_keymap(`                   *hop.keymap.create_jump_keymap*
-  {buf_handle}`,`
-  {opts}
-`)`
-    Create the dynamic keymap in the buffer referred to by {buf_handle} by
-    mapping all the keys found in {opts}.{keys}.
-
-    If {opts} is `nil` or if {opts}.{keys} is `nil`, the appropriate {keys}
-    value will be taken out from the default value — see |hop-config|.
+    Return:~
+        The {n} first permutations for the given {keys} and
+        |hop-config-perm_method| set in {opts}.
 
 ==============================================================================
 CONFIGURATION                                                       *hop-config*
@@ -342,9 +366,52 @@ below.
     part of it will be used for terminal keys and the second part for sequence
     keys.
 
-    Defaults:
+    Defaults:~
 >
         keys = 'asdghklqwertyuiopzxcvbnmfj'
+<
+`perm_method`                                             *hop-config-perm_method*
+    Permutation method to use.
+
+    Permutation methods allow to change the way permutations (i.e. hints
+    sequence labels) are generated internally. There are currently two
+    possible options:
+
+    Possible algorithms~
+        `TermSeqBias`
+            This algorithm splits your input key set (|hop-config-keys|) into
+            two separate sets, a terminal key set and a sequence key set.
+            Terminal keys will always be at the end of a sequence and then
+            typing them will always jumps somewhere in your buffer, while
+            sequence keys will always be part of a prefix sequence before a
+            terminal key.
+
+            Additionally to |hop-config-keys|, this algorithm uses the
+            |hop-config-term_seq_bias| option to determine how to split
+            |hop-config-keys|. A good default value is `0.5` or `3 / 4` but
+            feel free to experiment with values between (exclusive) `0` and
+            `1`.
+
+        `TrieBacktrackFilling`
+            Permutation algorithm based on tries and backtrack filling.
+
+            This algorithm uses the full potential of |hop-config-keys| by
+            using them all to saturate a trie, representing all the
+            permutations. Once a layer is saturated, this algorithm will
+            backtrack (from the end of the trie, deepest first) and create a
+            new layer in the trie, ensuring that the first permutations will
+            be shorter than the last ones.
+
+            Because of the last, deepest trie insertion mechanism and trie
+            saturation, this algorithm yields a much better distribution
+            accross your buffer, and you should get 1-sequences and
+            2-sequences most of the time. Each dimension grows
+            exponentially, so you get `keys_length²` 2-sequence keys,
+            `keys_length³` 3-sequence keys, etc in the worst cases.
+
+    Default value~
+>
+        perm_method = require'hop.perm'.TrieBacktrackFilling
 <
 `reverse_distribution`                           *hop-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
@@ -357,7 +424,7 @@ below.
     shortest sequences (1-character) around the furthest words and the longest
     sequences around the cursor.
 
-    Defaults:
+    Defaults:~
 >
         reverse_distribution = false
 <
@@ -370,7 +437,11 @@ below.
     that for 12 keys, 9 will be used as terminal keys and 3 will be used as
     sequence keys.
 
-    Defaults:
+    Note:~
+        This option is only used if you set |hop-config-perm_method| to
+        `TermSeqBias`.
+
+    Defaults:~
 >
         term_seq_bias = 3 / 4
 <
@@ -390,15 +461,14 @@ below.
 
     If you find this setting annoying, feel free to turn it to `false`.
 
-    Defaults:
+    Defaults:~
 >
         teasing = true
 <
-
 `jump_on_sole_occurrence`                     *hop-config-jump_on_sole_occurrence*
     Immediately jump without displaying hints if only one occurrence exists.
 
-    Defaults:
+    Defaults:~
 >
         jump_on_sole_occurrence = true
 <
