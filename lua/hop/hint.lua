@@ -180,7 +180,7 @@ function M.create_hints(hint_mode, win_width, lines_count, cursor_pos, col_offse
   table.sort(indirect_hints, dist_comparison)
 
   -- generate permutations and update the lines with hints
-  local perms = perm.TermSeqBias:permutations(opts.keys, #indirect_hints, opts)
+  local perms = perm.permutations(opts.keys, #indirect_hints, opts)
   for i, indirect in pairs(indirect_hints) do
     hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end

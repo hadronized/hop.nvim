@@ -346,6 +346,48 @@ below.
 >
         keys = 'asdghklqwertyuiopzxcvbnmfj'
 <
+`perm_method`                                             *hop-config-perm_method*
+    Permutation method to use.
+
+    Permutation methods allow to change the way permutations (i.e. hints
+    sequence labels) are generated internally. There are currently two
+    possible options:
+
+    Possible algorithms~
+        `TermSeqBias`
+            This algorithm splits your input key set (|hop-config-keys|) into
+            two separate sets, a terminal key set and a sequence key set.
+            Terminal keys will always be at the end of a sequence and then
+            typing them will always jumps somewhere in your buffer, while
+            sequence keys will always be part of a prefix sequence before a
+            terminal key.
+
+            Additionally to |hop-config-keys|, this algorithm uses the
+            |hop-config-term_seq_bias| option to determine how to split
+            |hop-config-keys|. A good default value is `0.5` or `3 / 4` but
+            feel free to experiment with values between (exclusive) `0` and
+            `1`.
+
+        `TrieBacktrackFilling`
+            Permutation algorithm based on tries and backtrack filling.
+
+            This algorithm uses the full potential of |hop-config-keys| by
+            using them all to saturate a trie, representing all the
+            permutations. Once a layer is saturated, this algorithm will
+            backtrack (from the end of the trie, deepest first) and create a
+            new layer in the trie, ensuring that the first permutations will
+            be shorter than the last ones.
+
+            Because of the last, deepest trie insertion mechanism and trie
+            saturation, this algorithm yields a much better distribution
+            accross your buffer, and you should get 1-sequences and
+            2-sequences most of the time. Each dimension grows
+            exponentially, so you get `keys_length²` 2-sequence keys,
+            `keys_length³` 3-sequence keys, etc in the worst cases.
+
+    Default value~
+        `perm_method = require'hop.perm'.TrieBacktrackFilling`
+
 `reverse_distribution`                           *hop-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
     concentrate shorter sequences near the cursor, grouping 1-character
