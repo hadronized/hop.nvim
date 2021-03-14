@@ -122,10 +122,14 @@ local function hint_with(hint_mode, opts)
 
   while h == nil do
     local key = vim.fn.getchar()
-    if type(key) == 'number' then key = vim.fn.nr2char(key) end
-    if #key == 1 and string.find(opts.keys, key, 1, true) then
+    -- :h getchar(): "If the result of expr is a single character, it returns a
+    -- number. Use nr2char() to convert it to a String."
+    --
+    -- Note of caution: Even though the result of `getchar()` might be a single
+    -- character, that character might still be multiple bytes.
+    if type(key) == 'number' and opts.keys:find(vim.fn.nr2char(key), 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, key)
+      h = M.refine_hints(0, vim.fn.nr2char(key))
       vim.cmd('redraw')
     else
       -- If it's not, quit hop and use the key like normal instead
