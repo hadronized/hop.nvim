@@ -93,7 +93,7 @@ local function hint_with(hint_mode, opts)
   )
 
   if hint_counts == 0 then
-    eprintln(opts, 'there’s no such thing we can see…')
+    eprintln(opts, ' -> there’s no such thing we can see…')
     unhl_and_unmark(0, hl_ns, top_line, bot_line)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
@@ -171,8 +171,18 @@ function M.hint_words(opts)
 end
 
 function M.hint_patterns(opts)
+  opts = get_command_opts(opts)
+
+  vim.fn.inputsave()
   local pat = vim.fn.input('Search: ')
-  hint_with(hint.by_searching(pat), get_command_opts(opts))
+  vim.fn.inputrestore()
+
+  if #pat == 0 then
+    eprintln(opts, '-> empty pattern')
+    return
+  end
+
+  hint_with(hint.by_searching(pat), opts)
 end
 
 function M.hint_char1(opts)
