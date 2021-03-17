@@ -10,6 +10,7 @@ function M.by_searching(pat, plain_search)
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   return {
+    oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
     end
@@ -26,14 +27,9 @@ M.by_word_start = M.by_searching('\\w\\+')
 --
 -- Used to tag the beginning of each lines with ihnts.
 M.by_line_start = {
-  match = function(s)
-    local len = vim.fn.strdisplaywidth(s)
-
-    if len == 0 then
-      return nil
-    else
-      return 0, len
-    end
+  oneshot = true,
+  match = function(_)
+    return 0, 1, false
   end
 }
 
@@ -79,17 +75,12 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
 
   local shifted_line = line:sub(1 + col_offset, end_index)
 
-  -- prevent empty lines from being really empty; useful for some modes
-  if #shifted_line == 0 then
-    shifted_line = ' '
-  end
-
   local col = 1
   while true do
     local s = shifted_line:sub(col)
     local b, e = hint_mode.match(s)
 
-    if b == nil then
+    if b == nil or (b == 0 and e == 0) then
       break
     end
 
@@ -99,7 +90,11 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
       col = colb + col_offset;
     }
 
-    col = col + e
+    if hint_mode.oneshot then
+      break
+    else
+      col = col + e
+    end
   end
 
   return {
