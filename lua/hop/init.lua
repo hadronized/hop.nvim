@@ -127,17 +127,20 @@ local function hint_with(hint_mode, opts)
     --
     -- Note of caution: Even though the result of `getchar()` might be a single
     -- character, that character might still be multiple bytes.
-    if type(key) == 'number' and opts.keys:find(vim.fn.nr2char(key), 1, true) then
-      -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, vim.fn.nr2char(key))
-      vim.cmd('redraw')
-    else
-      -- If it's not, quit hop and use the key like normal instead
-      M.quit(0)
-      -- Pass the key captured via getchar() through to nvim, to be handled
-      -- normally (including mappings)
-      vim.api.nvim_feedkeys(key, '', true)
-      break
+    if type(key) == 'number' then
+      local key_str = vim.fn.nr2char(key)
+      if opts.keys:find(key_str, 1, true) then
+        -- If this is a key used in hop (via opts.keys), deal with it in hop
+        h = M.refine_hints(0, vim.fn.nr2char(key))
+        vim.cmd('redraw')
+      else
+        -- If it's not, quit hop and use the key like normal instead
+        M.quit(0)
+        -- Pass the key captured via getchar() through to nvim, to be handled
+        -- normally (including mappings)
+        vim.api.nvim_feedkeys(key_str, '', true)
+        break
+      end
     end
   end
 end
