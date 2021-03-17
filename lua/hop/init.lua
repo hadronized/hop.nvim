@@ -1,6 +1,5 @@
 local defaults = require'hop.defaults'
 local hint = require'hop.hint'
-local keymap = require'hop.keymap'
 
 local M = {}
 
@@ -92,6 +91,7 @@ local function hint_with(hint_mode, opts)
     opts
   )
 
+  local h = nil
   if hint_counts == 0 then
     eprintln(opts, ' -> there’s no such thing we can see…')
     unhl_and_unmark(0, hl_ns, top_line, bot_line)
@@ -100,7 +100,7 @@ local function hint_with(hint_mode, opts)
     -- search the hint and jump to it
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
-        local h = line_hints.hints[1]
+        h = line_hints.hints[1]
         unhl_and_unmark(0, hl_ns, top_line, bot_line)
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
@@ -118,7 +118,31 @@ local function hint_with(hint_mode, opts)
   })
 
   hint.set_hint_extmarks(hl_ns, hints)
-  keymap.create_jump_keymap(0, opts)
+  vim.cmd('redraw')
+
+  while h == nil do
+    local key = vim.fn.getchar()
+    -- :h getchar(): "If the result of expr is a single character, it returns a
+    -- number. Use nr2char() to convert it to a String."
+    --
+    -- Note of caution: Even though the result of `getchar()` might be a single
+    -- character, that character might still be multiple bytes.
+    if type(key) == 'number' then
+      local key_str = vim.fn.nr2char(key)
+      if opts.keys:find(key_str, 1, true) then
+        -- If this is a key used in hop (via opts.keys), deal with it in hop
+        h = M.refine_hints(0, vim.fn.nr2char(key))
+        vim.cmd('redraw')
+      else
+        -- If it's not, quit hop and use the key like normal instead
+        M.quit(0)
+        -- Pass the key captured via getchar() through to nvim, to be handled
+        -- normally (including mappings)
+        vim.api.nvim_feedkeys(key_str, '', true)
+        break
+      end
+    end
+  end
 end
 
 -- Refine hints in the given buffer.
@@ -142,6 +166,7 @@ function M.refine_hints(buf_handle, key)
     vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
+    vim.cmd('redraw')
   else
     M.quit(buf_handle)
 
@@ -150,6 +175,7 @@ function M.refine_hints(buf_handle, key)
 
     -- JUMP!
     vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
+    return h
   end
 end
 
@@ -159,7 +185,6 @@ end
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
   unhl_and_unmark(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line + 1)
-  keymap.restore_keymap(buf_handle)
 end
 
 function M.hint_words(opts)

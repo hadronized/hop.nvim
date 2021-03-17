@@ -111,7 +111,6 @@ The Lua API comprises several modules:
 `hop.defaults`  Default options.
 `hop.hint`      Various functions to create, update and reduce hints.
 `hop.highlight` Highlight functions (creation / autocommands / etc.).
-`hop.keymap`    Implementation of the keymap allowing to perform jumps.
 `hop.perm`      Permutation functions. Permutations are used as labels for
               the hints.
 
