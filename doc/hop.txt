@@ -13,7 +13,6 @@ CONTENTS                                                          *hop-contents*
 
   Introduction ·············································· |hop-introduction|
   Requirements ·············································· |hop-requirements|
-  Limitations and known issues ························ |hop-limitations-issues|
   Usage ···························································· |hop-usage|
     Commands ···················································· |hop-commands|
     Lua API ······················································ |hop-lua-api|
@@ -56,11 +55,6 @@ recommended to use Neovim version 0.5+.
 
 Especially, hop uses |api-extended-marks|, which are not available before
 Neovim-0.5.
-
-==============================================================================
-LIMITATIONS AND KNOWN ISSUES                            *hop-limitations-issues*
-
-Folds are currently not supported, so they will break Hop pretty badly.
 
 ==============================================================================
 USAGE                                                                *hop-usage*
