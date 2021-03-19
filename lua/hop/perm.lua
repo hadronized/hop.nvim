@@ -140,6 +140,51 @@ function M.TrieBacktrackFilling:add_trie_key(trie, p, key)
   return trie
 end
 
+M.TrieBacktrackFilling.testTrie = {
+  {
+    key = 'a';
+    trie = {}
+  },
+  {
+    key = 'b';
+    trie = {}
+  },
+  {
+    key = 'c';
+    trie = {}
+  },
+  {
+    key = 'd';
+    trie = {}
+  },
+  {
+    key = 'e';
+    trie = {
+      { key = 'a'; trie = {} },
+      { key = 'b'; trie = {} },
+      { key = 'c'; trie = {} },
+      { key = 'd'; trie = {
+        { key = 'a'; trie = {} },
+        { key = 'b'; trie = {} },
+        { key = 'c'; trie = {} },
+        { key = 'd'; trie = {} },
+        { key = 'e'; trie = {} },
+      } },
+    }
+  }
+}
+
+M.TrieBacktrackFilling.smallTrie = {
+  {
+    key = 'a';
+    trie = {}
+  },
+  {
+    key = 'b';
+    trie = {}
+  },
+}
+
 -- Maintain a trie pointer of a given dimension.
 --
 -- If a pointer has components { 4, 1 } and the dimension is 4, this function will automatically complete the missing

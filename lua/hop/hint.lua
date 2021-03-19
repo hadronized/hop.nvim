@@ -5,14 +5,18 @@ local M = {}
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
-function M.by_searching(pat, plain_search)
+function M.by_searching(pat, plain_search, same_line)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   return {
     oneshot = false,
-    match = function(s)
-      return vim.regex(pat):match_str(s)
+    match = function(s, line_nr, cursor_pos)
+      if not same_line or line_nr + 1 == cursor_pos[1] then
+        return vim.regex(pat):match_str(s)
+      else
+        return 0, 0
+      end
     end
   }
 end
@@ -38,16 +42,238 @@ end
 -- Word hint mode.
 --
 -- Used to tag words with hints.
--- M.by_word_start = M.by_searching('\\<\\w\\+')
-M.by_word_start = M.by_searching('\\w\\+')
+function M.by_word_start(same_line)
+  return M.by_searching('\\w\\+', false, same_line)
+end
+
+-- This basically reimplements vim's 'w' key movement.
+function M.by_w(same_line)
+  first_time = true
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if (not same_line and line_nr + 1 >= cursor_pos[1]) or line_nr + 1 == cursor_pos[1] then
+        if first_time then
+          s = s:sub(cursor_pos[2]+1)
+          _,offset = vim.regex('^\\(\\(\\w\\+\\)\\|\\([^[:blank:][:alnum:]_]\\+\\)\\)'):match_str(s)
+          offset = (offset or 0)
+          s = s:sub(offset+1)
+          offset = offset + cursor_pos[2]
+        end
+
+        _,i = vim.regex('^\\s*'):match_str(s)
+        _,j = vim.regex('^\\s*\\(\\(\\w\\+\\)\\|\\([^[:blank:][:alnum:]_]\\+\\)\\)'):match_str(s)
+        j = j or s:len()
+
+        if i == j then
+          return 0, 0
+        else
+          if first_time then
+            first_time = false
+            return i+offset, j+offset
+          else
+            return i, j
+          end
+        end
+      else
+        return 0, 0
+      end
+    end
+  }
+end
+
+function M.by_e(same_line)
+  first_time = true
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if (not same_line and line_nr + 1 >= cursor_pos[1]) or line_nr + 1 == cursor_pos[1] then
+        if first_time then
+          s = s:sub(cursor_pos[2]+2)
+          offset = cursor_pos[2] + 1
+        end
+
+        _,j = vim.regex('^\\s*\\(\\(\\w\\+\\)\\|\\([^[:blank:][:alnum:]_]\\+\\)\\)'):match_str(s)
+        j = j or s:len()
+
+        if s:len() == 0 then
+          return 0, 0
+        end
+
+        if first_time then
+          first_time = false
+          return j+offset-1, j+offset
+        else
+          return j-1, j
+        end
+      else
+        return 0, 0
+      end
+    end
+  }
+end
+
+function M.by_ge(same_line)
+  start = 0
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if (not same_line and line_nr + 1 >= cursor_pos[1]) or line_nr + 1 == cursor_pos[1] then
+        if line_nr + 1 == cursor_pos[1] then
+          s = s:sub(0, cursor_pos[2] + 1 - start)
+          offset = cursor_pos[2] + 1
+        end
+
+        _,j = vim.regex('^\\s*\\(\\(\\w\\+\\)\\|\\([^[:blank:][:alnum:]_]\\+\\)\\)'):match_str(s)
+        j = j or s:len()
+
+        if j == s:len() then
+          return 0, 0
+        end
+
+        if line_nr + 1 == cursor_pos[1] then
+          start = start + j
+        end
+        return j-1, j
+      else
+        return 0, 0
+      end
+    end
+  }
+end
+
+function M.by_b(same_line)
+  start = 0
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if (not same_line and line_nr + 1 < cursor_pos[1]) or line_nr + 1 == cursor_pos[1] then
+        if line_nr + 1 == cursor_pos[1] then
+          s = s:sub(0, cursor_pos[2] - start)
+        end
+
+        _,i = vim.regex('^\\s*'):match_str(s)
+        _,j = vim.regex('^\\s*\\(\\(\\w\\+\\)\\|\\([^[:blank:][:alnum:]_]\\+\\)\\)'):match_str(s)
+        j = j or s:len()
+
+        if i == j then
+          return 0, 0
+        else
+          if line_nr + 1 == cursor_pos[1] then
+            start = start + j
+          end
+          return i, j
+        end
+      else
+        return 0, 0
+      end
+    end
+  }
+end
+
+function M.by_find(c, only_till)
+  first_time = true
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if line_nr + 1 == cursor_pos[1] then
+        if first_time then
+          if only_till then
+            line_start = cursor_pos[2] + 1
+          else
+            line_start = cursor_pos[2]
+          end
+          s = s:sub(line_start+2)
+        end
+        i = s:find(c)
+        print(i, cursor_pos[2], s)
+        if i == nil then
+          return nil, nil
+        else
+          if only_till then
+            i = i - 1
+          end
+          if first_time then
+            first_time = false
+            return i + line_start, i + 2 + line_start
+          else
+            return i-1, i+1
+          end
+        end
+      end
+    end
+  }
+end
+
+function M.by_find_back(c, only_till)
+  start = 0
+  return {
+    oneshot = false,
+    match = function(s, line_nr, cursor_pos)
+      if line_nr + 1 == cursor_pos[1] then
+        if only_till then
+          line_start = cursor_pos[2] - 1
+        else
+          line_start = cursor_pos[2]
+        end
+        s = s:sub(0, line_start - start)
+        i = s:find(c)
+
+        if i == nil then
+          return nil, nil
+        else
+          if only_till then
+            i = i + 1
+          end
+          start = start + i
+          return i-1, i
+        end
+      end
+    end
+  }
+end
 
 -- Line hint mode.
 --
 -- Used to tag the beginning of each lines with ihnts.
 M.by_line_start = {
   oneshot = true,
-  match = function(_)
+  match = function(_, _, _)
     return 0, 1, false
+  end
+}
+
+M.by_j = {
+  oneshot = true,
+  match = function(s, line_nr, cursor_pos)
+    if line_nr >= cursor_pos[1] then
+      if s:len() == 0 then
+        line_max = s:len()
+      else
+        line_max = s:len() - 1
+      end
+      start = math.min(cursor_pos[2], line_max)
+      return start, start+1
+    else
+      return 0, 0
+    end
+  end
+}
+
+M.by_k = {
+  oneshot = true,
+  match = function(s, line_nr, cursor_pos)
+    if line_nr + 1 < cursor_pos[1] then
+      if s:len() == 0 then
+        line_max = s:len()
+      else
+        line_max = s:len() - 1
+      end
+      start = math.min(cursor_pos[2], line_max)
+      return start, start+1
+    else
+      return 0, 0
+    end
   end
 }
 
@@ -81,7 +307,7 @@ end
 -- This function returns the list of hints as well as the length of the line in the form of table:
 --
 --   { hints, length }
-function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
+function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, cursor_pos)
   local hints = {}
   local end_index = nil
 
@@ -96,7 +322,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = hint_mode.match(s)
+    local b, e = hint_mode.match(s, line_nr, cursor_pos)
 
     if b == nil or (b == 0 and e == 0) then
       break
@@ -172,7 +398,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
   local indirect_hints = {}
   local hint_counts = 0
   for i = 1, #lines do
-    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width)
+    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, cursor_pos)
     hints[i] = line_hints
 
     hint_counts = hint_counts + #line_hints.hints
