@@ -185,8 +185,7 @@ function M.by_find(c, only_till)
           end
           s = s:sub(line_start+2)
         end
-        i = s:find(c)
-        print(i, cursor_pos[2], s)
+        i = s:find('%' .. c)
         if i == nil then
           return nil, nil
         else
