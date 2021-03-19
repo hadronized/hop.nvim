@@ -102,6 +102,13 @@ local function hint_with(hint_mode, opts)
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
         unhl_and_unmark(0, hl_ns, top_line, bot_line)
+        if vim.api.nvim_get_mode().mode == 'no' then
+          if motion_is_linewise then
+            vim.cmd("normal! V")
+          else
+            vim.cmd("normal! v")
+          end
+        end
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
