@@ -24,8 +24,6 @@ command! HopJ lua require'hop'.hint_j()
 
 command! HopK lua require'hop'.hint_k()
 
-command! HopWordLine lua require'hop'.hint_words({same_line = true})
-
 command! HopW lua require'hop'.hint_w({same_line = true})
 
 command! HopB lua require'hop'.hint_b({same_line = true})
@@ -36,8 +34,8 @@ command! HopGE lua require'hop'.hint_ge({same_line = true})
 
 command! HopF lua require'hop'.hint_f()
 
-command! HopFF lua require'hop'.hint_F()
+command! HopFBack lua require'hop'.hint_F()
 
 command! HopT lua require'hop'.hint_t()
 
-command! HopTT lua require'hop'.hint_T()
+command! HopTBack lua require'hop'.hint_T()

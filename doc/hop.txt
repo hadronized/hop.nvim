@@ -94,6 +94,64 @@ customize how those functions work, have a look at |hop.setup|.
 
     This is akin to calling the |hop.hint_lines| Lua function.
 
+`:HopJ`                                                              *:HopJ*
+    Jump to any line below the cursor.
+
+    This is akin to calling the |hop.hint_j| Lua function.
+
+`:HopK`                                                              *:HopK*
+    Jump to any line above the cursor.
+
+    This is akin to calling the |hop.hint_k| Lua function.
+
+`:HopW`                                                              *:HopW*
+    Jump to any part of a line that would be accessible using the w
+    keybinding.
+
+    This is akin to calling the |hop.hint_w| Lua function.
+
+`:HopB`                                                              *:HopB*
+    Jump to any part of a line that would be accessible using the b
+    keybinding.
+
+    This is akin to calling the |hop.hint_b| Lua function.
+
+`:HopE`                                                              *:HopE*
+    Jump to any part of a line that would be accessible using the E
+    keybinding.
+
+    This is akin to calling the |hop.hint_e| Lua function.
+
+`:HopGE`                                                              *:HopGE*
+    Jump to any part of a line that would be accessible using the ge
+    keybinding.
+
+    This is akin to calling the |hop.hint_ge| Lua function.
+
+`:HopF`                                                              *:HopF*
+    Jump to any part of a line that would be accessible using the f
+    keybinding.
+
+    This is akin to calling the hop.hint_find(_, false) Lua function.
+
+`:HopFBack`                                                          *:HopFBack*
+    Jump to any part of a line that would be accessible using the F
+    keybinding.
+
+    This is akin to calling the hop.hint_find_back(_, false) Lua function.
+
+`:HopT`                                                          *:HopT*
+    Jump to any part of a line that would be accessible using the t
+    keybinding.
+
+    This is akin to calling the hop.hint_find(_, true) Lua function.
+
+`:HopTBack`                                                          *:HopTBack*
+    Jump to any part of a line that would be accessible using the T
+    keybinding.
+
+    This is akin to calling the hop.hint_find_back(_, true) Lua function.
+
                                                                    *hop-lua-api*
 Lua API~
 
