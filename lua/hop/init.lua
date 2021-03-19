@@ -172,8 +172,12 @@ function M.refine_hints(buf_handle, key)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
-    if motion_is_linewise and vim.api.nvim_get_mode().mode == 'no' then
-      vim.cmd("normal! V")
+    if vim.api.nvim_get_mode().mode == 'no' then
+      if motion_is_linewise then
+        vim.cmd("normal! V")
+      else
+        vim.cmd("normal! v")
+      end
     end
     motion_is_linewise = nil
 
