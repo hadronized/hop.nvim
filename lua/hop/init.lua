@@ -171,7 +171,7 @@ function M.refine_hints(buf_handle, key)
     M.quit(buf_handle)
 
     -- prior to jump, register the current position into the jump list
-    vim.cmd("normal m'")
+    vim.cmd("normal! m'")
 
     -- JUMP!
     vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
