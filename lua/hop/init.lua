@@ -191,10 +191,6 @@ function M.hint_words(opts)
   hint_with(hint.by_word_start, get_command_opts(opts))
 end
 
-function M.hint_words(opts)
-  hint_with(hint.by_word_start, get_command_opts(opts))
-end
-
 function M.hint_patterns(opts)
   opts = get_command_opts(opts)
 
