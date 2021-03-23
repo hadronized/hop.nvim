@@ -17,6 +17,24 @@ function M.by_searching(pat, plain_search)
   }
 end
 
+-- Wrapper over M.by_searching to add spport for case sensitivity.
+function M.by_case_searching(pat, plain_search, opts)
+  if plain_search then
+    pat = vim.fn.escape(pat, '\\/.$^~[]')
+  end
+
+  if opts.case_insensitive then
+    pat = '\\c' .. pat
+  end
+
+  return {
+    oneshot = false,
+    match = function(s)
+      return vim.regex(pat):match_str(s)
+    end
+  }
+end
+
 -- Word hint mode.
 --
 -- Used to tag words with hints.
