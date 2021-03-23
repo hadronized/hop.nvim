@@ -238,50 +238,50 @@ function M.hint_lines(opts)
   hint_with(hint.by_line_start, get_command_opts(opts))
 end
 
-function M.hint_j(opts)
+function M.hint_line_down(opts)
   motion_is_linewise = true
-  hint_with(hint.by_j, get_command_opts(opts))
+  hint_with(hint.by_line_down, get_command_opts(opts))
 end
 
-function M.hint_k(opts)
+function M.hint_line_up(opts)
   motion_is_linewise = true
-  hint_with(hint.by_k, get_command_opts(opts))
+  hint_with(hint.by_line_up, get_command_opts(opts))
 end
 
-function M.hint_w(opts)
-  hint_with(hint.by_w(opts.same_line), get_command_opts(opts))
+function M.hint_word_after(opts)
+  hint_with(hint.by_word_after(opts.same_line), get_command_opts(opts))
 end
 
-function M.hint_b(opts)
-  hint_with(hint.by_b(opts.same_line), get_command_opts(opts))
+function M.hint_word_before(opts)
+  hint_with(hint.by_word_before(opts.same_line), get_command_opts(opts))
 end
 
-function M.hint_e(opts)
-  hint_with(hint.by_e(opts.same_line), get_command_opts(opts))
+function M.hint_word_after_end(opts)
+  hint_with(hint.by_word_after_end(opts.same_line), get_command_opts(opts))
 end
 
-function M.hint_ge(opts)
-  hint_with(hint.by_ge(opts.same_line), get_command_opts(opts))
+function M.hint_word_before_end(opts)
+  hint_with(hint.by_word_before_end(opts.same_line), get_command_opts(opts))
 end
 
-function M.hint_f(opts)
+function M.hint_find(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
   hint_with(hint.by_find(a, false), get_command_opts(opts))
 end
 
-function M.hint_F(opts)
+function M.hint_find_before(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_find_back(a, false), get_command_opts(opts))
+  hint_with(hint.by_find_before(a, false), get_command_opts(opts))
 end
 
-function M.hint_t(opts)
+function M.hint_find_to(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
   hint_with(hint.by_find(a, true), get_command_opts(opts))
 end
 
-function M.hint_T(opts)
+function M.hint_find_to_before(opts)
   local a = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_find_back(a, true), get_command_opts(opts))
+  hint_with(hint.by_find_before(a, true), get_command_opts(opts))
 end
 
 -- Insert the highlights and register the autocommand.

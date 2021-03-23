@@ -47,7 +47,7 @@ function M.by_word_start(same_line)
 end
 
 -- This basically reimplements vim's 'w' key movement.
-function M.by_w(same_line)
+function M.by_word_after(same_line)
   first_time = true
   return {
     oneshot = false,
@@ -82,7 +82,7 @@ function M.by_w(same_line)
   }
 end
 
-function M.by_e(same_line)
+function M.by_word_after_end(same_line)
   first_time = true
   return {
     oneshot = false,
@@ -113,7 +113,7 @@ function M.by_e(same_line)
   }
 end
 
-function M.by_ge(same_line)
+function M.by_word_before_end(same_line)
   start = 0
   return {
     oneshot = false,
@@ -142,7 +142,7 @@ function M.by_ge(same_line)
   }
 end
 
-function M.by_b(same_line)
+function M.by_word_before(same_line)
   start = 0
   return {
     oneshot = false,
@@ -171,25 +171,29 @@ function M.by_b(same_line)
   }
 end
 
-function M.by_find(c, only_till)
+function M.by_find(c, only_to)
   first_time = true
   return {
     oneshot = false,
     match = function(s, line_nr, cursor_pos)
       if line_nr + 1 == cursor_pos[1] then
         if first_time then
-          if only_till then
+          if only_to then
             line_start = cursor_pos[2] + 1
           else
             line_start = cursor_pos[2]
           end
           s = s:sub(line_start+2)
         end
-        i = s:find('%' .. c)
+        if c:match('%W') then
+          i = s:find('%' .. c)
+        else
+          i = s:find(c)
+        end
         if i == nil then
           return nil, nil
         else
-          if only_till then
+          if only_to then
             i = i - 1
           end
           if first_time then
@@ -204,24 +208,28 @@ function M.by_find(c, only_till)
   }
 end
 
-function M.by_find_back(c, only_till)
+function M.by_find_before(c, only_to)
   start = 0
   return {
     oneshot = false,
     match = function(s, line_nr, cursor_pos)
       if line_nr + 1 == cursor_pos[1] then
-        if only_till then
+        if only_to then
           line_start = cursor_pos[2] - 1
         else
           line_start = cursor_pos[2]
         end
         s = s:sub(0, line_start - start)
-        i = s:find(c)
+        if c:match('%W') then
+          i = s:find('%' .. c)
+        else
+          i = s:find(c)
+        end
 
         if i == nil then
           return nil, nil
         else
-          if only_till then
+          if only_to then
             i = i + 1
           end
           start = start + i
@@ -242,7 +250,7 @@ M.by_line_start = {
   end
 }
 
-M.by_j = {
+M.by_line_down = {
   oneshot = true,
   match = function(s, line_nr, cursor_pos)
     if line_nr >= cursor_pos[1] then
@@ -259,7 +267,7 @@ M.by_j = {
   end
 }
 
-M.by_k = {
+M.by_line_up = {
   oneshot = true,
   match = function(s, line_nr, cursor_pos)
     if line_nr + 1 < cursor_pos[1] then

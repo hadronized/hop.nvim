@@ -20,22 +20,22 @@ command! HopChar2 lua require'hop'.hint_char2()
 " The jump-to-line command.
 command! HopLine lua require'hop'.hint_lines()
 
-command! HopJ lua require'hop'.hint_j()
+command! HopLineDown lua require'hop'.hint_line_down()
 
-command! HopK lua require'hop'.hint_k()
+command! HopLineUp lua require'hop'.hint_line_up()
 
-command! HopW lua require'hop'.hint_w({same_line = true})
+command! HopWordAfter lua require'hop'.hint_word_after({same_line = true})
 
-command! HopB lua require'hop'.hint_b({same_line = true})
+command! HopWordBefore lua require'hop'.hint_word_before({same_line = true})
 
-command! HopE lua require'hop'.hint_e({same_line = true})
+command! HopWordAfterEnd lua require'hop'.hint_word_after_end({same_line = true})
 
-command! HopGE lua require'hop'.hint_ge({same_line = true})
+command! HopWordBeforeEnd lua require'hop'.hint_word_before_end({same_line = true})
 
-command! HopF lua require'hop'.hint_f()
+command! HopFind lua require'hop'.hint_find()
 
-command! HopFBack lua require'hop'.hint_F()
+command! HopFindBefore lua require'hop'.hint_find_before()
 
-command! HopT lua require'hop'.hint_t()
+command! HopFindTo lua require'hop'.hint_find_to()
 
-command! HopTBack lua require'hop'.hint_T()
+command! HopFindToBefore lua require'hop'.hint_find_to_before()
