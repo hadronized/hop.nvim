@@ -465,6 +465,15 @@ below.
 >
         jump_on_sole_occurrence = true
 <
+
+`case_insensitive`                                   *hop-config-case_insensitive*
+    Use case-insensitive matching by default for commands requiring user
+    input.
+
+    Defaults:~
+>
+        case_insensitive = true
+<
 ==============================================================================
 LICENSE                                                            *hop-license*
 
