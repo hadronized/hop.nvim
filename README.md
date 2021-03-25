@@ -43,8 +43,8 @@ Neovim.
   * [Pattern mode (`:HopPattern`)](#pattern-mode-hoppattern)
   * [Visual extend](#visual-extend)
   * [Jump on sole occurrence](#jump-on-sole-occurrence)
+  * [Use as operator motion](#use-as-operator-motion)
 * [Getting started](#getting-started)
-  * [Disclaimer and experimental notice](#disclaimer-and-experimental-notice)
   * [Installation](#installation)
     * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
@@ -122,25 +122,10 @@ Delete/yank/change the document up to the new cursor position.
 
 This section will guide you through the list of steps you must take to be able to get started with **Hop**.
 
-This plugin was written against Neovim 0.5, which is currently a nightly version. However, Neovim 0.4 should work
-too. If you are still on Neovim 0.4, feel free to reach out and tell me how is your experience going.
+This plugin was written against Neovim 0.5, which is currently a nightly version. This plugin will not work:
 
-This plugin will not currently work on Vim and no support for Vim is planned.
-
-## Disclaimer and experimental notice
-
-**Please read this section before going on any further.**
-
-The plugin was born from scratch on 5th February of 2021 and, at the time of writing this, is two days old. Even though
-it has reached a usable state, it still has some remaining issues to fix. You can get the full list of them with the
-embedded help, if you are curious:
-
-```vim
-:help hop-limitations-issues
-```
-
-If you are encountering any of these issues, **you do not have to open an issue as it is already being actively worked
-on.** However, PRs are greatly appreciated.
+- With a version of Neovim before 0.5.
+- On Vim. **No support for Vim is planned.**
 
 ## Installation
 
