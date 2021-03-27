@@ -36,8 +36,8 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line)
 end
 
 -- Cleanup Hop highlights and unmark the buffer.
-local function unhl_and_unmark(buf_handle, hl_ns, top_line, bot_line)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, top_line, bot_line)
+local function unhl_and_unmark(buf_handle, hl_ns)
+  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
 
@@ -94,14 +94,14 @@ local function hint_with(hint_mode, opts)
   local h = nil
   if hint_counts == 0 then
     eprintln(opts, ' -> there’s no such thing we can see…')
-    unhl_and_unmark(0, hl_ns, top_line, bot_line + 1)
+    unhl_and_unmark(0, hl_ns)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
     -- search the hint and jump to it
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
-        unhl_and_unmark(0, hl_ns, top_line, bot_line + 1)
+        unhl_and_unmark(0, hl_ns)
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
@@ -163,7 +163,7 @@ function M.refine_hints(buf_handle, key)
     hint_state.hints = hints
     vim.api.nvim_buf_set_var(buf_handle, 'hop#hint_state', hint_state)
 
-    vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
+    vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, 0, -1)
     grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
@@ -184,7 +184,7 @@ end
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
-  unhl_and_unmark(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line + 1)
+  unhl_and_unmark(buf_handle, hint_state.hl_ns)
 end
 
 function M.hint_words(opts)
