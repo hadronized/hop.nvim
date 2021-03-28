@@ -24,12 +24,18 @@ local function eprintln(opts, msg)
   end
 end
 
+-- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
+local function clear_namespace(buf_handle, hl_ns)
+  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+end
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
 local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line)
+  clear_namespace(buf_handle, hl_ns)
   for line_i = top_line, bottom_line do
     vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
   end
@@ -37,7 +43,7 @@ end
 
 -- Cleanup Hop highlights and unmark the buffer.
 local function unhl_and_unmark(buf_handle, hl_ns)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
 
@@ -163,7 +169,6 @@ function M.refine_hints(buf_handle, key)
     hint_state.hints = hints
     vim.api.nvim_buf_set_var(buf_handle, 'hop#hint_state', hint_state)
 
-    vim.api.nvim_buf_clear_namespace(buf_handle, hint_state.hl_ns, 0, -1)
     grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
