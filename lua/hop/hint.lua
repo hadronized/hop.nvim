@@ -2,6 +2,16 @@ local perm = require'hop.perm'
 
 local M = {}
 
+-- I hate Lua.
+local function starts_with_uppercase(s)
+  if #s == 0 then
+    return false
+  end
+
+  local f = s:sub(1, 1)
+  return f:upper() == f
+end
+
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
@@ -23,7 +33,11 @@ function M.by_case_searching(pat, plain_search, opts)
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
 
-  if opts.case_insensitive then
+  if vim.o.smartcase then
+    if not starts_with_uppercase(pat) then
+      pat = '\\c' .. pat
+    end
+  elseif opts.case_insensitive then
     pat = '\\c' .. pat
   end
 
