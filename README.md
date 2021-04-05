@@ -46,6 +46,8 @@ Neovim.
   * [Use as operator motion](#use-as-operator-motion)
 * [Getting started](#getting-started)
   * [Installation](#installation)
+    * [Using [vim-plug]](#using-vim-plug)
+    * [Using [packer]](#using-packer)
     * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
 * [Keybindings](#keybindings)
@@ -129,10 +131,23 @@ This plugin was written against Neovim 0.5, which is currently a nightly version
 
 ## Installation
 
-Using [vim-plug]:
+### Using [vim-plug]
 
 ```vim
 Plug 'phaazon/hop.nvim'
+```
+
+### Using [packer]
+
+```lua
+use {
+  'phaazon/hop.nvim',
+  as = 'hop',
+  config = function()
+    -- you can configure Hop the way you like here; see :h hop-config
+    require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
+  end
+}
 ```
 
 ### Special notes regarding extended marks and virtual text
@@ -208,3 +223,4 @@ You can configure Hop via several different mechanisms:
 
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
 [vim-plug]: https://github.com/junegunn/vim-plug
+[packer]: https://github.com/wbthomason/packer.nvim
