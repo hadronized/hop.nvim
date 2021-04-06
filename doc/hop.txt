@@ -138,10 +138,14 @@ Most of the functions and values you need to know about are in `hop`.
     Arguments:~
         {opts}  Hop options.
 
-`hop.hint_char1(`{opts}`)`                                          *hop.hint_char1*
+`hop.hint_char1(`{direction}`, `{same_line}`, `{opts}`)`                                          *hop.hint_char1*
     Let the user type a key and immediately hint all of its occurrences.
 
     Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
         {opts}  Hop options.
 
 `hop.hint_char2(`{opts}`)`                                          *hop.hint_char2*
@@ -182,13 +186,22 @@ The hint API allows to create, reduce and display *hints* in easy ways.
         words in the document and will make the cursor jump to the one fully
         reduced.
 
-`hop.hint.by_searching(`{pat}`)`                             *hop.hint.by_searching*
+`hop.hint.by_searching(`{pat}`, `{plain_search}`, `{direction}`, `{same_line}`, `{opts}`)`                             *hop.hint.by_searching*
         |pattern| hint mode. This mode will highlights the beginnings of a
         pattern you will be prompted for in the document and will make the
         cursor jump to the one fully reduced.
 
     Arguments:~
         {pat}  Pattern to search.
+
+        {plain_search} True if special characters in the pattern should be
+        treated literally.
+
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
+        {opts} Hop options.
 
 `hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
   {hint_mode}`,`

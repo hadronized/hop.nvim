@@ -2,6 +2,10 @@ local perm = require'hop.perm'
 
 local M = {}
 
+AFTER_CURSOR = 'after_cursor'
+BEFORE_CURSOR = 'before_cursor'
+ANYWHERE = 'anywhere'
+
 -- I hate Lua.
 local function starts_with_uppercase(s)
   if #s == 0 then
@@ -15,11 +19,14 @@ end
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
-function M.by_searching(pat, plain_search)
+function M.by_searching(pat, plain_search, direction, same_line, opts)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   return {
+    direction = direction,
+    linewise = false,
+    same_line = same_line,
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
@@ -28,7 +35,7 @@ function M.by_searching(pat, plain_search)
 end
 
 -- Wrapper over M.by_searching to add spport for case sensitivity.
-function M.by_case_searching(pat, plain_search, opts)
+function M.by_case_searching(pat, plain_search, direction, same_line, opts)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
@@ -42,6 +49,9 @@ function M.by_case_searching(pat, plain_search, opts)
   end
 
   return {
+    direction = direction,
+    linewise = false,
+    same_line = same_line,
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
@@ -53,17 +63,39 @@ end
 --
 -- Used to tag words with hints.
 -- M.by_word_start = M.by_searching('\\<\\w\\+')
-M.by_word_start = M.by_searching('\\w\\+')
+M.by_word_start = M.by_searching('\\w\\+', ANYWHERE, false)
 
 -- Line hint mode.
 --
 -- Used to tag the beginning of each lines with ihnts.
 M.by_line_start = {
+  direction = ANYWHERE,
+  linewise = true,
+  same_line = false,
   oneshot = true,
   match = function(_)
     return 0, 1, false
   end
 }
+
+-- Like the above, except it keeps the cursor on its current column.
+function M.by_line_current(direction)
+  return {
+    direction = direction,
+    linewise = true,
+    same_line = false,
+    oneshot = true,
+    match = function(s, cursor_pos)
+      if s:len() == 0 then
+        line_max = s:len()
+      else
+        line_max = s:len() - 1
+      end
+      start = math.min(cursor_pos[2], line_max)
+      return start, start+1
+    end
+  }
+end
 
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
@@ -95,7 +127,7 @@ end
 -- This function returns the list of hints as well as the length of the line in the form of table:
 --
 --   { hints, length }
-function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
+function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, cursor_pos)
   local hints = {}
   local end_index = nil
 
@@ -108,19 +140,32 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
   local shifted_line = line:sub(1 + col_offset, end_index)
 
   local col = 1
-  while true do
+
+  local line_too_late = hint_mode.direction == AFTER_CURSOR and line_nr + 1 < cursor_pos[1]
+  local line_too_early = hint_mode.direction == BEFORE_CURSOR and line_nr + 1 > cursor_pos[1]
+  local line_not_exact = line_nr + 1 ~= cursor_pos[1] and hint_mode.same_line
+  local linewise_excludes_current = line_nr + 1 == cursor_pos[1] and hint_mode.linewise
+  local is_invalid = line_too_early or line_too_late or line_not_exact or linewise_excludes_current
+
+  while not is_invalid do
     local s = shifted_line:sub(col)
-    local b, e = hint_mode.match(s)
+    local b, e = hint_mode.match(s, cursor_pos)
 
     if b == nil or (b == 0 and e == 0) then
       break
     end
 
     local colb = col + b
-    hints[#hints + 1] = {
-      line = line_nr;
-      col = colb + col_offset;
-    }
+
+    local is_current_line = line_nr + 1 == cursor_pos[1]
+    local correct_side_after = hint_mode.direction ~= AFTER_CURSOR or colb - 1 > cursor_pos[2]
+    local correct_side_before = hint_mode.direction ~= BEFORE_CURSOR or colb - 1 < cursor_pos[2]
+    if not is_current_line or (correct_side_before and correct_side_after) then
+      hints[#hints + 1] = {
+        line = line_nr;
+        col = colb + col_offset;
+      }
+    end
 
     if hint_mode.oneshot then
       break
@@ -186,7 +231,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
   local indirect_hints = {}
   local hint_counts = 0
   for i = 1, #lines do
-    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width)
+    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, cursor_pos)
     hints[i] = line_hints
 
     hint_counts = hint_counts + #line_hints.hints
