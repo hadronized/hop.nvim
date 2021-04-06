@@ -29,6 +29,26 @@ local function clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
 end
+
+-- Turns a jump into an inclusive or linewise motion.
+local function set_motion_type()
+  -- 'no' means normal operator. Other modes like visual are represented with
+  -- different characters.
+  if vim.api.nvim_get_mode().mode == 'no' then
+    if motion_is_linewise then
+      -- If you type a V between any operator and motion, the operator will
+      -- apply to entire lines.
+      vim.cmd("normal! V")
+    else
+      -- Typing a v between any operator and motion makes the operator
+      -- inclusive. This makes sure you include the target character in your
+      -- operation.
+      vim.cmd("normal! v")
+    end
+  end
+  motion_is_linewise = false
+end
+
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
@@ -108,6 +128,7 @@ local function hint_with(hint_mode, opts)
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
         unhl_and_unmark(0, hl_ns)
+        set_motion_type()
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
@@ -174,6 +195,8 @@ function M.refine_hints(buf_handle, key)
     vim.cmd('redraw')
   else
     M.quit(buf_handle)
+
+    set_motion_type()
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
