@@ -94,6 +94,74 @@ customize how those functions work, have a look at |hop.setup|.
 
     This is akin to calling the |hop.hint_lines| Lua function.
 
+`:HopLineDown`                                                      *:HopLineDown*
+    Jump to any line below the cursor.
+
+    This is akin to calling the |hop.hint_column_line| Lua function
+    with a direction of AFTER_CURSOR.
+
+`:HopLineUp`                                                          *:HopLineUp*
+    Jump to any line above the cursor.
+
+    This is akin to calling the |hop.hint_column_line| Lua function with a direction
+    of BEFORE_CURSOR.
+
+`:HopWordAfter`                                                    *:HopWordAfter*
+    Jump to any part of a line that would be accessible using the w
+    keybinding.
+
+    This is akin to calling the |hop.hint_word| Lua function with a direction
+    of AFTER_CURSOR and same_line set to true.
+
+`:HopWordBefore`                                                  *:HopWordBefore*
+    Jump to any part of a line that would be accessible using the b
+    keybinding.
+
+    This is akin to calling the |hop.hint_word| Lua function with a direction
+    of BEFORE_CURSOR and same_line set to true.
+
+`:HopWordEndAfter`                                                *:HopWordEnd*
+    Jump to any part of a line that would be accessible using the E
+    keybinding.
+
+    This is akin to calling the |hop.hint_word_end| Lua function with a direction
+    of AFTER_CURSOR and same_line set to true.
+
+`:HopWordEndBefore`                                            *:HopWordEndBefore*
+    Jump to any part of a line that would be accessible using the ge
+    keybinding.
+
+    This is akin to calling the |hop.hint_word_end| Lua function with a direction
+    of BEFORE_CURSOR and same_line set to true.
+
+`:HopFind`                                                              *:HopFind*
+    Jump to any part of a line that would be accessible using the f
+    keybinding.
+
+    This is akin to calling the |hop.hint_find| Lua function with a direction
+    of AFTER_CURSOR and same_line set to true.
+
+`:HopFindBefore`                                                  *:HopFindBefore*
+    Jump to any part of a line that would be accessible using the F
+    keybinding.
+
+    This is akin to calling the |hop.hint_find| Lua function with a direction
+    of BEFORE_CURSOR and same_line set to true.
+
+`:HopFindTo`                                                          *:HopFindTo*
+    Jump to any part of a line that would be accessible using the t
+    keybinding.
+
+    This is akin to calling the |hop.hint_char1_before| Lua function with a
+    direction of AFTER_CURSOR and same_line set to true.
+
+`:HopFindToBefore`                                              *:HopFindToBefore*
+    Jump to any part of a line that would be accessible using the T
+    keybinding.
+
+    This is akin to calling the |hop.hint_char1_after| Lua function with a
+    direction of BEFORE_CURSOR and same_line set to true.
+
                                                                    *hop-lua-api*
 Lua API~
 
@@ -162,6 +230,58 @@ Most of the functions and values you need to know about are in `hop`.
     This works with empty lines as well.
 
     Arguments:~
+        {opts}  Hop options.
+
+`hop.hint_column_line(`{direction}`, `{opts}`)`                     *hop.hint_column_line*
+    Hint each visible character on the same column as the cursor.
+
+    Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR. Decides
+        which lines are within the motion's range.
+
+        {opts}  Hop options.
+
+`hop.hint_word(`{direction}`, `{same_line}`, `{opts}`)`                                          *hop.hint_word*
+    Hint each visible character that marks the beginning of a Vim word.
+
+    Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
+        {opts}  Hop options.
+
+`hop.hint_word_end(`{direction}`, `{same_line}`, `{opts}`)`                                          *hop.hint_word_end*
+    Hint each visible character that marks the end of a Vim word.
+
+    Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
+        {opts}  Hop options. The `{same_line}` key in opts controls whether
+        hints are added on other lines as well.
+
+`hop.hint_char1_before(`{direction}`, `{same_line}`, `{opts}`)`                                          *hop.hint_char1_before*
+    Identical to |hop.hint_char1| except it hints the character preceding the
+    provided character.
+
+    Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
+        {opts}  Hop options.
+
+`hop.hint_char1_after(`{direction}`, `{same_line}`, `{opts}`)`                                          *hop.hint_char1_after*
+    Identical to |hop.hint_char1| except it hints the character following the
+    provided character.
+
+    Arguments:~
+        {direction} One of ANYWHERE, AFTER_CURSOR, or BEFORE_CURSOR.
+
+        {same_line} True if the motion only applies to the current line.
+
         {opts}  Hop options.
 
 `hop.refine_hints(`{buf_handle}`,` {key}`)`                         *hop.refine_hints*

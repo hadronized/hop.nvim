@@ -228,6 +228,33 @@ function M.hint_lines(opts)
   hint_with(hint.by_line_start, get_command_opts(opts))
 end
 
+function M.hint_column_line(direction, opts)
+  motion_is_linewise = true
+  hint_with(hint.by_line_current(direction), get_command_opts(opts))
+end
+
+function M.hint_word(direction, same_line, opts)
+  word_start_regex = '\\v^\\s*\\zs((\\w+)|([^[:blank:][:alnum:]_]+))'
+  hint_with(hint.by_searching(word_start_regex, false, direction, same_line, opts), get_command_opts(opts))
+end
+
+function M.hint_word_end(direction, same_line, opts)
+  word_end_regex = '\\v^\\s*((\\w*\\zs\\w)|([^[:blank:][:alnum:]_]*\\zs[^[:blank:][:alnum:]_]))'
+  hint_with(hint.by_searching(word_end_regex, false, direction, same_line, opts), get_command_opts(opts))
+end
+
+function M.hint_char1_before(direction, same_line, opts)
+  local a = vim.fn.nr2char(vim.fn.getchar())
+  to_regex = '\\zs.\\ze\\V'..a
+  hint_with(hint.by_searching(to_regex, false, direction, same_line, opts), get_command_opts(opts))
+end
+
+function M.hint_char1_after(direction, same_line, opts)
+  local a = vim.fn.nr2char(vim.fn.getchar())
+  to_regex = '\\V'..a..'\\zs\\.\\ze'
+  hint_with(hint.by_searching(to_regex, false, direction, same_line, opts), get_command_opts(opts))
+end
+
 -- Insert the highlights and register the autocommand.
 local highlight = require'hop.highlight'
 highlight.insert_highlights()
