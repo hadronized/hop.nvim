@@ -211,10 +211,10 @@ function M.hint_patterns(opts)
   hint_with(hint.by_case_searching(pat, false, opts), opts)
 end
 
-function M.hint_char1(opts)
+function M.hint_char1(direction, same_line, opts)
   opts = get_command_opts(opts)
   local c = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_case_searching(c, true, opts), opts)
+  hint_with(hint.by_case_searching(c, true, direction, same_line, opts), opts)
 end
 
 function M.hint_char2(opts)
