@@ -36,9 +36,9 @@ end
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
 local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line)
   clear_namespace(buf_handle, hl_ns)
-  for line_i = top_line, bottom_line do
-    vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
-  end
+  -- Set Priority really high to override other highlight groups, bottom_line+1 to avoid getting length of last line.
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0,
+    {end_line=bottom_line+1, hl_group="HopUnmatched", priority=10000})
 end
 
 -- Cleanup Hop highlights and unmark the buffer.
