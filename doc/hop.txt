@@ -413,6 +413,9 @@ below.
     	part of it will be used for terminal keys and the second part for sequence
     	keys.
 
+    Warning: Don't add special keys like <C-Space> and <Esc> to `keys` as it
+    won't always work correctly, even if you use |nvim_replace_termcodes()|.
+
     Defaults:~
         `keys = 'asdghklqwertyuiopzxcvbnmfj'`
 
