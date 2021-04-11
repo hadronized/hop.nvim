@@ -173,11 +173,13 @@ local function hint_with(hint_mode, opts)
       h = M.refine_hints(0, key, opts.teasing, direction_mode)
       vim.cmd('redraw')
     else
-      -- If it's not, quit hop and use the key like normal instead
+      -- If it's not, quit hop
       M.quit(0)
-      -- Pass the key captured via getchar() through to nvim, to be handled
-      -- normally (including mappings)
-      vim.api.nvim_feedkeys(key, '', true)
+      -- If the key captured via getchar() is not the quit_key, pass it through
+      -- to nvim to be handled normally (including mappings)
+      if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
+        vim.api.nvim_feedkeys(key, '', true)
+      end
       break
     end
   end
