@@ -204,8 +204,10 @@ function M.hint_patterns(opts)
   opts = get_command_opts(opts)
 
   vim.fn.inputsave()
-  local pat = vim.fn.input('Search: ')
+  local ok, pat = pcall(vim.fn.input, 'Search: ')
   vim.fn.inputrestore()
+
+  if not ok then return end
 
   if #pat == 0 then
     eprintln(opts, '-> empty pattern')
