@@ -127,7 +127,11 @@ local function hint_with(hint_mode, opts)
   vim.cmd('redraw')
 
   while h == nil do
-    local key = vim.fn.getchar()
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then
+      M.quit(0)
+      break
+    end
     -- :h getchar(): "If the result of expr is a single character, it returns a
     -- number. Use nr2char() to convert it to a String."
     --
@@ -213,15 +217,19 @@ end
 
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
-  local c = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_case_searching(c, true, opts), opts)
+  local ok, c = pcall(vim.fn.getchar)
+  if not ok then return end
+  hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)
   opts = get_command_opts(opts)
-  local a = vim.fn.nr2char(vim.fn.getchar())
-  local b = vim.fn.nr2char(vim.fn.getchar())
-  hint_with(hint.by_case_searching(a .. b, true, opts), opts)
+  local ok, a = pcall(vim.fn.getchar)
+  if not ok then return end
+  local ok2, b = pcall(vim.fn.getchar)
+  if not ok2 then return end
+  local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
+  hint_with(hint.by_case_searching(pat, true, opts), opts)
 end
 
 function M.hint_lines(opts)
