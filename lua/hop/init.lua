@@ -226,8 +226,8 @@ function M.hint_char2(opts)
   opts = get_command_opts(opts)
   local ok, a = pcall(vim.fn.getchar)
   if not ok then return end
-  local ok, b = pcall(vim.fn.getchar)
-  if not ok then return end
+  local ok2, b = pcall(vim.fn.getchar)
+  if not ok2 then return end
   local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
   hint_with(hint.by_case_searching(pat, true, opts), opts)
 end
