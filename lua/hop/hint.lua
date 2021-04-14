@@ -356,11 +356,19 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
   for _, hints in pairs(per_line_hints) do
     for _, hint in pairs(hints.hints) do
       if vim.fn.strdisplaywidth(hint.hint) == 1 then
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint, "HopNextKey" } }; virt_text_pos = 'overlay' })
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, {
+          virt_text = { { hint.hint, "HopNextKey" } },
+          virt_text_pos = 'overlay',
+          priority = 65534 -- 1 priority above the grey highlight
+        })
       else
         -- get the byte index of the second hint so that we can slice it correctly
         local snd_idx = vim.fn.byteidx(hint.hint, 1)
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint:sub(1, snd_idx), "HopNextKey1" }, { hint.hint:sub(snd_idx + 1), "HopNextKey2" } }; virt_text_pos = 'overlay' })
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, {
+          virt_text = { { hint.hint:sub(1, snd_idx), "HopNextKey1" }, { hint.hint:sub(snd_idx + 1), "HopNextKey2" } },
+          virt_text_pos = 'overlay',
+          priority = 65534 -- 1 priority above the grey highlight
+        })
       end
     end
   end

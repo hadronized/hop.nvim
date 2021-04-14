@@ -27,25 +27,31 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
-  clear_namespace(buf_handle, hl_ns)
-
+local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode, priority)
   if direction_mode ~= nil then
     if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
-      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', top_line, direction_mode.cursor_col, -1)
-      for line_i = top_line + 1, bottom_line do
-        vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
-      end
+      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, direction_mode.cursor_col, {
+        end_line = bottom_line + 1,
+        hl_group = 'HopUnmatched',
+        hl_eol = true,
+        priority = priority
+      })
     elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
-      for line_i = top_line, bottom_line - 1 do
-        vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
-      end
-      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', bottom_line, 0, direction_mode.cursor_col)
+      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
+        end_line = bottom_line,
+        end_col = direction_mode.cursor_col,
+        hl_group = 'HopUnmatched',
+        hl_eol = true,
+        priority = priority
+      })
     end
   else
-    for line_i = top_line, bottom_line do
-      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
-    end
+    vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
+      end_line = bottom_line + 1,
+      hl_group = 'HopUnmatched',
+      hl_eol = true,
+      priority = priority
+    })
   end
 end
 
@@ -85,10 +91,9 @@ local function hint_with(hint_mode, opts)
     win_width = win_info.width - left_col_offset
   end
 
-  -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
-  -- when hop quits
-  local hl_ns = vim.api.nvim_create_namespace('')
-  grey_things_out(0, hl_ns, top_line, bot_line, direction_mode)
+  -- create the highlight groups; the highlight groups will allow us to clean everything at once when hop quits
+  local hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  local grey_ns = vim.api.nvim_create_namespace('hop_grey')
 
   -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
   -- or even perform direct jump in the case of a single match
@@ -107,14 +112,12 @@ local function hint_with(hint_mode, opts)
   local h = nil
   if hint_counts == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    clear_namespace(0, hl_ns)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
     -- search the hint and jump to it
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
-        clear_namespace(0, hl_ns)
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
@@ -126,17 +129,25 @@ local function hint_with(hint_mode, opts)
   local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
+    grey_ns = grey_ns;
     top_line = top_line;
     bot_line = bot_line
   }
 
+  -- grey everything out
+  -- the priority key dictates which extmark should be shown if there are multiple in the same location
+  -- higher priority extmarks are shown above lower priority
+  -- the priority key has a minimum value of 0, maximum value of 65535 (2^16 - 1) and it defaults to 4096 (2^12)
+  -- the grey highlight should have very high priority so it's shown above all other highlights in the buffer
+  -- the hint highlights should then be 1 priority above grey so they're shown above the grey
+  grey_things_out(0, grey_ns, top_line, bot_line, direction_mode, 65533)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      M.quit(0, hl_ns)
+      M.quit(0, hint_state)
       break
     end
     local not_special_key = true
@@ -154,11 +165,11 @@ local function hint_with(hint_mode, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, key, opts.teasing, direction_mode, hint_state)
+      h = M.refine_hints(0, key, opts.teasing, hint_state)
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
-      M.quit(0, hl_ns)
+      M.quit(0, hint_state)
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -173,7 +184,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state)
+function M.refine_hints(buf_handle, key, teasing, hint_state)
   local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
   if h == nil then
@@ -184,11 +195,11 @@ function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state)
 
     hint_state.hints = hints
 
-    grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line, direction_mode)
+    clear_namespace(buf_handle, hint_state.hl_ns)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
   else
-    M.quit(buf_handle, hint_state.hl_ns)
+    M.quit(buf_handle, hint_state)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
@@ -202,8 +213,9 @@ end
 -- Quit Hop and delete its resources.
 --
 -- This works only if the current buffer is Hop one.
-function M.quit(buf_handle, hl_ns)
-  clear_namespace(buf_handle, hl_ns)
+function M.quit(buf_handle, hint_state)
+  clear_namespace(buf_handle, hint_state.grey_ns)
+  clear_namespace(buf_handle, hint_state.hl_ns)
 end
 
 function M.hint_words(opts)
