@@ -359,6 +359,7 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
         vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, {
           virt_text = { { hint.hint, "HopNextKey" } },
           virt_text_pos = 'overlay',
+          hl_mode = 'combine',
           priority = 65534 -- 1 priority above the grey highlight
         })
       else
@@ -367,6 +368,7 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
         vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, {
           virt_text = { { hint.hint:sub(1, snd_idx), "HopNextKey1" }, { hint.hint:sub(snd_idx + 1), "HopNextKey2" } },
           virt_text_pos = 'overlay',
+          hl_mode = 'combine',
           priority = 65534 -- 1 priority above the grey highlight
         })
       end

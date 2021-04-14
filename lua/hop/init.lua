@@ -55,6 +55,43 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
   end
 end
 
+-- Add the virtual cursor, taking care to handle the cases where:
+-- - the virtualedit option is being used and the cursor is in a
+--   tab character or past the end of the line
+-- - the current line is empty
+-- - there are multibyte characters on the line
+local function add_virt_cur(ns, priority)
+  local cur_info = vim.fn.getcurpos()
+  local cur_row = cur_info[2] - 1
+  local cur_col = cur_info[3] - 1 -- this gives cursor column location, in bytes
+  local cur_offset = cur_info[4]
+  local virt_col = cur_info[5] - 1
+  local cur_line = vim.api.nvim_get_current_line()
+
+  -- first check to see if cursor is in a tab char or past end of line
+  if cur_offset ~= 0 then
+    vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
+      virt_text = {{'█', 'Normal'}},
+      virt_text_win_col = virt_col,
+      priority = priority
+    })
+  -- otherwise check to see if cursor is at end of line or on empty line
+  elseif #cur_line == cur_col then
+    vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
+      virt_text = {{'█', 'Normal'}},
+      virt_text_pos = 'overlay',
+      priority = priority
+    })
+  else
+    vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
+      -- end_col must be column of next character, in bytes
+      end_col = vim.fn.byteidx(cur_line, vim.fn.charidx(cur_line, cur_col) + 1),
+      hl_group = 'HopCursor',
+      priority = priority
+    })
+  end
+end
+
 -- Hint the whole visible part of the buffer.
 --
 -- The 'hint_mode' argument is the mode to use to hint the buffer.
@@ -93,7 +130,7 @@ local function hint_with(hint_mode, opts)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
-  local grey_ns = vim.api.nvim_create_namespace('hop_grey')
+  local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
   -- or even perform direct jump in the case of a single match
@@ -112,6 +149,7 @@ local function hint_with(hint_mode, opts)
   local h = nil
   if hint_counts == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
+    clear_namespace(0, grey_cur_ns)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
     -- search the hint and jump to it
@@ -123,24 +161,27 @@ local function hint_with(hint_mode, opts)
       end
     end
 
+    clear_namespace(0, grey_cur_ns)
     return
   end
 
   local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
-    grey_ns = grey_ns;
+    grey_cur_ns = grey_cur_ns;
     top_line = top_line;
     bot_line = bot_line
   }
 
-  -- grey everything out
+  -- grey everything out and add the virtual cursor
   -- the priority key dictates which extmark should be shown if there are multiple in the same location
   -- higher priority extmarks are shown above lower priority
   -- the priority key has a minimum value of 0, maximum value of 65535 (2^16 - 1) and it defaults to 4096 (2^12)
   -- the grey highlight should have very high priority so it's shown above all other highlights in the buffer
   -- the hint highlights should then be 1 priority above grey so they're shown above the grey
-  grey_things_out(0, grey_ns, top_line, bot_line, direction_mode, 65533)
+  -- the virtual cursor should then be 1 priority above the hints so it's shown above the hints
+  grey_things_out(0, grey_cur_ns, top_line, bot_line, direction_mode, 65533)
+  add_virt_cur(grey_cur_ns, 65535)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
@@ -214,7 +255,7 @@ end
 --
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle, hint_state)
-  clear_namespace(buf_handle, hint_state.grey_ns)
+  clear_namespace(buf_handle, hint_state.grey_cur_ns)
   clear_namespace(buf_handle, hint_state.hl_ns)
 end
 
@@ -224,6 +265,7 @@ end
 
 function M.hint_patterns(opts, pattern)
   opts = get_command_opts(opts)
+  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
   local pat, ok
 
   -- The pattern to search is either retrieved from the (optional) argument
@@ -231,14 +273,20 @@ function M.hint_patterns(opts, pattern)
   if pattern then
     pat = pattern
   else
+    add_virt_cur(cur_ns, 65535)
+    vim.cmd('redraw')
     vim.fn.inputsave()
     ok, pat = pcall(vim.fn.input, 'Search: ')
     vim.fn.inputrestore()
-    if not ok then return end
+    if not ok then
+      clear_namespace(0, cur_ns)
+      return
+    end
   end
 
   if #pat == 0 then
     eprintln('-> empty pattern', opts.teasing)
+    clear_namespace(0, cur_ns)
     return
   end
 
@@ -247,17 +295,32 @@ end
 
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
+  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
+  add_virt_cur(cur_ns, 65535)
+  vim.cmd('redraw')
   local ok, c = pcall(vim.fn.getchar)
-  if not ok then return end
+  if not ok then
+    clear_namespace(0, cur_ns)
+    return
+  end
   hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)
   opts = get_command_opts(opts)
+  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
+  add_virt_cur(cur_ns, 65535)
+  vim.cmd('redraw')
   local ok, a = pcall(vim.fn.getchar)
-  if not ok then return end
+  if not ok then
+    clear_namespace(0, cur_ns)
+    return
+  end
   local ok2, b = pcall(vim.fn.getchar)
-  if not ok2 then return end
+  if not ok2 then
+    clear_namespace(0, cur_ns)
+    return
+  end
   local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
   hint_with(hint.by_case_searching(pat, true, opts), opts)
 end

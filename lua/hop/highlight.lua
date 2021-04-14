@@ -16,6 +16,9 @@ function M.insert_highlights()
   -- ctermbg=bg is omitted because it errors if Normal does not have ctermbg set
   -- Luckily guibg=bg does not seem to error even if Normal does not have guibg set so it can be used
   vim.api.nvim_command('highlight default HopUnmatched guifg=#666666 guibg=bg guisp=#666666 ctermfg=242')
+
+  -- Highlight used for the fake cursor visible when hopping.
+  vim.api.nvim_command('highlight default link HopCursor Cursor')
 end
 
 function M.create_autocmd()
