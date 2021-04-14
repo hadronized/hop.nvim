@@ -2,10 +2,6 @@ local perm = require'hop.perm'
 
 local M = {}
 
-AFTER_CURSOR = 'after_cursor'
-BEFORE_CURSOR = 'before_cursor'
-ANYWHERE = 'anywhere'
-
 -- I hate Lua.
 local function starts_with_uppercase(s)
   if #s == 0 then
@@ -19,13 +15,19 @@ end
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
+-- pat: Vim pattern used to find matches on the screen.
+-- plain_search: Whether to treat the pattern as a literal or not.
+-- direction: Whether to match before the cursor, after the cursor, or
+-- anywhere.
+-- same_line: Whether the pattern should only be applied to the same line as
+-- the cursor.
+-- opts: Other options passed to Hop.
 function M.by_searching(pat, plain_search, direction, same_line, opts)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   return {
     direction = direction,
-    linewise = false,
     same_line = same_line,
     oneshot = false,
     match = function(s)
@@ -50,7 +52,6 @@ function M.by_case_searching(pat, plain_search, direction, same_line, opts)
 
   return {
     direction = direction,
-    linewise = false,
     same_line = same_line,
     oneshot = false,
     match = function(s)
@@ -63,14 +64,13 @@ end
 --
 -- Used to tag words with hints.
 -- M.by_word_start = M.by_searching('\\<\\w\\+')
-M.by_word_start = M.by_searching('\\w\\+', ANYWHERE, false)
+M.by_word_start = M.by_searching('\\w\\+', 'anywhere', false)
 
 -- Line hint mode.
 --
 -- Used to tag the beginning of each lines with ihnts.
 M.by_line_start = {
-  direction = ANYWHERE,
-  linewise = true,
+  direction = 'anywhere',
   same_line = false,
   oneshot = true,
   match = function(_)
@@ -82,7 +82,6 @@ M.by_line_start = {
 function M.by_line_current(direction)
   return {
     direction = direction,
-    linewise = true,
     same_line = false,
     oneshot = true,
     match = function(s, cursor_pos)
@@ -141,11 +140,6 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, curs
 
   local col = 1
 
-  local line_too_late = hint_mode.direction == AFTER_CURSOR and line_nr + 1 < cursor_pos[1]
-  local line_too_early = hint_mode.direction == BEFORE_CURSOR and line_nr + 1 > cursor_pos[1]
-  local line_not_exact = line_nr + 1 ~= cursor_pos[1] and hint_mode.same_line
-  local linewise_excludes_current = line_nr + 1 == cursor_pos[1] and hint_mode.linewise
-  local is_invalid = line_too_early or line_too_late or line_not_exact or linewise_excludes_current
 
   while not is_invalid do
     local s = shifted_line:sub(col)
@@ -158,8 +152,8 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, curs
     local colb = col + b
 
     local is_current_line = line_nr + 1 == cursor_pos[1]
-    local correct_side_after = hint_mode.direction ~= AFTER_CURSOR or colb - 1 > cursor_pos[2]
-    local correct_side_before = hint_mode.direction ~= BEFORE_CURSOR or colb - 1 < cursor_pos[2]
+    local correct_side_after = hint_mode.direction ~= 'after_cursor' or colb - 1 > cursor_pos[2]
+    local correct_side_before = hint_mode.direction ~= 'before_cursor' or colb - 1 < cursor_pos[2]
     if not is_current_line or (correct_side_before and correct_side_after) then
       hints[#hints + 1] = {
         line = line_nr;
@@ -231,13 +225,38 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
   local indirect_hints = {}
   local hint_counts = 0
   for i = 1, #lines do
-    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, cursor_pos)
-    hints[i] = line_hints
 
-    hint_counts = hint_counts + #line_hints.hints
+    local line_nr = top_line + i - 1
 
-    for j = 1, #line_hints.hints do
-      local hint = line_hints.hints[j]
+    -- A line is too early if it's before the cursor and the motion only
+    -- operates on lines after the cursor.
+    local line_too_early = hint_mode.direction == 'after_cursor' and line_nr + 1 < cursor_pos[1]
+    -- A line is too late if it's after the cursor and the motion only
+    -- operates on lines before the cursor.
+    local line_too_late = hint_mode.direction == 'before_cursor' and line_nr + 1 > cursor_pos[1]
+    -- A line is invalid if it's not on the same line as the cursor and the
+    -- motion only operates on the current line.
+    local line_not_exact = line_nr + 1 ~= cursor_pos[1] and hint_mode.same_line
+    -- A oneshot motion moves between lines so there's no reason to include the
+    -- current line in the motion.
+    local oneshot_excludes_current = line_nr + 1 == cursor_pos[1] and hint_mode.oneshot
+    -- If any of the above bools are true, the line is invalid and shouldn't be hinted.
+    local is_invalid = line_too_early or line_too_late or line_not_exact or oneshot_excludes_current
+
+    if not is_invalid then
+      local line_hints = M.mark_hints_line(hint_mode, line_nr, lines[i], col_offset, win_width, cursor_pos)
+      hints[i] = line_hints
+
+      hint_counts = hint_counts + #line_hints.hints
+    else
+      hints[i] = {
+        hints = {};
+        length = 0
+      }
+    end
+
+    for j = 1, #hints[i].hints do
+      local hint = hints[i].hints[j]
       indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
     end
   end
