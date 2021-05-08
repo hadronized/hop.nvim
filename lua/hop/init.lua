@@ -29,6 +29,7 @@ local function clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
 end
+
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
