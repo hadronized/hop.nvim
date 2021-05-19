@@ -11,6 +11,11 @@ function M.setup(opts)
   M.opts = setmetatable(opts, {__index = defaults})
 end
 
+-- Activates/Deactivates matchparen plugin if it enabled
+local function match_paren(cmd)
+  if vim.fn.exists(':DoMatchParen') == 2 then vim.cmd(cmd) end
+end
+
 -- Allows to override global options with user local overrides.
 local function get_command_opts(local_opts)
   -- In case, local opts are defined, chain opts lookup: [user_local] -> [user_global] -> [default]
@@ -83,6 +88,7 @@ local function hint_with(hint_mode, opts)
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
   local hl_ns = vim.api.nvim_create_namespace('')
+  match_paren('NoMatchParen')
   grey_things_out(0, hl_ns, top_line, bot_line)
 
   -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
@@ -193,6 +199,7 @@ end
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
+  match_paren('DoMatchParen')
   unhl_and_unmark(buf_handle, hint_state.hl_ns)
 end
 
