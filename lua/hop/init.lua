@@ -50,6 +50,7 @@ end
 -- Cleanup Hop highlights and unmark the buffer.
 local function unhl_and_unmark(buf_handle, hl_ns)
   clear_namespace(buf_handle, hl_ns)
+  match_paren('DoMatchParen')
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
 
@@ -199,7 +200,6 @@ end
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
-  match_paren('DoMatchParen')
   unhl_and_unmark(buf_handle, hint_state.hl_ns)
 end
 
