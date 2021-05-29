@@ -264,7 +264,7 @@ end
 M.opts = defaults
 function M.setup(opts)
   -- Look up keys in user-defined table with fallback to defaults.
-  M.opts = setmetatable(opts, {__index = defaults})
+  M.opts = setmetatable(opts or {}, {__index = defaults})
 
   -- Insert the highlights and register the autocommand if asked to.
   local highlight = require'hop.highlight'
