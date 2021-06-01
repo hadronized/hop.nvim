@@ -474,6 +474,40 @@ below.
 >
         case_insensitive = true
 <
+
+`create_hl_autocmd`                                 *hop-config-create_hl_autocmd*
+    Create and set highlight autocommands to automatically apply highlights.
+    You will want this if you use a theme that clears all highlights before
+    applying its colorscheme.
+
+    Defaults:~
+>
+        create_hl_autocmd = true
+<
+
+==============================================================================
+HIGHLIGHTS                                                      *hop-highlights*
+
+Anywhere in the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
+highlight is used. For the rest:
+
+`HopNextKey`                                                   *hop-hl-HopNextkey*
+    Highlight used for the mono-sequence keys (i.e. sequence of 1).
+
+`HopNextKey1`                                                 *hop-hl-HopNextKey1*
+    Highlight used for the first key in a sequence.
+
+`HopNextKey2`                                                 *hop-hl-HopNextKey2*
+    Highlight used for the second and remaining keys in a sequence.
+
+`HopUnmatched`                                               *hop-hl-HopUnmatched*
+    Highlight used for unmatched part of the buffer when running a Hop command
+    / Lua functions.
+
+Highlights are inserted in an augroup, `HopInitHighlight`, and an autocommand
+is automatically set when initializing the plugin, unless you set
+|hop-config-create_hl_autocmd| to `false`.
+
 ==============================================================================
 LICENSE                                                            *hop-license*
 
@@ -507,25 +541,6 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-==============================================================================
-HIGHLIGHTS                                                      *hop-highlights*
-
-Anywhere in the hint buffer that doesn’t contain a hint, the |hl-EndOfBuffer|
-highlight is used. For the rest:
-
-`HopNextKey`                                                   *hop-hl-HopNextkey*
-    Highlight used for the mono-sequence keys (i.e. sequence of 1).
-
-`HopNextKey1`                                                 *hop-hl-HopNextKey1*
-    Highlight used for the first key in a sequence.
-
-`HopNextKey2`                                                 *hop-hl-HopNextKey2*
-    Highlight used for the second and remaining keys in a sequence.
-
-`HopUnmatched`                                               *hop-hl-HopUnmatched*
-    Highlight used for unmatched part of the buffer when running a Hop command
-    / Lua functions.
 
 ==============================================================================
 vim:tw=78:sw=4:ts=8:ft=help:norl:
