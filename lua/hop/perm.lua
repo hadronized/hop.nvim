@@ -2,19 +2,21 @@ local M = {}
 
 -- Get the first key of a key set.
 local function first_key(keys)
-  return keys:sub(1, 1)
+  local n = keys:sub(1, vim.fn.byteidx(keys, 1))
+  return keys:sub(1, vim.fn.byteidx(keys, 1))
 end
 
 -- Get the next key of the input key in the input key set, if any, or return nil.
 local function next_key(keys, key)
-  local i = keys:find(key)
+  local i, e = keys:find(key)
 
-  if i == #keys then
+  if e == #keys then
     return nil
   end
 
-  local i1 = i + 1
-  return keys:sub(i1, i1)
+  local next = keys:sub(e + 1)
+  local n = next:sub(1, vim.fn.byteidx(next, 1))
+  return n
 end
 
 -- Permutation algorithm based on the “terminal / sequence keys sub-sets” method.
@@ -178,13 +180,14 @@ function M.TrieBacktrackFilling:next_perm(keys, trie, p)
   else
     -- we have to backtrack; first, decrement the pointer if possible
     local max_depth = #p
+    local keys_len = vim.fn.strwidth(keys)
 
     while #p > 0 do
       local last_index = p[#p]
       if last_index > 1 then
         p[#p] = last_index - 1
 
-        p = maintain_deep_pointer(max_depth, #keys, p)
+        p = maintain_deep_pointer(max_depth, keys_len, p)
 
         -- insert the first key at the new pointer after mutating the one already there
         self:add_trie_key(trie, p, first_key(keys))
@@ -197,7 +200,7 @@ function M.TrieBacktrackFilling:next_perm(keys, trie, p)
     end
 
     -- all layers are completely full everywhere; add a new layer at the end
-    p = maintain_deep_pointer(max_depth, #keys, p)
+    p = maintain_deep_pointer(max_depth, keys_len, p)
 
     p[#p + 1] = #trie -- new layer
     self:add_trie_key(trie, p, first_key(keys))
