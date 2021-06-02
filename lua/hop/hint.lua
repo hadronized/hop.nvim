@@ -105,7 +105,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
     end_index = vim.fn.strdisplaywidth(line)
   end
 
-  local shifted_line = line:sub(1 + col_offset, end_index)
+  local shifted_line = line:sub(1 + col_offset, vim.fn.byteidx(line, end_index))
 
   local col = 1
   while true do
