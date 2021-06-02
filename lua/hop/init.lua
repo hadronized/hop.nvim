@@ -134,7 +134,7 @@ local function hint_with(hint_mode, opts)
       local key_str = vim.fn.nr2char(key)
       if opts.keys:find(key_str, 1, true) then
         -- If this is a key used in hop (via opts.keys), deal with it in hop
-        h = M.refine_hints(0, vim.fn.nr2char(key), opts.teasing)
+        h = M.refine_hints(0, key_str, opts.teasing)
         vim.cmd('redraw')
       else
         -- If it's not, quit hop and use the key like normal instead

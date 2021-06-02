@@ -8,7 +8,7 @@ local function starts_with_uppercase(s)
     return false
   end
 
-  local f = s:sub(1, 1)
+  local f = s:sub(1, vim.fn.byteidx(s, 1))
   return f:upper() == f
 end
 
@@ -140,8 +140,9 @@ end
 -- This function will remove hints not starting with the input key and will reduce the other ones
 -- with one level.
 function M.reduce_hint(hint, key)
-  if hint:sub(1, 1) == key then
-    hint = hint:sub(2)
+  local snd_idx = vim.fn.byteidx(hint, 1)
+  if hint:sub(1, snd_idx) == key then
+    hint = hint:sub(snd_idx + 1)
   end
 
   if hint == '' then
@@ -218,10 +219,12 @@ end
 function M.set_hint_extmarks(hl_ns, per_line_hints)
   for _, hints in pairs(per_line_hints) do
     for _, hint in pairs(hints.hints) do
-      if #hint.hint == 1 then
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint, "HopNextKey"} }; virt_text_pos = 'overlay' })
+      if vim.fn.strdisplaywidth(hint.hint) == 1 then
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint, "HopNextKey" } }; virt_text_pos = 'overlay' })
       else
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint:sub(1, 1), "HopNextKey1"}, { hint.hint:sub(2), "HopNextKey2" } }; virt_text_pos = 'overlay' })
+        -- get the byte index of the second hint so that we can slice it correctly
+        local snd_idx = vim.fn.byteidx(hint.hint, 1)
+        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.line, hint.col - 1, { virt_text = { { hint.hint:sub(1, snd_idx), "HopNextKey1" }, { hint.hint:sub(snd_idx + 1), "HopNextKey2" } }; virt_text_pos = 'overlay' })
       end
     end
   end
