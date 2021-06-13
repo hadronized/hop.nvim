@@ -40,6 +40,14 @@ local function unhl_and_unmark(buf_handle, hl_ns)
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
 
+M.HintDirection = {
+  BEFORE_CURSOR = 1,
+  AFTER_CURSOR = 2,
+}
+
+-- Hint the whole visible part of the buffer.
+--
+-- The 'hint_mode' argument is the mode to use to hint the buffer.
 local function hint_with(hint_mode, opts)
   -- first, we ensure we’re not already hopping around; if not, we mark the current buffer (this mark will be removed
   -- when a jump is performed or if the user stops hopping)
@@ -57,6 +65,14 @@ local function hint_with(hint_mode, opts)
   local top_line = win_info.topline - 1
   local bot_line = win_info.botline - 1
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
+
+  -- adjust the visible part of the buffer to hint based on the direction
+  local direction = opts.direction
+  if direction == M.HintDirection.BEFORE_CURSOR then
+    bot_line = cursor_pos[1] - 1
+  elseif direction == M.HintDirection.AFTER_CURSOR then
+    top_line = cursor_pos[1] - 1
+  end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
