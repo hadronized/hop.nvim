@@ -27,10 +27,25 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line)
+local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
   clear_namespace(buf_handle, hl_ns)
-  for line_i = top_line, bottom_line do
-    vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
+
+  if direction_mode ~= nil then
+    if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
+      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', top_line, direction_mode.cursor_col, -1)
+      for line_i = top_line + 1, bottom_line do
+        vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
+      end
+    elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+      for line_i = top_line, bottom_line - 1 do
+        vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
+      end
+      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', bottom_line, 0, direction_mode.cursor_col)
+    end
+  else
+    for line_i = top_line, bottom_line do
+      vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
+    end
   end
 end
 
@@ -39,11 +54,6 @@ local function unhl_and_unmark(buf_handle, hl_ns)
   clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
-
-M.HintDirection = {
-  BEFORE_CURSOR = 1,
-  AFTER_CURSOR = 2,
-}
 
 -- Hint the whole visible part of the buffer.
 --
@@ -68,10 +78,13 @@ local function hint_with(hint_mode, opts)
 
   -- adjust the visible part of the buffer to hint based on the direction
   local direction = opts.direction
-  if direction == M.HintDirection.BEFORE_CURSOR then
+  local direction_mode = nil
+  if direction == hint.HintDirection.BEFORE_CURSOR then
     bot_line = cursor_pos[1] - 1
-  elseif direction == M.HintDirection.AFTER_CURSOR then
+    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
     top_line = cursor_pos[1] - 1
+    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
@@ -91,7 +104,7 @@ local function hint_with(hint_mode, opts)
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
   local hl_ns = vim.api.nvim_create_namespace('')
-  grey_things_out(0, hl_ns, top_line, bot_line)
+  grey_things_out(0, hl_ns, top_line, bot_line, direction_mode)
 
   -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
   -- or even perform direct jump in the case of a single match
@@ -103,6 +116,7 @@ local function hint_with(hint_mode, opts)
     win_view.leftcol,
     top_line,
     win_lines,
+    direction,
     opts
   )
 
@@ -150,7 +164,7 @@ local function hint_with(hint_mode, opts)
       local key_str = vim.fn.nr2char(key)
       if opts.keys:find(key_str, 1, true) then
         -- If this is a key used in hop (via opts.keys), deal with it in hop
-        h = M.refine_hints(0, key_str, opts.teasing)
+        h = M.refine_hints(0, key_str, opts.teasing, direction_mode)
         vim.cmd('redraw')
       else
         -- If it's not, quit hop and use the key like normal instead
@@ -168,7 +182,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing)
+function M.refine_hints(buf_handle, key, teasing, direction_mode)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
   local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
@@ -181,7 +195,7 @@ function M.refine_hints(buf_handle, key, teasing)
     hint_state.hints = hints
     vim.api.nvim_buf_set_var(buf_handle, 'hop#hint_state', hint_state)
 
-    grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line)
+    grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line, direction_mode)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
   else
