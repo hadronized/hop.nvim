@@ -66,7 +66,13 @@ You can try those commands by typing them in your command line. By default,
 they will use the default options for the configuration of Hop. If you want to
 customize how those functions work, have a look at |hop.setup|.
 
+Some of the commands have a suffix, such as `BC` and `AC`. Those are
+variations of the command without the suffix, applying to the visible part of
+the buffer before and after the cursor, respectively.
+
 `:HopWord`                                                              *:HopWord*
+`:HopWordBC`                                                          *:HopWordBC*
+`:HopWordAC`                                                          *:HopWordAC*
     Annotate all words in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
@@ -75,21 +81,29 @@ customize how those functions work, have a look at |hop.setup|.
     This is akin to calling the |hop.hint_words| Lua function.
 
 `:HopPattern`                                                        *:HopPattern*
+`:HopPatternBC`                                                    *:HopPatternBC*
+`:HopPatternAC`                                                    *:HopPatternAC*
     Ask the user for a pattern and hint the document with it.
 
     This is akin to calling the |hop.hint_patterns| Lua function.
 
 `:HopChar1`                                                            *:HopChar1*
+`:HopChar1BC`                                                        *:HopChar1BC*
+`:HopChar1AC`                                                        *:HopChar1AC*
     Type a key and immediately hint the document for this key.
 
     This is akin to calling the |hop.hint_char1| Lua Function
 
 `:HopChar2`                                                            *:HopChar2*
+`:HopChar2BC`                                                        *:HopChar2BC*
+`:HopChar2AC`                                                        *:HopChar2AC*
     Type two keys and immediately hint the document for this bigram.
 
     This is akin to calling the |hop.hint_char2| Lua Function
 
 `:HopLine`                                                              *:HopLine*
+`:HopLineBC`                                                          *:HopLineBC*
+`:HopLineAC`                                                          *:HopLineAC*
     Jump to the beginning of the line of your choice inside your buffer.
 
     This is akin to calling the |hop.hint_lines| Lua function.
@@ -178,17 +192,31 @@ Hint API~
 The hint API allows to create, reduce and display *hints* in easy ways.
 
 `hop.hint.by_word_start`                                  *hop.hint.by_word_start*
-        |word| hint mode. This mode will highlights the beginnings of all the
-        words in the document and will make the cursor jump to the one fully
-        reduced.
+    |word| hint mode. This mode will highlights the beginnings of all the
+    words in the document and will make the cursor jump to the one fully
+    reduced.
 
-`hop.hint.by_searching(`{pat}`)`                             *hop.hint.by_searching*
-        |pattern| hint mode. This mode will highlights the beginnings of a
-        pattern you will be prompted for in the document and will make the
-        cursor jump to the one fully reduced.
+`hop.hint.by_searching(`{pat}`,` {plain_search}`)`             *hop.hint.by_searching*
+    |pattern| hint mode. This mode will highlights the beginnings of a
+    pattern you will be prompted for in the document and will make the
+    cursor jump to the one fully reduced.
 
     Arguments:~
-        {pat}  Pattern to search.
+        {pat}          Pattern to search.
+        {plain_search} Should the pattern by plain-text.
+
+`hop.hint.by_case_searching(`                         *hop.hint.by_case_searching*
+  {pat}`,`
+  {plain_search}`,`
+  {opts}
+`)
+    Similar to |hop.hint.by_searching|, but respects the user case sensitivity
+    set by 'smartcase' and |hop-config-case_insensitive|.
+
+    Arguments:~
+        {pat}          Pattern to search.
+        {plain_search} Should the pattern by plain-text.
+        {opts}         User options.
 
 `hop.hint.mark_hints_line(`                             *hop.hint.mark_hints_line*
   {hint_mode}`,`
@@ -265,6 +293,13 @@ The hint API allows to create, reduce and display *hints* in easy ways.
         was possible), and `update_count` is the number of changes that have
         occurred while reducing.
 
+`hop.hint.HintDirection`                                  *hop.hint.HintDirection*
+    Enumeration for hinting direction.
+
+    Enumeration variants:~
+        {BEFORE_CURSOR} Create and apply hints before the cursor.
+        {AFTER_CURSOR}  Create and apply hints after the cursor.
+
 `hop.hint.create_hints(`                                   *hop.hint.create_hints*
   {hint_mode}`,`
   {win_width}`,`
@@ -272,6 +307,7 @@ The hint API allows to create, reduce and display *hints* in easy ways.
   {col_offset}`,`
   {top_line}`,`
   {lines}`,`
+  {direction},
   {opts}
 `)`
     Given a set of {lines}, this function creates the hints for each line in
@@ -285,6 +321,7 @@ The hint API allows to create, reduce and display *hints* in easy ways.
         {col_offset}  Left column offset in the buffer to start at.
         {top_line}    First line in the buffer to create hints for.
         {lines}       Lines to create hints for.
+        {direction}   Direction to hint in. See |hop.hint.HintDirection|.
         {opts}        Hop options.
 
     Return:~
@@ -484,6 +521,16 @@ below.
 >
         create_hl_autocmd = true
 <
+`direction`                                                *hop-config-direction*
+    Direction in which to hint. See |hop.hint.HintDirection| for further
+    details.
+
+    Setting this in the user configuration will make all commands default to
+    that direction, unless overriden.
+
+    Defaults:~
+
+        {none}
 
 ==============================================================================
 HIGHLIGHTS                                                      *hop-highlights*

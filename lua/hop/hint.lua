@@ -2,6 +2,11 @@ local perm = require'hop.perm'
 
 local M = {}
 
+M.HintDirection = {
+  BEFORE_CURSOR = 1,
+  AFTER_CURSOR = 2,
+}
+
 -- I hate Lua.
 local function starts_with_uppercase(s)
   if #s == 0 then
@@ -92,10 +97,12 @@ end
 --
 -- The input line_nr is the line number of the line currently being marked.
 --
+-- The direction argument allows to start / end hint creation after or before the cursor position
+--
 -- This function returns the list of hints as well as the length of the line in the form of table:
 --
 --   { hints, length }
-function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
+function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, direction_mode)
   local hints = {}
   local end_index = nil
 
@@ -106,6 +113,20 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
   end
 
   local shifted_line = line:sub(1 + col_offset, vim.fn.byteidx(line, end_index))
+
+  -- modify the shifted line to take the direction mode into account, if any
+  local col_bias = 0
+  if direction_mode ~= nil then
+    local col = vim.fn.byteidx(line, direction_mode.cursor_col + 1)
+    if direction_mode.direction == M.HintDirection.AFTER_CURSOR then
+      -- we want to change the start offset so that we ignore everything before the cursor
+      shifted_line = shifted_line:sub(col - col_offset)
+      col_bias = col - 1
+    elseif direction_mode.direction == M.HintDirection.BEFORE_CURSOR then
+      -- we want to change the end
+      shifted_line = shifted_line:sub(1, col - col_offset)
+    end
+  end
 
   local col = 1
   while true do
@@ -119,7 +140,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width)
     local colb = col + b
     hints[#hints + 1] = {
       line = line_nr;
-      col = colb + col_offset;
+      col = colb + col_offset + col_bias;
     }
 
     if hint_mode.oneshot then
@@ -178,7 +199,38 @@ function M.reduce_hints_lines(per_line_hints, key)
   return nil, output, update_count
 end
 
-function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, opts)
+-- Create hints for a given indexed line.
+--
+-- This function is used in M.create_hints to apply the hints to all the visible lines in the buffer. The need for such
+-- a specialized function is made real because of the possibility to have variations of hinting functions that will also
+-- work in a given direction, requiring a more granular control at the line level.
+local function create_hints_for_line(
+  i,
+  hints,
+  indirect_hints,
+  hint_counts,
+  hint_mode,
+  win_width,
+  cursor_pos,
+  col_offset,
+  top_line,
+  direction_mode,
+  lines
+)
+  local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, direction_mode)
+  hints[i] = line_hints
+
+  hint_counts = hint_counts + #line_hints.hints
+
+  for j = 1, #line_hints.hints do
+    local hint = line_hints.hints[j]
+    indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
+  end
+
+  return hint_counts
+end
+
+function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, direction, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -186,15 +238,85 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
   local hints = {}
   local indirect_hints = {}
   local hint_counts = 0
-  for i = 1, #lines do
-    local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width)
-    hints[i] = line_hints
 
-    hint_counts = hint_counts + #line_hints.hints
+  -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
+  if direction == M.HintDirection.AFTER_CURSOR then
+    -- the first line is to be checked first
+    hint_counts = create_hints_for_line(
+      1,
+      hints,
+      indirect_hints,
+      hint_counts,
+      hint_mode,
+      win_width,
+      cursor_pos,
+      col_offset,
+      top_line,
+      { cursor_col = cursor_pos[2], direction = direction },
+      lines
+    )
 
-    for j = 1, #line_hints.hints do
-      local hint = line_hints.hints[j]
-      indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
+    for i = 2, #lines do
+      hint_counts = create_hints_for_line(
+        i,
+        hints,
+        indirect_hints,
+        hint_counts,
+        hint_mode,
+        win_width,
+        cursor_pos,
+        col_offset,
+        top_line,
+        nil,
+        lines
+      )
+    end
+  elseif direction == M.HintDirection.BEFORE_CURSOR then
+    -- the last line is to be checked last
+    for i = 1, #lines - 1 do
+      hint_counts = create_hints_for_line(
+        i,
+        hints,
+        indirect_hints,
+        hint_counts,
+        hint_mode,
+        win_width,
+        cursor_pos,
+        col_offset,
+        top_line,
+        nil,
+        lines
+      )
+    end
+
+    hint_counts = create_hints_for_line(
+      #lines,
+      hints,
+      indirect_hints,
+      hint_counts,
+      hint_mode,
+      win_width,
+      cursor_pos,
+      col_offset,
+      top_line,
+      { cursor_col = cursor_pos[2], direction = direction },
+      lines
+    )
+  else
+    for i = 1, #lines do
+      hint_counts = create_hints_for_line(
+        i,
+        hints,
+        indirect_hints,
+        hint_counts,
+        hint_mode,
+        win_width,
+        cursor_pos,
+        col_offset,
+        top_line,
+        nil,
+        lines
+      )
     end
   end
 
