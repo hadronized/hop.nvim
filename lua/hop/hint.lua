@@ -91,13 +91,13 @@ end
 --
 -- This function applies reg repeatedly until it fails (typically at the end of
 -- the line). For every match of the regex, a hint placeholder is generated, which
--- contains three fields giving the line, hint column and real column of the hint:
+-- contains two fields giving the line and hint column of the hint:
 --
 --   { line, col }
 --
 -- The input line_nr is the line number of the line currently being marked.
 --
--- The direction argument allows to start / end hint creation after or before the cursor position
+-- The direction_mode argument allows to start / end hint creation after or before the cursor position
 --
 -- This function returns the list of hints as well as the length of the line in the form of table:
 --

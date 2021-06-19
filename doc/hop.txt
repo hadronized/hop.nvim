@@ -64,10 +64,10 @@ Commands~
 
 You can try those commands by typing them in your command line. By default,
 they will use the default options for the configuration of Hop. If you want to
-customize how those functions work, have a look at |hop.setup|.
+customize how those commands work, have a look at |hop.setup|.
 
 Some of the commands have a suffix, such as `BC` and `AC`. Those are
-variations of the command without the suffix, applying to the visible part of
+variations of the commands without the suffix, applying to the visible part of
 the buffer before and after the cursor, respectively.
 
 `:HopWord`                                                              *:HopWord*
@@ -129,8 +129,15 @@ Most of the functions and values you need to know about are in `hop`.
 `hop.setup(`{opts}`)`                                                    *hop.setup*
     Setup the library with options.
 
-    This functional will setup the Lua API and commands in a way that respects
-    the options you pass.
+    This function will setup the Lua API and commands in a way that respects
+    the options you pass. It is mandatory to call that function at some time
+    if you want to be able to use Hop.
+
+    Note:
+	Some plugins will automatically call the `setup` public function of a
+	plugin if declared, which is the case with Hop. With such plugins, you
+	shouldn’t have to care too much about `setup` but focus more on the
+	{opts} you can pass it.
 
     Arguments:~
         {opts}  List of options. See the |hop-config| section.
@@ -197,7 +204,7 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     reduced.
 
 `hop.hint.by_searching(`{pat}`,` {plain_search}`)`             *hop.hint.by_searching*
-    |pattern| hint mode. This mode will highlights the beginnings of a
+    |pattern| hint mode. This mode will highlight the beginnings of a
     pattern you will be prompted for in the document and will make the
     cursor jump to the one fully reduced.
 
@@ -209,7 +216,7 @@ The hint API allows to create, reduce and display *hints* in easy ways.
   {pat}`,`
   {plain_search}`,`
   {opts}
-`)
+`)`
     Similar to |hop.hint.by_searching|, but respects the user case sensitivity
     set by 'smartcase' and |hop-config-case_insensitive|.
 
@@ -224,32 +231,35 @@ The hint API allows to create, reduce and display *hints* in easy ways.
   {line}
   {col_offset}`,`
   {win_width}`,`
+  {direction_mode}`,`
 `)`
     Mark the given {line} with hints according to the input {hint_mode}. The
     {line_nr} must be the row where the {line} comes from.
 
     Arguments:~
-        {hint_mode}   Input hint mode.
-        {line_nr}     Line number referring to the line currently being marked.
-        {line}        Line (string) to mark.
-        {col_offset}  Column at which to start hinting in the buffer. Useful
-                      if you are using 'nowrap'.
-        {win_width}   Width of the window. Useful if you are using 'nowrap'.
+        {hint_mode}      Input hint mode.
+        {line_nr}        Line number referring to the line currently being
+	                 marked.
+        {line}           Line (string) to mark.
+        {col_offset}     Column at which to start hinting in the buffer.
+	                 Useful if you are using 'nowrap'.
+        {win_width}      Width of the window. Useful if you are using
+	                 'nowrap'.
+	{direction_mode} If non-{nil}, allows to alter the direciton in which
+	                 the hints are put.
 
     Return:~
         This function returns all the hints for {line} as a table consisting
         of three information gathered under two keys:
 >
             {
-              hints = { line, col, real_col };
+              hints = { line, col };
               length
             }
 <
         `line` is the same as {line_nr} and is simply forwarded. `col` is the
-        column at which the hint visually starts. `real_col` is the column at
-        which the hint starts taking into account multi-byte characters.
-
-        Use `col` for displaying the hints and `real_col` to jump to it.
+        column at which the hint visually starts. Use `col` for displaying the
+	hints and jump to it.
 
         `length` is the length of the initial hinted line. This is an important
         information used to correctly implement 'wrap' and 'nowrap' support.
@@ -296,6 +306,9 @@ The hint API allows to create, reduce and display *hints* in easy ways.
 `hop.hint.HintDirection`                                  *hop.hint.HintDirection*
     Enumeration for hinting direction.
 
+    Use this table as a value for |hop-config-direction|. Setting it to {nil}
+    makes the command / function act on the whole visible part of the buffer.
+
     Enumeration variants:~
         {BEFORE_CURSOR} Create and apply hints before the cursor.
         {AFTER_CURSOR}  Create and apply hints after the cursor.
@@ -327,9 +340,9 @@ The hint API allows to create, reduce and display *hints* in easy ways.
     Return:~
         The returned value is a table containing the following fields:
 >
-            { line, col, real_col, hint }
+            { line, col, hint }
 <
-        The meaning of `line`, `col` and `real_col` is the same as with
+        The meaning of `line` and `col` is the same as with
         |hop.hint.mark_hints_line|. `hint` contains the permutation making the
         sequence that can be displayed and typed by a user to jump to.
 
@@ -376,7 +389,7 @@ The configuration can be provided in two different ways:
   functions.
 - Or by passing an {opts} table to the Lua |hop.setup| function.
 
-Not providing any of the two above will use the _default values_, as described
+Not providing any of the two above will use the default values, as described
 below.
 
 `keys`                                                           *hop-config-keys*
@@ -390,16 +403,19 @@ below.
     you have to ensure to use enough characters in the string, otherwise you
     might get very long sequences and a not so pleasant experience.
 
-    Another important aspect is that the order of the characters you put in
-    your `keys` is important. Depending on the value you use in
-    |hop-config-term_seq_bias|, the keys will be split in two and the first
-    part of it will be used for terminal keys and the second part for sequence
-    keys.
+    Note:
+	This is only for the old permutation algorithm only, which is to get
+	deprecated soon.
+
+	Another important aspect is that the order of the characters you put in
+    	your `keys` is important. Depending on the value you use in
+    	|hop-config-term_seq_bias|, the keys will be split in two and the first
+    	part of it will be used for terminal keys and the second part for sequence
+    	keys.
 
     Defaults:~
->
-        keys = 'asdghklqwertyuiopzxcvbnmfj'
-<
+        `keys = 'asdghklqwertyuiopzxcvbnmfj'`
+
 `perm_method`                                             *hop-config-perm_method*
     Permutation method to use.
 
@@ -422,6 +438,11 @@ below.
             feel free to experiment with values between (exclusive) `0` and
             `1`.
 
+	    Note:
+		This algorithm will be deprecated very soon. You are strongly
+		advised to switch to `TrieBacktrackFilling` if you haven’t
+		yet.
+
         `TrieBacktrackFilling`
             Permutation algorithm based on tries and backtrack filling.
 
@@ -440,14 +461,13 @@ below.
             `keys_length³` 3-sequence keys, etc in the worst cases.
 
     Default value~
->
-        perm_method = require'hop.perm'.TrieBacktrackFilling
-<
+        `perm_method = require'hop.perm'.TrieBacktrackFilling`
+
 `reverse_distribution`                           *hop-config-reverse_distribution*
     The default behavior for key sequence distribution in your buffer is to
     concentrate shorter sequences near the cursor, grouping 1-character
-    sequences around. As words get further from the cursor, the dimension of
-    the sequences will grow, making the furthest words the longest sequences
+    sequences around. As hints get further from the cursor, the dimension of
+    the sequences will grow, making the furthest sequences the longest ones
     to type.
 
     Set this option to `true` to reverse the density and concentrate the
@@ -455,9 +475,8 @@ below.
     sequences around the cursor.
 
     Defaults:~
->
-        reverse_distribution = false
-<
+        `reverse_distribution = false`
+
 `term_seq_bias`                                         *hop-config-term_seq_bias*
     Bias used to alter the proportion of keys used as terminal keys vs. used
     as sequence keys. It is not recommended to tweak around with this value
@@ -472,19 +491,8 @@ below.
         `TermSeqBias`.
 
     Defaults:~
->
-        term_seq_bias = 3 / 4
-<
-`winblend`                                                   *hop-config-winblend*
-    'winblend' value to use for the hint buffer.
+        `term_seq_bias = 3 / 4`
 
-    Remember that setting a fully opaque hint buffer will make it impossible
-    to see where you are jumping.
-
-    Defaults:
->
-        winblend = 50
-<
 `teasing`                                                     *hop-config-teasing*
     Boolean value stating whether Hop should tease you when you do something
     you are not supposed to.
@@ -492,25 +500,20 @@ below.
     If you find this setting annoying, feel free to turn it to `false`.
 
     Defaults:~
->
-        teasing = true
-<
+        `teasing = true`
+
 `jump_on_sole_occurrence`                     *hop-config-jump_on_sole_occurrence*
     Immediately jump without displaying hints if only one occurrence exists.
 
     Defaults:~
->
-        jump_on_sole_occurrence = true
-<
+        `jump_on_sole_occurrence = true`
 
 `case_insensitive`                                   *hop-config-case_insensitive*
     Use case-insensitive matching by default for commands requiring user
     input.
 
     Defaults:~
->
-        case_insensitive = true
-<
+        `case_insensitive = true`
 
 `create_hl_autocmd`                                 *hop-config-create_hl_autocmd*
     Create and set highlight autocommands to automatically apply highlights.
@@ -518,9 +521,8 @@ below.
     applying its colorscheme.
 
     Defaults:~
->
-        create_hl_autocmd = true
-<
+        `create_hl_autocmd = true`
+
 `direction`                                                *hop-config-direction*
     Direction in which to hint. See |hop.hint.HintDirection| for further
     details.
@@ -529,8 +531,7 @@ below.
     that direction, unless overriden.
 
     Defaults:~
-
-        {none}
+        `direction = nil`
 
 ==============================================================================
 HIGHLIGHTS                                                      *hop-highlights*
