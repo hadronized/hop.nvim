@@ -49,26 +49,10 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
   end
 end
 
--- Cleanup Hop highlights and unmark the buffer.
-local function unhl_and_unmark(buf_handle, hl_ns)
-  clear_namespace(buf_handle, hl_ns)
-  vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
-end
-
 -- Hint the whole visible part of the buffer.
 --
 -- The 'hint_mode' argument is the mode to use to hint the buffer.
 local function hint_with(hint_mode, opts)
-  -- first, we ensure we’re not already hopping around; if not, we mark the current buffer (this mark will be removed
-  -- when a jump is performed or if the user stops hopping)
-  -- abort if we’re already hopping
-  if vim.b['hop#marked'] then
-    eprintln('eh, don’t open hop from within hop, that’s super dangerous!', opts.teasing)
-    return
-  end
-
-  vim.api.nvim_buf_set_var(0, 'hop#marked', true)
-
   -- get a bunch of information about the window and the cursor
   local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
   local win_view = vim.fn.winsaveview()
@@ -123,14 +107,14 @@ local function hint_with(hint_mode, opts)
   local h = nil
   if hint_counts == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    unhl_and_unmark(0, hl_ns)
+    clear_namespace(0, hl_ns)
     return
   elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
     -- search the hint and jump to it
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
-        unhl_and_unmark(0, hl_ns)
+        clear_namespace(0, hl_ns)
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
@@ -222,7 +206,7 @@ end
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle)
   local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
-  unhl_and_unmark(buf_handle, hint_state.hl_ns)
+  clear_namespace(buf_handle, hint_state.hl_ns)
 end
 
 function M.hint_words(opts)
