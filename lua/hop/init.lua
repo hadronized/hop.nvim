@@ -123,12 +123,12 @@ local function hint_with(hint_mode, opts)
     return
   end
 
-  vim.api.nvim_buf_set_var(0, 'hop#hint_state', {
+  local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
     top_line = top_line;
     bot_line = bot_line
-  })
+  }
 
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
@@ -136,7 +136,7 @@ local function hint_with(hint_mode, opts)
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      M.quit(0)
+      M.quit(0, hl_ns)
       break
     end
     local not_special_key = true
@@ -154,11 +154,11 @@ local function hint_with(hint_mode, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, key, opts.teasing, direction_mode)
+      h = M.refine_hints(0, key, opts.teasing, direction_mode, hint_state)
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
-      M.quit(0)
+      M.quit(0, hl_ns)
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -173,8 +173,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing, direction_mode)
-  local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
+function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state)
   local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
   if h == nil then
@@ -184,13 +183,12 @@ function M.refine_hints(buf_handle, key, teasing, direction_mode)
     end
 
     hint_state.hints = hints
-    vim.api.nvim_buf_set_var(buf_handle, 'hop#hint_state', hint_state)
 
     grey_things_out(buf_handle, hint_state.hl_ns, hint_state.top_line, hint_state.bot_line, direction_mode)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
   else
-    M.quit(buf_handle)
+    M.quit(buf_handle, hint_state.hl_ns)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
@@ -204,9 +202,8 @@ end
 -- Quit Hop and delete its resources.
 --
 -- This works only if the current buffer is Hop one.
-function M.quit(buf_handle)
-  local hint_state = vim.api.nvim_buf_get_var(buf_handle, 'hop#hint_state')
-  clear_namespace(buf_handle, hint_state.hl_ns)
+function M.quit(buf_handle, hl_ns)
+  clear_namespace(buf_handle, hl_ns)
 end
 
 function M.hint_words(opts)
