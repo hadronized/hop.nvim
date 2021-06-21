@@ -49,8 +49,22 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
   end
 end
 
+-- Checks if matchparen plugin is enabled by calling vim.fn.exists() on command provided
+-- by this plugin `:DoMatchParen` and if so run command in `cmd` argument
+-- vim.fn.getcmdwintype() returns empty string if the current window is not a command window
+-- required to fix upstream bug that `:NoMatchParen` produce error in the command window
+-- vim.fn.exists() returns 2 if its ':Cmd' argument fully match
+local function match_paren(cmd)
+  if vim.fn.getcmdwintype() == '' and vim.fn.exists(':DoMatchParen') == 2 then
+    vim.cmd(cmd)
+  end
+end
+
 -- Cleanup Hop highlights and unmark the buffer.
 local function unhl_and_unmark(buf_handle, hl_ns)
+  -- enable matchparen plugin
+  match_paren('DoMatchParen')
+
   clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_del_var(buf_handle, 'hop#marked')
 end
@@ -100,6 +114,9 @@ local function hint_with(hint_mode, opts)
     vim.fn.winrestview(win_view)
     win_width = win_info.width - left_col_offset
   end
+
+  -- disable matchparen plugin
+  match_paren('NoMatchParen')
 
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
