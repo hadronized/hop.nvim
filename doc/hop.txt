@@ -416,6 +416,31 @@ below.
     Defaults:~
         `keys = 'asdghklqwertyuiopzxcvbnmfj'`
 
+`quit_key`                                                   *hop-config-quit_key*
+    A string representing a key that will quit Hop mode without also feeding
+    that key into Neovim to be treated as a normal key press.
+
+    It is possible to quit hopping by pressing any key that is not present in
+    |hop-config-keys|; however, when you do this, the keys normal function is
+    also performed. For example if, hopping in |visual-mode|, pressing <Esc> will
+    quit hopping and also exit |visual-mode|.
+
+    If the user presses `quit_key`, Hop will be quit without the keys normal
+    function being performed. For example if hopping in |visual-mode| with
+    `quit_key` set to '<Esc>', pressing <Esc> will quit hopping without
+    quitting |visual-mode|.
+
+    If you don't want to use a `quit_key`, set `quit_key` to an empty string.
+
+    Note:~
+        `quit_key` should only contain a single key or be an empty string.
+    Note:~
+        `quit_key` should not contain a key that is also present in
+        |hop-config-keys|.
+
+    Defaults:~
+        `quit_key = '<Esc>'`
+
 `perm_method`                                             *hop-config-perm_method*
     Permutation method to use.
 

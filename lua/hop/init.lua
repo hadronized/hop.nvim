@@ -155,25 +155,32 @@ local function hint_with(hint_mode, opts)
       M.quit(0)
       break
     end
+    local not_special_key = true
     -- :h getchar(): "If the result of expr is a single character, it returns a
-    -- number. Use nr2char() to convert it to a String."
+    -- number. Use nr2char() to convert it to a String." Also the result is a
+    -- special key if it's a string and its first byte is 128.
     --
     -- Note of caution: Even though the result of `getchar()` might be a single
     -- character, that character might still be multiple bytes.
     if type(key) == 'number' then
-      local key_str = vim.fn.nr2char(key)
-      if opts.keys:find(key_str, 1, true) then
-        -- If this is a key used in hop (via opts.keys), deal with it in hop
-        h = M.refine_hints(0, key_str, opts.teasing, direction_mode)
-        vim.cmd('redraw')
-      else
-        -- If it's not, quit hop and use the key like normal instead
-        M.quit(0)
-        -- Pass the key captured via getchar() through to nvim, to be handled
-        -- normally (including mappings)
-        vim.api.nvim_feedkeys(key_str, '', true)
-        break
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      not_special_key = false
+    end
+
+    if not_special_key and opts.keys:find(key, 1, true) then
+      -- If this is a key used in hop (via opts.keys), deal with it in hop
+      h = M.refine_hints(0, key, opts.teasing, direction_mode)
+      vim.cmd('redraw')
+    else
+      -- If it's not, quit hop
+      M.quit(0)
+      -- If the key captured via getchar() is not the quit_key, pass it through
+      -- to nvim to be handled normally (including mappings)
+      if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
+        vim.api.nvim_feedkeys(key, '', true)
       end
+      break
     end
   end
 end
