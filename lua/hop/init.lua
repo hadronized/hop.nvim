@@ -16,9 +16,7 @@ local function eprintln(msg, teasing)
   end
 end
 
--- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
 local function clear_namespace(buf_handle, hl_ns)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
 end
 
