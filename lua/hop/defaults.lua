@@ -9,5 +9,9 @@ M.teasing = true
 M.jump_on_sole_occurrence = true
 M.case_insensitive = true
 M.create_hl_autocmd = true
+M.use_migemo = false
+M.migemo_cmd = 'cmigemo'
+M.migemo_dict = '/usr/local/opt/cmigemo/share/migemo/utf-8/migemo-dict'
+M.verbose = false
 
 return M

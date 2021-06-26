@@ -230,9 +230,21 @@ end
 
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
-  local ok, c = pcall(vim.fn.getchar)
+  local ok, a = pcall(vim.fn.getchar)
   if not ok then return end
-  hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
+  local c = vim.fn.nr2char(a)
+  if not opts.use_migemo then
+    hint_with(hint.by_case_searching(c, true, opts), opts)
+    return
+  end
+  local ok2, dict = pcall(require, 'hop.migemo_dict.' .. vim.o.encoding)
+  if not ok2 then
+    vim.api.nvim_echo({
+      {'hop-migemo does not support encoding: ' .. vim.o.encoding, 'WarningMsg'},
+    }, true, {})
+    return
+  end
+  hint_with(hint.by_case_searching(dict[c], false, opts), opts)
 end
 
 function M.hint_char2(opts)
@@ -242,30 +254,13 @@ function M.hint_char2(opts)
   local ok2, b = pcall(vim.fn.getchar)
   if not ok2 then return end
   local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
-  hint_with(hint.by_case_searching(pat, true, opts), opts)
-end
-
-function M.hint_char1_migemo(opts)
-  local c = vim.fn.nr2char(vim.fn.getchar())
-  local ok, dict = pcall(require, 'hop.migemo_dict.' .. vim.o.encoding)
-  if not ok then
-    vim.api.nvim_echo({
-      {'hop-migemo does not support encoding: ' .. vim.o.encoding, 'WarningMsg'},
-    }, true, {})
+  if not opts.use_migemo then
+    hint_with(hint.by_case_searching(pat, true, opts), opts)
     return
   end
-  hint_with(hint.by_searching(dict[c], false), get_command_opts(opts))
-end
-
-function M.hint_char2_migemo(opts)
-  opts = opts or {}
-  local cmd = opts.migemo_cmd or 'cmigemo'
-  local dict = opts.migemo_dict or '/usr/local/opt/cmigemo/share/migemo/utf-8/migemo-dict'
-  local a = vim.fn.nr2char(vim.fn.getchar())
-  local b = vim.fn.nr2char(vim.fn.getchar())
   local p = Process.new{
-    cmd = cmd,
-    args = {'-v', '-d', dict, '-w', a .. b},
+    cmd = opts.migemo_cmd,
+    args = {'-v', '-d', opts.migemo_dict, '-w', pat},
     verbose = opts.verbose,
   }
   p:run(function(result)
@@ -273,7 +268,7 @@ function M.hint_char2_migemo(opts)
       p:error('error occurred in executing cmigemo: ' .. result.err)
     else
       if opts.verbose then vim.g.__hop_migemo_re = result.out end -- for debugging
-      hint_with(hint.by_searching(result.out, false), get_command_opts(opts))
+      hint_with(hint.by_case_searching(result.out, false, opts), opts)
     end
   end)
 end
