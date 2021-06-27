@@ -239,9 +239,7 @@ function M.hint_char1(opts)
   end
   local ok2, dict = pcall(require, 'hop.migemo_dict.' .. vim.o.encoding)
   if not ok2 then
-    vim.api.nvim_echo({
-      {'hop-migemo does not support encoding: ' .. vim.o.encoding, 'WarningMsg'},
-    }, true, {})
+    eprintln('hop-migemo does not support encoding: ' .. vim.o.encoding)
     return
   end
   hint_with(hint.by_case_searching(dict[c], false, opts), opts)
