@@ -131,6 +131,16 @@ This plugin was written against Neovim 0.5, which is currently a nightly version
 
 ## Installation
 
+Whatever solution / package manager you are using, you need to ensure that the `setup` Lua function is called at some
+point, otherwise the plugin will not work. If your package manager doesn’t support automatic calling of this function,
+you can call it manually after your plugin is installed:
+
+```lua
+require'hop'.setup()
+```
+
+To get a default experience. Feel free to customize later the `setup` invocation (`:h hop.setup`).
+
 ### Using [vim-plug]
 
 ```vim

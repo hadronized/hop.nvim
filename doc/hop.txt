@@ -59,6 +59,27 @@ Neovim-0.5.
 ==============================================================================
 USAGE                                                                *hop-usage*
 
+Before doing anything else, you have to setup the plugin. If you are not using
+a package manager or environment doing that automatically for you, you need to
+call the |hop.setup| function to correctly initialize the plugin.
+
+For a minimal setup:
+
+    For people using init.lua~
+        In your `init.lua`, add:
+>
+            require'hop'.setup()
+<
+    For people using init.vim~
+        In your `init.vim`, add:
+>
+            lua << EOF
+            require'hop'.setup()
+            EOF
+<
+You can pass an optional argument to `setup(opts)` in order to pass {opts}.
+Have a look at |hop.setup| for further details.
+
                                                                   *hop-commands*
 Commands~
 
