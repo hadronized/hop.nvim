@@ -129,6 +129,14 @@ the buffer before and after the cursor, respectively.
 
     This is akin to calling the |hop.hint_lines| Lua function.
 
+`:HopLineStart`                                                         *:HopLine*
+`:HopLineStartBC`                                                     *:HopLineBC*
+`:HopLineStartAC`                                                     *:HopLineAC*
+    Like `HopLine` but skips leading whitespace on every line.
+    Blank lines are skipped over.
+
+    This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
+
                                                                    *hop-lua-api*
 Lua API~
 

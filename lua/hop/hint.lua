@@ -32,7 +32,7 @@ function M.by_searching(pat, plain_search)
   }
 end
 
--- Wrapper over M.by_searching to add spport for case sensitivity.
+-- Wrapper over M.by_searching to add support for case sensitivity.
 function M.by_case_searching(pat, plain_search, opts)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
@@ -62,13 +62,26 @@ M.by_word_start = M.by_searching('\\w\\+')
 
 -- Line hint mode.
 --
--- Used to tag the beginning of each lines with ihnts.
+-- Used to tag the beginning of each lines with hints.
 M.by_line_start = {
   oneshot = true,
   match = function(_)
     return 0, 1, false
   end
 }
+
+-- Line hint mode skipping leading whitespace.
+--
+-- Used to tag the beginning of each lines with hints.
+function M.by_line_start_skip_whitespace()
+  pat = vim.regex("\\S")
+  return {
+    oneshot = true,
+    match = function(s)
+      return pat:match_str(s)
+    end
+  }
+end
 
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)

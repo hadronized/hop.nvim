@@ -29,3 +29,8 @@ command! HopChar2AC lua require'hop'.hint_char2({ direction = require'hop.hint'.
 command! HopLine lua require'hop'.hint_lines()
 command! HopLineBC lua require'hop'.hint_lines({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
 command! HopLineAC lua require'hop'.hint_lines({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
+
+" The jump-to-line command.
+command! HopLineStart   lua require'hop'.hint_lines_skip_whitespace()
+command! HopLineStartBC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
+command! HopLineStartAC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
