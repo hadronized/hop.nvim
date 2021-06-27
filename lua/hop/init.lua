@@ -259,13 +259,13 @@ function M.hint_char2(opts)
   local p = Process.new{
     cmd = opts.migemo_cmd,
     args = {'-v', '-d', opts.migemo_dict, '-w', pat},
-    verbose = opts.verbose,
+    verbose = opts.migemo_debug,
   }
   p:run(function(result)
     if result.err:len() > 0 then
       p:error('error occurred in executing cmigemo: ' .. result.err)
     else
-      if opts.verbose then vim.g.__hop_migemo_re = result.out end -- for debugging
+      if opts.migemo_debug then vim.g.__hop_migemo_re = result.out end -- for debugging
       hint_with(hint.by_case_searching(result.out, false, opts), opts)
     end
   end)

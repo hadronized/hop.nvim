@@ -12,6 +12,6 @@ M.create_hl_autocmd = true
 M.use_migemo = false
 M.migemo_cmd = 'cmigemo'
 M.migemo_dict = '/usr/local/opt/cmigemo/share/migemo/utf-8/migemo-dict'
-M.verbose = false
+M.migemo_debug = false
 
 return M
