@@ -248,6 +248,10 @@ function M.hint_lines(opts)
   hint_with(hint.by_line_start, get_command_opts(opts))
 end
 
+function M.hint_lines_skip_whitespace(opts)
+  hint_with(hint.by_line_start_skip_whitespace(), get_command_opts(opts))
+end
+
 -- Setup user settings.
 M.opts = defaults
 function M.setup(opts)

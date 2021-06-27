@@ -70,6 +70,19 @@ M.by_line_start = {
   end
 }
 
+-- Line hint mode skipping leading whitespace.
+--
+-- Used to tag the beginning of each lines with hints.
+function M.by_line_start_skip_whitespace()
+  pat = vim.regex("\\S")
+  return {
+    oneshot = true,
+    match = function(s)
+      return pat:match_str(s)
+    end
+  }
+end
+
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
   local s = ''
