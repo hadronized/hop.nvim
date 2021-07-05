@@ -94,7 +94,7 @@ the buffer before and after the cursor, respectively.
 `:HopWord`                                                              *:HopWord*
 `:HopWordBC`                                                          *:HopWordBC*
 `:HopWordAC`                                                          *:HopWordAC*
-    Annotate all words in the current window with key sequences. Typing a
+    Annotate all |word|s in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
     bring your cursor at that position.
