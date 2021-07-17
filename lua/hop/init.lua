@@ -271,12 +271,14 @@ function M.hint_patterns(opts, pattern)
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
+  local pat
   if pattern then
     pat = pattern
   else
     add_virt_cur(cur_ns)
     vim.cmd('redraw')
     vim.fn.inputsave()
+    local ok
     ok, pat = pcall(vim.fn.input, 'Search: ')
     vim.fn.inputrestore()
     if not ok then

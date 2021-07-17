@@ -86,7 +86,7 @@ M.by_line_start = {
 --
 -- Used to tag the beginning of each lines with hints.
 function M.by_line_start_skip_whitespace()
-  pat = vim.regex("\\S")
+  local pat = vim.regex("\\S")
   return {
     oneshot = true,
     match = function(s)
