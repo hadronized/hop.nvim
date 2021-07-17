@@ -225,13 +225,7 @@ local function create_hints_for_line(
 )
   local line_hints = M.mark_hints_line(hint_mode, context.top_line + i - 1, lines[i], context.col_offset, context.win_width, direction_mode)
   aggregate.hints[i] = line_hints
-
   aggregate.hint_counts = aggregate.hint_counts + #line_hints.hints
-
-  for j = 1, #line_hints.hints do
-    local hint = line_hints.hints[j]
-    aggregate.indirect_hints[#aggregate.indirect_hints + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
-  end
 end
 
 function M.create_hints_by_scanning_lines(hint_mode, opts)
@@ -244,7 +238,6 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
 
   local aggregate = {
     hints = {};
-    indirect_hints = {};
     hint_counts = 0
   }
 
@@ -304,6 +297,19 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     end
   end
 
+  return aggregate.hints, aggregate.hint_counts
+end
+
+function M.assign_character_targets(context, hints, opts)
+  -- mutate the hints object to assign a character target to each hint, based on the manhattan distance of the
+  -- hint relative to the cursor position
+  local flat_hints = {}
+  for i, line_hints in pairs(hints) do
+    for j, hint in pairs(line_hints.hints) do
+      flat_hints[#flat_hints+1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
+    end
+  end
+
   local dist_comparison = nil
   if opts.reverse_distribution then
     dist_comparison = function (a, b) return a.dist > b.dist end
@@ -311,15 +317,12 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     dist_comparison = function (a, b) return a.dist < b.dist end
   end
 
-  table.sort(aggregate.indirect_hints, dist_comparison)
+  table.sort(flat_hints, dist_comparison)
 
-  -- generate permutations and update the lines with hints
-  local perms = perm.permutations(opts.keys, #aggregate.indirect_hints, opts)
-  for i, indirect in pairs(aggregate.indirect_hints) do
-    aggregate.hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
+  local perms = perm.permutations(opts.keys, #flat_hints, opts)
+  for i, indirect in pairs(flat_hints) do
+    hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end
-
-  return aggregate.hints, aggregate.hint_counts
 end
 
 function M.set_hint_extmarks(hl_ns, per_line_hints)

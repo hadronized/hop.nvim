@@ -87,6 +87,9 @@ local function hint_with(hint_mode, opts)
     return
   end
 
+  -- mutate hints to add character targets
+  hint.assign_character_targets(context, hints, opts)
+
   local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
