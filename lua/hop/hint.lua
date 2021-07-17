@@ -1,11 +1,7 @@
 local perm = require'hop.perm'
+local constants = require'hop.constants'
 
 local M = {}
-
-M.HintDirection = {
-  BEFORE_CURSOR = 1,
-  AFTER_CURSOR = 2,
-}
 
 -- I hate Lua.
 local function starts_with_uppercase(s)
@@ -132,11 +128,11 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
   local col_bias = 0
   if direction_mode ~= nil then
     local col = vim.fn.byteidx(line, direction_mode.cursor_col + 1)
-    if direction_mode.direction == M.HintDirection.AFTER_CURSOR then
+    if direction_mode.direction == constants.HintDirection.AFTER_CURSOR then
       -- we want to change the start offset so that we ignore everything before the cursor
       shifted_line = shifted_line:sub(col - col_offset)
       col_bias = col - 1
-    elseif direction_mode.direction == M.HintDirection.BEFORE_CURSOR then
+    elseif direction_mode.direction == constants.HintDirection.BEFORE_CURSOR then
       -- we want to change the end
       shifted_line = shifted_line:sub(1, col - col_offset)
     end
@@ -254,7 +250,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
   local hint_counts = 0
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-  if direction == M.HintDirection.AFTER_CURSOR then
+  if direction == constants.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
     hint_counts = create_hints_for_line(
       1,
@@ -285,7 +281,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         lines
       )
     end
-  elseif direction == M.HintDirection.BEFORE_CURSOR then
+  elseif direction == constants.HintDirection.BEFORE_CURSOR then
     -- the last line is to be checked last
     for i = 1, #lines - 1 do
       hint_counts = create_hints_for_line(

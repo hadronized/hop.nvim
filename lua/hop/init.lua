@@ -1,5 +1,6 @@
 local defaults = require'hop.defaults'
 local hint = require'hop.hint'
+local constants = require'hop.constants'
 
 local M = {}
 
@@ -31,12 +32,12 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
   clear_namespace(buf_handle, hl_ns)
 
   if direction_mode ~= nil then
-    if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
+    if direction_mode.direction == constants.HintDirection.AFTER_CURSOR then
       vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', top_line, direction_mode.cursor_col, -1)
       for line_i = top_line + 1, bottom_line do
         vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
       end
-    elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+    elseif direction_mode.direction == constants.HintDirection.BEFORE_CURSOR then
       for line_i = top_line, bottom_line - 1 do
         vim.api.nvim_buf_add_highlight(buf_handle, hl_ns, 'HopUnmatched', line_i, 0, -1)
       end
