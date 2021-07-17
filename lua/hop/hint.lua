@@ -1,4 +1,5 @@
 local perm = require'hop.perm'
+local window = require'hop.window'
 local constants = require'hop.constants'
 
 local M = {}
@@ -220,37 +221,37 @@ local function create_hints_for_line(
   indirect_hints,
   hint_counts,
   hint_mode,
-  win_width,
-  cursor_pos,
-  col_offset,
-  top_line,
+  context,
   direction_mode,
   lines
 )
-  local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, direction_mode)
+  local line_hints = M.mark_hints_line(hint_mode, context.top_line + i - 1, lines[i], context.col_offset, context.win_width, direction_mode)
   hints[i] = line_hints
 
   hint_counts = hint_counts + #line_hints.hints
 
   for j = 1, #line_hints.hints do
     local hint = line_hints.hints[j]
-    indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
+    indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
   end
 
   return hint_counts
 end
 
-function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, direction, opts)
+function M.create_hints_by_scanning_lines(hint_mode, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
   -- cursor, allowing to zip this list with the hints and distribute the hints
+  local context = window.get_window_context(opts.direction)
+  local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
+
   local hints = {}
   local indirect_hints = {}
   local hint_counts = 0
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-  if direction == constants.HintDirection.AFTER_CURSOR then
+  if opts.direction == constants.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
     hint_counts = create_hints_for_line(
       1,
@@ -258,11 +259,8 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
       indirect_hints,
       hint_counts,
       hint_mode,
-      win_width,
-      cursor_pos,
-      col_offset,
-      top_line,
-      { cursor_col = cursor_pos[2], direction = direction },
+      context,
+      { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
 
@@ -273,15 +271,12 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         indirect_hints,
         hint_counts,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
     end
-  elseif direction == constants.HintDirection.BEFORE_CURSOR then
+  elseif opts.direction == constants.HintDirection.BEFORE_CURSOR then
     -- the last line is to be checked last
     for i = 1, #lines - 1 do
       hint_counts = create_hints_for_line(
@@ -290,10 +285,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         indirect_hints,
         hint_counts,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
@@ -305,11 +297,8 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
       indirect_hints,
       hint_counts,
       hint_mode,
-      win_width,
-      cursor_pos,
-      col_offset,
-      top_line,
-      { cursor_col = cursor_pos[2], direction = direction },
+      context,
+      { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
   else
@@ -320,10 +309,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         indirect_hints,
         hint_counts,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
