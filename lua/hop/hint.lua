@@ -124,9 +124,7 @@ end
 --
 -- The direction_mode argument allows to start / end hint creation after or before the cursor position
 --
--- This function returns the list of hints in the form of table:
---
---   { hints }
+-- This function returns the list of hints
 function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, direction_mode)
   local hints = {}
   local end_index = nil
