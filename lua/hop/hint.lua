@@ -217,25 +217,21 @@ end
 -- work in a given direction, requiring a more granular control at the line level.
 local function create_hints_for_line(
   i,
-  hints,
-  indirect_hints,
-  hint_counts,
+  aggregate,
   hint_mode,
   context,
   direction_mode,
   lines
 )
   local line_hints = M.mark_hints_line(hint_mode, context.top_line + i - 1, lines[i], context.col_offset, context.win_width, direction_mode)
-  hints[i] = line_hints
+  aggregate.hints[i] = line_hints
 
-  hint_counts = hint_counts + #line_hints.hints
+  aggregate.hint_counts = aggregate.hint_counts + #line_hints.hints
 
   for j = 1, #line_hints.hints do
     local hint = line_hints.hints[j]
-    indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
+    aggregate.indirect_hints[#aggregate.indirect_hints + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
   end
-
-  return hint_counts
 end
 
 function M.create_hints_by_scanning_lines(hint_mode, opts)
@@ -246,18 +242,18 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
   local context = window.get_window_context(opts.direction)
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
 
-  local hints = {}
-  local indirect_hints = {}
-  local hint_counts = 0
+  local aggregate = {
+    hints = {};
+    indirect_hints = {};
+    hint_counts = 0
+  }
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
   if opts.direction == constants.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
-    hint_counts = create_hints_for_line(
+    create_hints_for_line(
       1,
-      hints,
-      indirect_hints,
-      hint_counts,
+      aggregate,
       hint_mode,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -265,11 +261,9 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     )
 
     for i = 2, #lines do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        aggregate,
         hint_mode,
         context,
         nil,
@@ -279,11 +273,9 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
   elseif opts.direction == constants.HintDirection.BEFORE_CURSOR then
     -- the last line is to be checked last
     for i = 1, #lines - 1 do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        aggregate,
         hint_mode,
         context,
         nil,
@@ -291,11 +283,9 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
       )
     end
 
-    hint_counts = create_hints_for_line(
+    create_hints_for_line(
       #lines,
-      hints,
-      indirect_hints,
-      hint_counts,
+      aggregate,
       hint_mode,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -303,11 +293,9 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     )
   else
     for i = 1, #lines do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        aggregate,
         hint_mode,
         context,
         nil,
@@ -323,15 +311,15 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     dist_comparison = function (a, b) return a.dist < b.dist end
   end
 
-  table.sort(indirect_hints, dist_comparison)
+  table.sort(aggregate.indirect_hints, dist_comparison)
 
   -- generate permutations and update the lines with hints
-  local perms = perm.permutations(opts.keys, #indirect_hints, opts)
-  for i, indirect in pairs(indirect_hints) do
-    hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
+  local perms = perm.permutations(opts.keys, #aggregate.indirect_hints, opts)
+  for i, indirect in pairs(aggregate.indirect_hints) do
+    aggregate.hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
   end
 
-  return hints,  hint_counts
+  return aggregate.hints, aggregate.hint_counts
 end
 
 function M.set_hint_extmarks(hl_ns, per_line_hints)
