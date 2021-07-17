@@ -25,6 +25,10 @@ function M.by_searching(pat, plain_search)
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
+    end,
+
+    get_hints = function(self, opts)
+      return M.create_hints_by_scanning_lines(self, opts)
     end
   }
 end
@@ -47,6 +51,9 @@ function M.by_case_searching(pat, plain_search, opts)
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
+    end,
+    get_hints = function(self, hint_opts)
+      return M.create_hints_by_scanning_lines(self, hint_opts)
     end
   }
 end
@@ -65,6 +72,9 @@ M.by_line_start = {
   oneshot = true,
   match = function(_)
     return 0, 1, false
+  end,
+  get_hints = function(self, hint_opts)
+    return M.create_hints_by_scanning_lines(self, hint_opts)
   end
 }
 
@@ -77,6 +87,9 @@ function M.by_line_start_skip_whitespace()
     oneshot = true,
     match = function(s)
       return pat:match_str(s)
+    end,
+    get_hints = function(self, hint_opts)
+      return M.create_hints_by_scanning_lines(self, hint_opts)
     end
   }
 end

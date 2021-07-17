@@ -61,10 +61,9 @@ local function hint_with(hint_mode, opts)
   local hl_ns = vim.api.nvim_create_namespace('')
   grey_things_out(0, hl_ns, context.top_line, context.bot_line, context.direction_mode)
 
-  -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
-  -- or even perform direct jump in the case of a single match
-  local hints, hint_counts = hint.create_hints_by_scanning_lines(
-    hint_mode,
+  -- hint_counts allows us to display some error diagnostics to the user, if any, or even perform direct jump in the
+  -- case of a single match
+  local hints, hint_counts = hint_mode:get_hints(
     opts
   )
 
