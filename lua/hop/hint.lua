@@ -123,9 +123,9 @@ end
 --
 -- The direction_mode argument allows to start / end hint creation after or before the cursor position
 --
--- This function returns the list of hints as well as the length of the line in the form of table:
+-- This function returns the list of hints in the form of table:
 --
---   { hints, length }
+--   { hints }
 function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, direction_mode)
   local hints = {}
   local end_index = nil
@@ -175,8 +175,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
   end
 
   return {
-    hints = hints;
-    length = vim.fn.strdisplaywidth(shifted_line)
+    hints = hints
   }
 end
 
@@ -217,7 +216,7 @@ function M.reduce_hints_lines(per_line_hints, key)
       end
     end
 
-    output[#output + 1] = { hints = next_hints; length = hints.length }
+    output[#output + 1] = { hints = next_hints }
   end
 
   return nil, output, update_count
