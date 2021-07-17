@@ -14,8 +14,9 @@ local function starts_with_uppercase(s)
   return f:upper() == f
 end
 
--- Regex hint mode.
---
+-- Hint modes follow.
+-- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
+
 -- Used to hint result of a search.
 function M.by_searching(pat, plain_search)
   if plain_search then
@@ -27,8 +28,8 @@ function M.by_searching(pat, plain_search)
       return vim.regex(pat):match_str(s)
     end,
 
-    get_hints = function(self, opts)
-      return M.create_hints_by_scanning_lines(self, opts)
+    get_hint_list = function(self, opts)
+      return M.create_hint_list_by_scanning_lines(self, opts)
     end
   }
 end
@@ -52,8 +53,8 @@ function M.by_case_searching(pat, plain_search, opts)
     match = function(s)
       return vim.regex(pat):match_str(s)
     end,
-    get_hints = function(self, hint_opts)
-      return M.create_hints_by_scanning_lines(self, hint_opts)
+    get_hint_list = function(self, hint_opts)
+      return M.create_hint_list_by_scanning_lines(self, hint_opts)
     end
   }
 end
@@ -73,8 +74,8 @@ M.by_line_start = {
   match = function(_)
     return 0, 1, false
   end,
-  get_hints = function(self, hint_opts)
-    return M.create_hints_by_scanning_lines(self, hint_opts)
+  get_hint_list = function(self, hint_opts)
+    return M.create_hint_list_by_scanning_lines(self, hint_opts)
   end
 }
 
@@ -88,8 +89,8 @@ function M.by_line_start_skip_whitespace()
     match = function(s)
       return pat:match_str(s)
     end,
-    get_hints = function(self, hint_opts)
-      return M.create_hints_by_scanning_lines(self, hint_opts)
+    get_hint_list = function(self, hint_opts)
+      return M.create_hint_list_by_scanning_lines(self, hint_opts)
     end
   }
 end
@@ -174,9 +175,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
     end
   end
 
-  return {
-    hints = hints
-  }
+  return hints
 end
 
 -- Reduce a hint.
@@ -229,36 +228,33 @@ end
 -- work in a given direction, requiring a more granular control at the line level.
 local function create_hints_for_line(
   i,
-  aggregate,
+  hint_list,
   hint_mode,
   context,
   direction_mode,
   lines
 )
   local line_hints = M.mark_hints_line(hint_mode, context.top_line + i - 1, lines[i], context.col_offset, context.win_width, direction_mode)
-  aggregate.hints[i] = line_hints
-  aggregate.hint_counts = aggregate.hint_counts + #line_hints.hints
+  for _, val in pairs(line_hints) do
+    hint_list[#hint_list+1] = val
+  end
 end
 
-function M.create_hints_by_scanning_lines(hint_mode, opts)
+function M.create_hint_list_by_scanning_lines(hint_mode, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
   -- cursor, allowing to zip this list with the hints and distribute the hints
   local context = window.get_window_context(opts.direction)
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
-
-  local aggregate = {
-    hints = {};
-    hint_counts = 0
-  }
+  local hint_list = {}
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
   if opts.direction == constants.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
     create_hints_for_line(
       1,
-      aggregate,
+      hint_list,
       hint_mode,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -268,7 +264,7 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     for i = 2, #lines do
       create_hints_for_line(
         i,
-        aggregate,
+        hint_list,
         hint_mode,
         context,
         nil,
@@ -280,7 +276,7 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     for i = 1, #lines - 1 do
       create_hints_for_line(
         i,
-        aggregate,
+        hint_list,
         hint_mode,
         context,
         nil,
@@ -290,7 +286,7 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
 
     create_hints_for_line(
       #lines,
-      aggregate,
+      hint_list,
       hint_mode,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -300,7 +296,7 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     for i = 1, #lines do
       create_hints_for_line(
         i,
-        aggregate,
+        hint_list,
         hint_mode,
         context,
         nil,
@@ -309,31 +305,27 @@ function M.create_hints_by_scanning_lines(hint_mode, opts)
     end
   end
 
-  return aggregate.hints, aggregate.hint_counts
+  return hint_list
 end
 
-function M.assign_character_targets(context, hints, opts)
-  -- mutate the hints object to assign a character target to each hint, based on the manhattan distance of the
-  -- hint relative to the cursor position
-  local flat_hints = {}
-  for i, line_hints in pairs(hints) do
-    for j, hint in pairs(line_hints.hints) do
-      flat_hints[#flat_hints+1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { hint.line, hint.col }) }
-    end
+function M.assign_character_targets(context, hint_list, opts)
+  local dist_comparison = nil
+
+  for _, hint in pairs(hint_list) do
+    hint.dist = manh_dist(context.cursor_pos, {hint.line, hint.col})
   end
 
-  local dist_comparison = nil
   if opts.reverse_distribution then
     dist_comparison = function (a, b) return a.dist > b.dist end
   else
     dist_comparison = function (a, b) return a.dist < b.dist end
   end
 
-  table.sort(flat_hints, dist_comparison)
+  table.sort(hint_list, dist_comparison)
 
-  local perms = perm.permutations(opts.keys, #flat_hints, opts)
-  for i, indirect in pairs(flat_hints) do
-    hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
+  local perms = perm.permutations(opts.keys, #hint_list, opts)
+  for i = 1, #hint_list do
+    hint_list[i].hint = tbl_to_str(perms[i])
   end
 end
 

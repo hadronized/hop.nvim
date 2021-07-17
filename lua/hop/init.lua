@@ -63,31 +63,36 @@ local function hint_with(hint_mode, opts)
 
   -- hint_counts allows us to display some error diagnostics to the user, if any, or even perform direct jump in the
   -- case of a single match
-  local hints, hint_counts = hint_mode:get_hints(
+  local hint_list = hint_mode:get_hint_list(
     opts
   )
 
   local h = nil
-  if hint_counts == 0 then
+  if #hint_list == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
     clear_namespace(0, hl_ns)
     return
-  elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
-    -- search the hint and jump to it
-    for _, line_hints in pairs(hints) do
-      if #line_hints.hints == 1 then
-        h = line_hints.hints[1]
-        clear_namespace(0, hl_ns)
-        vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
-        break
-      end
-    end
-
+  elseif opts.jump_on_sole_occurrence and #hint_list == 1 then
+    h = hint_list[1]
+    clear_namespace(0, hl_ns)
+    vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
     return
   end
 
-  -- mutate hints to add character targets
-  hint.assign_character_targets(context, hints, opts)
+  -- mutate hint_list to add character targets
+  hint.assign_character_targets(context, hint_list, opts)
+
+  -- organize hints by line
+  local hints = {}
+  for _, hint_item in pairs(hint_list) do
+    if hints[hint_item.line] == nil then
+      hints[hint_item.line] = {
+        hints = {}
+      }
+    end
+    local line_hints = hints[hint_item.line].hints
+    line_hints[#line_hints+1] = hint_item
+  end
 
   local hint_state = {
     hints = hints;
