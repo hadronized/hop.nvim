@@ -92,13 +92,26 @@ local function hint_with(hint_mode, opts)
 
   -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
   -- or even perform direct jump in the case of a single match
-  local win_lines = vim.api.nvim_buf_get_lines(0, top_line, bot_line + 1, false)
+  local win_lnums = {}
+  local win_lines = {}
+  local lnr = win_info.topline
+  while lnr <= win_info.botline do
+      table.insert(win_lnums, lnr)
+      table.insert(win_lines, vim.fn.getline(lnr))
+      local fold_end = vim.fn.foldclosedend(lnr)
+      if fold_end == -1 then
+          lnr = lnr + 1
+      else
+          lnr = fold_end + 1 -- skip fold lines
+      end
+  end
+
   local hints, hint_counts = hint.create_hints(
     hint_mode,
     win_width,
     cursor_pos,
     win_view.leftcol,
-    top_line,
+    win_lnums,
     win_lines,
     direction,
     opts

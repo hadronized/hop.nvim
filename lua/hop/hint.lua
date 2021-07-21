@@ -227,11 +227,11 @@ local function create_hints_for_line(
   win_width,
   cursor_pos,
   col_offset,
-  top_line,
+  win_lnums,
   direction_mode,
   lines
 )
-  local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, direction_mode)
+  local line_hints = M.mark_hints_line(hint_mode, win_lnums[i] - 1, lines[i], col_offset, win_width, direction_mode)
   hints[i] = line_hints
 
   hint_counts = hint_counts + #line_hints.hints
@@ -244,7 +244,7 @@ local function create_hints_for_line(
   return hint_counts
 end
 
-function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, direction, opts)
+function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, win_lnums, lines, direction, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -265,7 +265,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
       win_width,
       cursor_pos,
       col_offset,
-      top_line,
+      win_lnums,
       { cursor_col = cursor_pos[2], direction = direction },
       lines
     )
@@ -280,7 +280,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         win_width,
         cursor_pos,
         col_offset,
-        top_line,
+        win_lnums,
         nil,
         lines
       )
@@ -297,7 +297,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         win_width,
         cursor_pos,
         col_offset,
-        top_line,
+        win_lnums,
         nil,
         lines
       )
@@ -312,7 +312,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
       win_width,
       cursor_pos,
       col_offset,
-      top_line,
+      win_lnums,
       { cursor_col = cursor_pos[2], direction = direction },
       lines
     )
@@ -327,7 +327,7 @@ function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, 
         win_width,
         cursor_pos,
         col_offset,
-        top_line,
+        win_lnums,
         nil,
         lines
       )
