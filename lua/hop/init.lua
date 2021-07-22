@@ -94,8 +94,8 @@ local function hint_with(hint_mode, opts)
   -- or even perform direct jump in the case of a single match
   local win_lnums = {}
   local win_lines = {}
-  local lnr = win_info.topline
-  while lnr <= win_info.botline do
+  local lnr = top_line + 1
+  while lnr <= bot_line + 1 do
       table.insert(win_lnums, lnr)
       table.insert(win_lines, vim.fn.getline(lnr))
       local fold_end = vim.fn.foldclosedend(lnr)
