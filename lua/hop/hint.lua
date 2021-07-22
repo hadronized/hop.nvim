@@ -34,6 +34,7 @@ end
 
 -- Wrapper over M.by_searching to add support for case sensitivity.
 function M.by_case_searching(pat, plain_search, opts)
+  local ori = pat
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
@@ -44,6 +45,28 @@ function M.by_case_searching(pat, plain_search, opts)
     end
   elseif opts.case_insensitive then
     pat = '\\c' .. pat
+  end
+
+  -- append dict pattern for each char in `pat`
+  local dict_pat = ''
+  for i = 1, #ori do
+    local char = ori:sub(i, i)
+    local dict_char_pat = ''
+    -- checkout dict-char pattern from each dict
+    for _, v in ipairs(opts.dict_list) do
+      local val = require('hop.dict.' .. v)[char]
+      if val ~= nil then
+        dict_char_pat = dict_char_pat .. val
+      end
+    end
+    -- make sure that there are one dict support `char` at least
+    if dict_char_pat == '' then
+      break
+    end
+    dict_pat = '['.. dict_char_pat .. ']'
+  end
+  if dict_pat ~= '' then
+    pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
   end
 
   return {
