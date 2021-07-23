@@ -63,7 +63,7 @@ function M.by_case_searching(pat, plain_search, opts)
     if dict_char_pat == '' then
       break
     end
-    dict_pat = '['.. dict_char_pat .. ']'
+    dict_pat = dict_pat .. '['.. dict_char_pat .. ']'
   end
   if dict_pat ~= '' then
     pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
