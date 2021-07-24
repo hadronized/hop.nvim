@@ -98,7 +98,7 @@ M.by_line_start = {
 --
 -- Used to tag the beginning of each lines with hints.
 function M.by_line_start_skip_whitespace()
-  local pat = vim.regex("\\S")
+  local pat = vim.regex([[^\s*\zs\($\|\S\)]])
   return {
     oneshot = true,
     match = function(s)
@@ -170,7 +170,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
     local s = shifted_line:sub(col)
     local b, e = hint_mode.match(s)
 
-    if b == nil or (b == 0 and e == 0) then
+    if b == nil then
       break
     end
 
