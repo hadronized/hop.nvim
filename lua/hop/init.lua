@@ -17,42 +17,160 @@ local function eprintln(msg, teasing)
   end
 end
 
+-- Return the character index of col position in line
+-- col index is 1-based in cell, char index returned is 0-based
+local function str_col2char(line, col)
+  if col <= 0 then
+    return 0
+  end
+
+  local lw = vim.api.nvim_strwidth(line)
+  local lc = vim.fn.strchars(line)
+  -- No multi-byte character
+  if lw == lc then
+    return col
+  end
+  -- Line is shorter than col, all line should include
+  if lw <= col then
+    return lc
+  end
+
+  local lst
+  if lc >= col then
+    -- Line is very long
+    lst = vim.fn.split(vim.fn.strcharpart(line, 0, col), '\\zs')
+  else
+    lst = vim.fn.split(line, '\\zs')
+  end
+  local i = 0
+  local w = 0
+  repeat
+    i = i + 1
+    w = w + vim.api.nvim_strwidth(lst[i])
+  until (w >= col)
+  return i
+end
+
 -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
 local function clear_namespace(buf_handle, hl_ns)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  if vim.api.nvim_buf_is_valid(buf_handle) then
+    vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+    vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  end
+end
+
+-- Highlight everything marked from pat_mode
+-- - pat_mode if provided, highlight the pattern
+local function highlight_things_out(hl_ns, hint_states, pat_mode)
+  for _, hh in ipairs(hint_states) do
+    local hbuf = hh.hbuf
+    if not vim.api.nvim_buf_is_valid(hbuf) then
+      goto __NEXT_HH
+    end
+
+    for _, hs in ipairs(hh) do
+      -- Collect text list need to highlight
+      local hl_lst = {}
+      if hs.dir_mode ~= nil then
+        if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
+          -- Hightlight lines after cursor
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[1], hs.lines[1], hs.lcols[1], hs.dir_mode).hints)
+          for k = 2, #hs.lnums do
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], nil).hints)
+          end
+        elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+          -- Hightlight lines before cursor
+          for k = 1, #hs.lnums - 1 do
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], nil).hints)
+          end
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[#hs.lnums], hs.lines[#hs.lnums], hs.lcols[#hs.lnums], hs.dir_mode).hints)
+        end
+      else
+        -- Hightlight all lines
+        for k = 1, #hs.lnums do
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], hs.dir_mode).hints)
+        end
+      end
+
+      -- Highlight all matched text
+      for _, h in ipairs(hl_lst) do
+        vim.api.nvim_buf_set_extmark(hbuf, hl_ns, h.line, h.col - 1, {
+          end_line = h.line,
+          end_col = h.col_end - 1,
+          hl_group = 'HopPreview',
+          hl_eol = true,
+          priority = prio.HINT_PRIO
+        })
+      end
+    end
+
+    ::__NEXT_HH::
+  end
 end
 
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
--- - top_line is the top line in the buffer to start highlighting at
--- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
-  if direction_mode ~= nil then
-    if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
-      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, direction_mode.cursor_col, {
-        end_line = bottom_line + 1,
-        hl_group = 'HopUnmatched',
-        hl_eol = true,
-        priority = prio.GREY_PRIO
-      })
-    elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
-      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
-        end_line = bottom_line,
-        end_col = direction_mode.cursor_col,
-        hl_group = 'HopUnmatched',
-        hl_eol = true,
-        priority = prio.GREY_PRIO
-      })
+-- - hint_states in which the lnums in the buffer need to be highlighted
+local function grey_things_out(hl_ns, hint_states)
+  for _, hh in ipairs(hint_states) do
+    local hbuf = hh.hbuf
+    if not vim.api.nvim_buf_is_valid(hbuf) then
+      goto __NEXT_HH
     end
-  else
-    vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
-      end_line = bottom_line + 1,
-      hl_group = 'HopUnmatched',
-      hl_eol = true,
-      priority = prio.GREY_PRIO
-    })
+
+    clear_namespace(hbuf, hl_ns)
+    for _, hs in ipairs(hh) do
+      -- Highlight unmatched lines
+      if hs.dir_mode ~= nil then
+        if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
+          -- Hightlight lines after cursor
+          vim.api.nvim_buf_set_extmark(hbuf, hl_ns, hs.lnums[1], hs.dir_mode.cursor_col, {
+            end_line = hs.lnums[1] + 1,
+            hl_group = 'HopUnmatched',
+            hl_eol = true,
+            priority = prio.GREY_PRIO
+          })
+          for k = 2, #hs.lnums do
+            vim.api.nvim_buf_set_extmark(hbuf, hl_ns, hs.lnums[k], 0, {
+              end_line = hs.lnums[k] + 1,
+              hl_group = 'HopUnmatched',
+              hl_eol = true,
+              priority = prio.GREY_PRIO
+            })
+          end
+        elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+          -- Hightlight lines before cursor
+          for k = 1, #hs.lnums - 1 do
+            vim.api.nvim_buf_set_extmark(hbuf, hl_ns, hs.lnums[k], 0, {
+              end_line = hs.lnums[k] + 1,
+              hl_group = 'HopUnmatched',
+              hl_eol = true,
+              priority = prio.GREY_PRIO
+            })
+          end
+          vim.api.nvim_buf_set_extmark(hbuf, hl_ns, hs.lnums[#hs.lnums], 0, {
+            end_line = hs.lnums[#hs.lnums],
+            end_col = hs.dir_mode.cursor_col,
+            hl_group = 'HopUnmatched',
+            hl_eol = true,
+            priority = prio.GREY_PRIO
+          })
+        end
+      else
+        -- Hightlight all lines
+        for _, lnr in ipairs(hs.lnums) do
+          vim.api.nvim_buf_set_extmark(hbuf, hl_ns, lnr, 0, {
+            end_line = lnr + 1,
+            hl_group = 'HopUnmatched',
+            hl_eol = true,
+            priority = prio.GREY_PRIO
+          })
+        end
+      end
+    end
+
+    ::__NEXT_HH::
   end
 end
 
@@ -93,97 +211,266 @@ local function add_virt_cur(ns)
   end
 end
 
--- Hint the whole visible part of the buffer.
+-- Create all hint state for all multi-windows.
+-- Specification for `hint_states`:
+--{
+--   { -- hist state list that each contains one buffer
+--      hbuf = <buf-handle>,
+--      { -- windows list that display the same buffer
+--         hwin = <win-handle>,
+--         cursor_pos = { }, -- byte-based column
+--         dir_mode = { },
+--         lnums = { }, -- line number is 0-based
+--         lcols = { }, -- byte-based column offset of each line
+--         lines = { }, -- context to match hint of each line
+--      },
+--      ...
+--   },
+--   ...
+--}
 --
--- The 'hint_mode' argument is the mode to use to hint the buffer.
-local function hint_with(hint_mode, opts)
+-- Some confusing column:
+--   byte-based column: #line, strlen(), col(), getpos(), getcurpos(), nvim_win_get_cursor(), winsaveview().col
+--   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
+-- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
+-- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
+local function create_hint_states(opts)
+  local hss = { } -- hint_states
+
+  -- Current window as first item
+  local cur_hwin = vim.api.nvim_get_current_win()
+  local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
+  hss[#hss + 1] = {
+    hbuf = cur_hbuf,
+    {
+      hwin = cur_hwin,
+      cursor_pos = vim.api.nvim_win_get_cursor(cur_hwin),
+    }
+  }
+
+  -- Other windows of current tabpage
+  if opts.multi_windows then
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      local b = vim.api.nvim_win_get_buf(w)
+      if w ~= cur_hwin then
+
+        -- Check duplicated buffers
+        local hh = nil
+        for _, _hh in ipairs(hss) do
+          if b == _hh.hbuf then
+            hh = _hh
+            break
+          end
+        end
+
+        if hh then
+          hh[#hh + 1] = {
+            hwin = w,
+            cursor_pos = vim.api.nvim_win_get_cursor(w),
+          }
+        else
+          hss[#hss + 1] = {
+            hbuf = b,
+            {
+              hwin = w,
+              cursor_pos = vim.api.nvim_win_get_cursor(w),
+            }
+          }
+        end
+
+      end
+    end
+  end
+
+  return hss
+end
+
+-- Create hint lines from each windows to complete `hint_states` data
+local function create_hint_winlines(hs, opts)
   -- get a bunch of information about the window and the cursor
-  local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
+  local hwin = hs.hwin
+  local cursor_pos = hs.cursor_pos
+  vim.api.nvim_set_current_win(hwin)
+  vim.api.nvim_win_set_cursor(hwin, cursor_pos)
   local win_view = vim.fn.winsaveview()
-  local top_line = win_info.topline - 1
-  local bot_line = win_info.botline - 1
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  local win_info = vim.fn.getwininfo(hwin)[1]
+  local top_line = win_info.topline - 1 -- `getwininfo` use 1-based line number
+  local bot_line = win_info.botline - 1 -- `getwininfo` use 1-based line number
 
   -- adjust the visible part of the buffer to hint based on the direction
   local direction = opts.direction
   local direction_mode = nil
   if direction == hint.HintDirection.BEFORE_CURSOR then
-    bot_line = cursor_pos[1] - 1
+    bot_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   elseif direction == hint.HintDirection.AFTER_CURSOR then
-    top_line = cursor_pos[1] - 1
+    top_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
+  hs.dir_mode = direction_mode
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
   -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
   -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
-  local win_width = nil
-
   -- hack to get the left column offset in nowrap
+  local win_rightcol = nil
   if not vim.wo.wrap then
-    vim.api.nvim_win_set_cursor(0, { cursor_pos[1], 0 })
-    local left_col_offset = vim.fn.wincol() - 1
+    vim.api.nvim_win_set_cursor(hwin, { cursor_pos[1], 0 })
+    win_rightcol = win_view.leftcol + (win_info.width - (vim.fn.wincol() - 1))
     vim.fn.winrestview(win_view)
-    win_width = win_info.width - left_col_offset
   end
 
-  -- create the highlight groups; the highlight groups will allow us to clean everything at once when hop quits
+  -- get the buffer lines
+  hs.lnums = {}
+  hs.lcols = {}
+  hs.lines = {}
+  local lnr = top_line
+  while lnr <= bot_line do
+      table.insert(hs.lnums, lnr)
+      local fold_end = vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
+      if fold_end == -1 then
+        -- save line number and sliced line text to hint
+        local cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
+        local cur_cols = win_view.leftcol
+        if win_rightcol then
+          if win_view.leftcol >= vim.api.nvim_strwidth(cur_line) then
+            -- hint.HintLineException.EMPTY_LINE means empty line and only col=1 can jump to
+            cur_line = hint.HintLineException.EMPTY_LINE
+          else
+            local cidx0 = str_col2char(cur_line, win_view.leftcol)
+            local cidx1 = str_col2char(cur_line, win_rightcol)
+            cur_cols = #vim.fn.strcharpart(cur_line, 0, cidx0)
+            cur_line = vim.fn.strcharpart(cur_line, cidx0, cidx1 - cidx0)
+          end
+        end
+        table.insert(hs.lcols, cur_cols)
+        table.insert(hs.lines, cur_line)
+        lnr = lnr + 1
+      else
+        -- skip fold lines and only col=1 can jump to at fold lines
+        table.insert(hs.lcols, win_view.leftcol)
+        table.insert(hs.lines, hint.HintLineException.EMPTY_LINE)
+        lnr = fold_end
+      end
+  end
+end
+
+-- Crop duplicated hint lines area  from `hc` compared with `hp`
+local function crop_winlines(hc, hp)
+  if hc.lnums[#hc.lnums] < hp.lnums[1] or hc.lnums[1] > hp.lnums[#hp.lnums] then
+    return
+  end
+
+  local ci = 1         -- start line index of hc
+  local ce = #hc.lnums -- end line index of hc
+  local pi = 1         -- start line index of hp
+  local pe = #hp.lnums -- end line index of hp
+
+  while ci <= ce and pi <= pe do
+    if hc.lnums[ci] < hp.lnums[pi] then
+      ci = ci + 1
+    elseif hc.lnums[ci] > hp.lnums[pi] then
+      pi = pi + 1
+    elseif hc.lnums[ci] == hp.lnums[pi] then
+      if (hc.lines[ci] ~= hint.HintLineException.EMPTY_LINE) and
+         (hp.lines[pi] ~= hint.HintLineException.EMPTY_LINE) then
+        local cl = hc.lcols[ci]       -- left byte-based column of ci line
+        local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
+        local pl = hp.lcols[pi]       -- left byte-based column of pi line
+        local pr = pl + #hp.lines[pi] -- right byte-based column of pi line
+
+        if cl >= pr or cr <= pl then
+          -- Must keep this empty block to guarantee other elseif-condition correct
+          -- Must compare cl-pl prior than cl-pr at elseif-condition
+        elseif cl < pl and cr < pr then
+          -- p:    ******
+          -- c: ******
+          hc.lines[ci] = string.sub(hc.lines[ci], 1, pl)
+        elseif cl <= pl and cr >= pr then
+          -- p:    ******
+          -- c: ************
+          hp.lines[pi] = hc.lines[ci]
+          hp.lcols[pi] = hc.lcols[ci]
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
+        elseif cl < pr and cr > pr then
+          -- p: ******
+          -- c:    ******
+          hc.lines[ci] = string.sub(hc.lines[ci], pr)
+        elseif cl < pr and cr < pr then
+          -- p: ************
+          -- c:    ******
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
+        end
+      elseif (hc.lines[ci] == hint.HintLineException.EMPTY_LINE) and
+             (hp.lines[pi] == hint.HintLineException.EMPTY_LINE) then
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
+      end
+
+      ci = ci + 1
+      pi = pi + 1
+    end
+  end
+end
+
+-- Create hint lines from each buffer to complete `hint_states` data
+local function create_hint_buflines(hh, opts)
+  for _, hs in ipairs(hh) do
+    create_hint_winlines(hs, opts)
+  end
+
+  -- Remove inter-covered area of different windows with same buffer.
+  -- Iterate reverse to guarantee the first window has the max area.
+  for c = #hh, 1, -1 do
+    for p = 1, c-1 do
+      crop_winlines(hh[c], hh[p])
+    end
+  end
+end
+
+local function hint_with(hint_mode, opts, _hint_states)
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
   local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-
-  -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
-  -- or even perform direct jump in the case of a single match
-  local win_lines = vim.api.nvim_buf_get_lines(0, top_line, bot_line + 1, false)
-  local hints, hint_counts = hint.create_hints(
-    hint_mode,
-    win_width,
-    cursor_pos,
-    win_view.leftcol,
-    top_line,
-    win_lines,
-    direction,
-    opts
-  )
-
-  local h = nil
-  if hint_counts == 0 then
-    eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    clear_namespace(0, grey_cur_ns)
-    return
-  elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
-    -- search the hint and jump to it
-    for _, line_hints in pairs(hints) do
-      if #line_hints.hints == 1 then
-        h = line_hints.hints[1]
-        vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
-        break
-      end
+  local hint_states
+  if _hint_states then
+    hint_states = _hint_states
+  else
+    hint_states = create_hint_states(opts)
+    for _, hh in ipairs(hint_states) do
+      create_hint_buflines(hh, opts)
     end
+    vim.api.nvim_set_current_win(hint_states[1][1].hwin)
+  end
 
-    clear_namespace(0, grey_cur_ns)
+  -- Create call hints for all windows from hint_states
+  local hints = hint.create_hints(hint_mode, hint_states, opts)
+
+  if #hints == 0 then
+    eprintln(' -> there’s no such thing we can see…', opts.teasing)
+    return
+  elseif opts.jump_on_sole_occurrence and #hints == 1 and #hints[1].hints == 1 then
+    -- search the hint and jump to it
+    local line_hints = hints[1]
+    local h = line_hints.hints[1]
+    vim.api.nvim_set_current_win(line_hints.handle.w)
+    vim.api.nvim_win_set_cursor(line_hints.handle.w, { h.line + 1, h.col - 1})
     return
   end
 
-  local hint_state = {
-    hints = hints;
-    hl_ns = hl_ns;
-    grey_cur_ns = grey_cur_ns;
-    top_line = top_line;
-    bot_line = bot_line
-  }
-
-  -- grey everything out and add the virtual cursor
-  grey_things_out(0, grey_cur_ns, top_line, bot_line, direction_mode)
+  -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
+  -- when hop quits
+  grey_things_out(hl_ns, hint_states)
   add_virt_cur(grey_cur_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
+  -- jump to hints
+  local h = nil
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      M.quit(0, hint_state)
+      M.quit(hl_ns, hint_states)
+      M.quit(grey_cur_ns, hint_states)
       break
     end
     local not_special_key = true
@@ -201,11 +488,13 @@ local function hint_with(hint_mode, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, key, opts.teasing, hint_state)
+      h, hints = M.refine_hints(key, opts.teasing, hl_ns, grey_cur_ns, hint_states, hints)
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
-      M.quit(0, hint_state)
+      M.quit(hl_ns, hint_states)
+      M.quit(grey_cur_ns, hint_states)
+
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -216,42 +505,108 @@ local function hint_with(hint_mode, opts)
   end
 end
 
+local function get_pattern(prompt, maxchar, opts)
+  local hl_ns = nil
+  local hint_states = nil
+  -- Create hint states for pattern preview
+  if opts then
+    hl_ns = vim.api.nvim_create_namespace('')
+    hint_states = create_hint_states(opts)
+    for _, hh in ipairs(hint_states) do
+      create_hint_buflines(hh, opts)
+    end
+    vim.api.nvim_set_current_win(hint_states[1][1].hwin)
+  end
+
+  local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+  local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
+  local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
+  local pat_keys = {}
+  local pat = ''
+
+  while (true) do
+    pat = vim.fn.join(pat_keys, '')
+    if opts then
+      -- Preview the pattern in highlight
+      grey_things_out(hl_ns, hint_states)
+      if #pat > 0 then
+        highlight_things_out(hl_ns, hint_states, hint.by_case_searching(pat, false, opts))
+      end
+    end
+    vim.api.nvim_echo({}, false, {})
+    vim.cmd('redraw')
+    vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
+
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then break end -- Interrupted by <C-c>
+
+    if type(key) == 'number' then
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      -- It's a special key in string
+    end
+
+    if key == K_Esc then
+      pat = nil
+      break
+    elseif key == K_CR then
+      break
+    elseif key == K_BS then
+      pat_keys[#pat_keys] = nil
+    else
+      pat_keys[#pat_keys + 1] = key
+    end
+
+    if maxchar and #pat_keys >= maxchar then
+      pat = vim.fn.join(pat_keys, '')
+      break
+    end
+  end
+
+  if opts then
+    M.quit(hl_ns, hint_states)
+  end
+  vim.api.nvim_echo({}, false, {})
+  vim.cmd('redraw')
+  return pat, hint_states
+end
+
 -- Refine hints in the given buffer.
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing, hint_state)
-  local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
+function M.refine_hints(key, teasing, hl_ns, grey_cur_ns, hint_states, hints)
+  local h, update_hints, update_count = hint.reduce_hints_lines(hints, key)
 
   if h == nil then
     if update_count == 0 then
       eprintln('no remaining sequence starts with ' .. key, teasing)
-      return
+      update_hints = hints
+    else
+      grey_things_out(hl_ns, hint_states)
+      hint.set_hint_extmarks(hl_ns, update_hints)
+      vim.cmd('redraw')
     end
-
-    hint_state.hints = hints
-
-    clear_namespace(buf_handle, hint_state.hl_ns)
-    hint.set_hint_extmarks(hint_state.hl_ns, hints)
-    vim.cmd('redraw')
   else
-    M.quit(buf_handle, hint_state)
+    M.quit(hl_ns, hint_states)
+    M.quit(grey_cur_ns, hint_states)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
-    return h
+    vim.api.nvim_set_current_win(h.handle.w)
+    vim.api.nvim_win_set_cursor(h.handle.w, { h.hints[1].line + 1, h.hints[1].col - 1})
   end
+
+  return h, update_hints
 end
 
 -- Quit Hop and delete its resources.
---
--- This works only if the current buffer is Hop one.
-function M.quit(buf_handle, hint_state)
-  clear_namespace(buf_handle, hint_state.grey_cur_ns)
-  clear_namespace(buf_handle, hint_state.hl_ns)
+function M.quit(hl_ns, hint_states)
+  for _, hh in ipairs(hint_states) do
+    clear_namespace(hh.hbuf, hl_ns)
+  end
 end
 
 function M.hint_words(opts)
@@ -260,64 +615,43 @@ end
 
 function M.hint_patterns(opts, pattern)
   opts = get_command_opts(opts)
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  local pat, ok
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
+  local pat
+  local hss
   if pattern then
     pat = pattern
   else
-    add_virt_cur(cur_ns)
     vim.cmd('redraw')
     vim.fn.inputsave()
-    ok, pat = pcall(vim.fn.input, 'Search: ')
+    pat, hss = get_pattern('Hop pattern: ', nil, opts)
     vim.fn.inputrestore()
-    if not ok then
-      clear_namespace(0, cur_ns)
-      return
-    end
+    if not pat then return end
   end
 
   if #pat == 0 then
     eprintln('-> empty pattern', opts.teasing)
-    clear_namespace(0, cur_ns)
     return
   end
 
-  hint_with(hint.by_case_searching(pat, false, opts), opts)
+  hint_with(hint.by_case_searching(pat, false, opts), opts, hss)
 end
 
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns)
-  vim.cmd('redraw')
-  local ok, c = pcall(vim.fn.getchar)
-  if not ok then
-    clear_namespace(0, cur_ns)
-    return
+  local c = get_pattern('Hop 1 char: ', 1)
+  if c then
+    hint_with(hint.by_case_searching(c, true, opts), opts)
   end
-  hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)
   opts = get_command_opts(opts)
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns)
-  vim.cmd('redraw')
-  local ok, a = pcall(vim.fn.getchar)
-  if not ok then
-    clear_namespace(0, cur_ns)
-    return
+  local c = get_pattern('Hop 2 char: ', 2)
+  if c then
+    hint_with(hint.by_case_searching(c, true, opts), opts)
   end
-  local ok2, b = pcall(vim.fn.getchar)
-  if not ok2 then
-    clear_namespace(0, cur_ns)
-    return
-  end
-  local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
-  hint_with(hint.by_case_searching(pat, true, opts), opts)
 end
 
 function M.hint_lines(opts)
@@ -325,7 +659,7 @@ function M.hint_lines(opts)
 end
 
 function M.hint_lines_skip_whitespace(opts)
-  hint_with(hint.by_line_start_skip_whitespace(), get_command_opts(opts))
+  hint_with(hint.by_line_start_skip_whitespace, get_command_opts(opts))
 end
 
 -- Setup user settings.

@@ -9,5 +9,6 @@ M.teasing = true
 M.jump_on_sole_occurrence = true
 M.case_insensitive = true
 M.create_hl_autocmd = true
+M.multi_windows = false
 
 return M
