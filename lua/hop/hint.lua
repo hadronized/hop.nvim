@@ -108,9 +108,9 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   local hints = {}
   local shifted_line = line
 
-  -- if no text at line, we can only jump to col=1 when col_offset=0
+  -- if no text at line, we can only jump to col=1 when col_offset=0 and hint mode can match empty text
   if shifted_line == -1 then
-    if col_offset == 0 then
+    if col_offset == 0 and hint_mode.match('') ~= nil then
       hints[#hints + 1] = {
         line = line_nr;
         col = 1;
