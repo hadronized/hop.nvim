@@ -20,14 +20,15 @@ end
 -- Regex hint mode.
 --
 -- Used to hint result of a search.
-function M.by_searching(pat, plain_search)
+function M.by_searching(pat, plain_search, oneshot)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
+  local re = vim.regex(pat)
   return {
-    oneshot = false,
+    oneshot = oneshot,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return re:match_str(s)
     end
   }
 end
@@ -64,12 +65,7 @@ M.by_word_start = M.by_searching('\\k\\+')
 -- Line hint mode.
 --
 -- Used to tag the beginning of each lines with hints.
-M.by_line_start = {
-  oneshot = true,
-  match = function(_)
-    return 0, 1, false
-  end
-}
+M.by_line_start = M.by_searching('^', false, true)
 
 -- Line hint mode skipping leading whitespace.
 --
@@ -120,6 +116,20 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   local hints = {}
   local shifted_line = line
 
+  -- if no text at line, we can only jump to col=1 when col_offset=0
+  if shifted_line == -1 then
+    if col_offset == 0 then
+      hints[#hints + 1] = {
+        line = line_nr;
+        col = 1;
+      }
+    end
+    return {
+      hints = hints;
+      length = 0;
+    }
+  end
+
   -- modify the shifted line to take the direction mode into account, if any
   local col_bias = 0
   if direction_mode ~= nil then
@@ -139,7 +149,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
     local s = shifted_line:sub(col)
     local b, e = hint_mode.match(s)
 
-    if b == nil or (b == 0 and e == 0) then
+    if b == nil then
       break
     end
 

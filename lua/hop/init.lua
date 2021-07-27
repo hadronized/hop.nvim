@@ -160,11 +160,17 @@ local function create_hint_lines(hs, opts)
       local fold_end = vim.fn.foldclosedend(lnr)
       if fold_end == -1 then
         -- save line number and sliced line text to hint
-        table.insert(hs.lines, vim.fn.getline(lnr):sub(win_view.leftcol + 1, win_rightcol))
+        local cur_line = vim.fn.getline(lnr)
+        if #cur_line >= win_view.leftcol + 1 then
+          table.insert(hs.lines, cur_line:sub(win_view.leftcol + 1, win_rightcol))
+        else
+          -- -1 means no text and only col=1 can jump to
+          table.insert(hs.lines, -1)
+        end
         lnr = lnr + 1
       else
-        -- skip fold lines
-        table.insert(hs.lines, '')
+        -- skip fold lines and only col=1 can jump to at fold lines
+        table.insert(hs.lines, -1)
         lnr = fold_end + 1
       end
   end
