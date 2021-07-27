@@ -160,14 +160,15 @@ local function create_hint_lines(hs, opts)
   hs.lines = {}
   local lnr = top_line + 1
   while lnr <= bot_line + 1 do
+      table.insert(hs.lnums, lnr)
       local fold_end = vim.fn.foldclosedend(lnr)
       if fold_end == -1 then
         -- save line number and sliced line text to hint
-        table.insert(hs.lnums, lnr)
         table.insert(hs.lines, vim.fn.getline(lnr):sub(win_leftcol + 1, win_width))
         lnr = lnr + 1
       else
         -- skip fold lines
+        table.insert(hs.lines, '')
         lnr = fold_end + 1
       end
   end
