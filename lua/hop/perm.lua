@@ -2,13 +2,12 @@ local M = {}
 
 -- Get the first key of a key set.
 local function first_key(keys)
-  local n = keys:sub(1, vim.fn.byteidx(keys, 1))
   return keys:sub(1, vim.fn.byteidx(keys, 1))
 end
 
 -- Get the next key of the input key in the input key set, if any, or return nil.
 local function next_key(keys, key)
-  local i, e = keys:find(key)
+  local _, e = keys:find(key)
 
   if e == #keys then
     return nil
