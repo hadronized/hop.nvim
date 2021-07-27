@@ -116,10 +116,13 @@ end
 local function create_hint_lines(hs, opts)
   -- get a bunch of information about the window and the cursor
   local hwin = hs.handle.w
+  local cursor_pos = hs.cursor_pos
+  vim.api.nvim_set_current_win(hwin)
+  vim.api.nvim_win_set_cursor(hwin, cursor_pos)
+  local win_view = vim.fn.winsaveview()
   local win_info = vim.fn.getwininfo(hwin)[1]
   local top_line = win_info.topline - 1
   local bot_line = win_info.botline - 1
-  local cursor_pos = hs.cursor_pos
 
   -- adjust the visible part of the buffer to hint based on the direction
   local direction = opts.direction
@@ -134,26 +137,19 @@ local function create_hint_lines(hs, opts)
   hs.top_line = top_line
   hs.bot_line = bot_line
   hs.dir_mode = direction_mode
+  hs.col_offset = win_view.leftcol
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
   -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
   -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
   -- hack to get the left column offset in nowrap
-  local win_width = nil
-  local win_leftcol = 0
+  local win_rightcol = nil
   if not vim.wo.wrap then
-    vim.api.nvim_set_current_win(hwin)
-    vim.api.nvim_win_set_cursor(hwin, cursor_pos)
-    local win_view = vim.fn.winsaveview()
     vim.api.nvim_win_set_cursor(hwin, { cursor_pos[1], 0 })
-    local left_col_offset = vim.fn.wincol() - 1
+    win_rightcol = (win_view.leftcol + 1) + (win_info.width - (vim.fn.wincol() - 1))
     vim.fn.winrestview(win_view)
-
-    win_width = win_info.width - left_col_offset
-    win_leftcol = win_view.leftcol
   end
-  hs.col_offset = win_leftcol
 
   -- get the buffer lines
   hs.lnums = {}
@@ -164,7 +160,7 @@ local function create_hint_lines(hs, opts)
       local fold_end = vim.fn.foldclosedend(lnr)
       if fold_end == -1 then
         -- save line number and sliced line text to hint
-        table.insert(hs.lines, vim.fn.getline(lnr):sub(win_leftcol + 1, win_width))
+        table.insert(hs.lines, vim.fn.getline(lnr):sub(win_view.leftcol + 1, win_rightcol))
         lnr = lnr + 1
       else
         -- skip fold lines
