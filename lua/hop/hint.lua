@@ -70,15 +70,7 @@ M.by_line_start = M.by_searching('^', false, true)
 -- Line hint mode skipping leading whitespace.
 --
 -- Used to tag the beginning of each lines with hints.
-function M.by_line_start_skip_whitespace()
-  pat = vim.regex("\\S")
-  return {
-    oneshot = true,
-    match = function(s)
-      return pat:match_str(s)
-    end
-  }
-end
+M.by_line_start_skip_whitespace = M.by_searching([[^\s*\zs\($\|\S\)]], false, true)
 
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
@@ -320,27 +312,29 @@ end
 
 function M.set_hint_extmarks(hl_ns, hints)
   for _, line_hints in pairs(hints) do
-    for _, h in pairs(line_hints.hints) do
-      if vim.fn.strdisplaywidth(h.hint) == 1 then
-        vim.api.nvim_buf_set_extmark(
-          line_hints.handle.b,
-          hl_ns,
-          h.line, h.col - 1,
-          {
-            virt_text = { { h.hint, "HopNextKey" } };
-            virt_text_pos = 'overlay'
-          })
-      else
-        -- get the byte index of the second hint so that we can slice it correctly
-        local snd_idx = vim.fn.byteidx(h.hint, 1)
-        vim.api.nvim_buf_set_extmark(
-          line_hints.handle.b,
-          hl_ns,
-          h.line, h.col - 1,
-          {
-            virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
-            virt_text_pos = 'overlay'
-          })
+    if vim.api.nvim_buf_is_valid(line_hints.handle.b) then
+      for _, h in pairs(line_hints.hints) do
+        if vim.fn.strdisplaywidth(h.hint) == 1 then
+          vim.api.nvim_buf_set_extmark(
+            line_hints.handle.b,
+            hl_ns,
+            h.line, h.col - 1,
+            {
+              virt_text = { { h.hint, "HopNextKey" } };
+              virt_text_pos = 'overlay'
+            })
+        else
+          -- get the byte index of the second hint so that we can slice it correctly
+          local snd_idx = vim.fn.byteidx(h.hint, 1)
+          vim.api.nvim_buf_set_extmark(
+            line_hints.handle.b,
+            hl_ns,
+            h.line, h.col - 1,
+            {
+              virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
+              virt_text_pos = 'overlay'
+            })
+        end
       end
     end
   end

@@ -18,8 +18,10 @@ end
 
 -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
 local function clear_namespace(buf_handle, hl_ns)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  if vim.api.nvim_buf_is_valid(buf_handle) then
+    vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+    vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+  end
 end
 
 -- Grey everything out to prepare the Hop session.
@@ -29,23 +31,25 @@ end
 --   at and the bot_line is the bottom line in the buffer to stop highlighting at
 local function grey_things_out(hl_ns, hint_states)
   for _, hs in ipairs(hint_states) do
-    clear_namespace(hs.handle.b, hl_ns)
+    if vim.api.nvim_buf_is_valid(hs.handle.b) then
+      clear_namespace(hs.handle.b, hl_ns)
 
-    if hs.dir_mode ~= nil then
-      if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
-        vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.top_line, hs.dir_mode.cursor_col, -1)
-        for line_i = hs.top_line + 1, hs.bot_line do
+      if hs.dir_mode ~= nil then
+        if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
+          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.top_line, hs.dir_mode.cursor_col, -1)
+          for line_i = hs.top_line + 1, hs.bot_line do
+            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
+          end
+        elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+          for line_i = hs.top_line, hs.bot_line - 1 do
+            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
+          end
+          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.bot_line, 0, hs.dir_mode.cursor_col)
+        end
+      else
+        for line_i = hs.top_line, hs.bot_line do
           vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
         end
-      elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
-        for line_i = hs.top_line, hs.bot_line - 1 do
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
-        end
-        vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.bot_line, 0, hs.dir_mode.cursor_col)
-      end
-    else
-      for line_i = hs.top_line, hs.bot_line do
-        vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
       end
     end
   end
@@ -329,7 +333,7 @@ function M.hint_lines(opts)
 end
 
 function M.hint_lines_skip_whitespace(opts)
-  hint_with(hint.by_line_start_skip_whitespace(), get_command_opts(opts))
+  hint_with(hint.by_line_start_skip_whitespace, get_command_opts(opts))
 end
 
 -- Setup user settings.
