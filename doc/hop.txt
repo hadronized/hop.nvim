@@ -589,6 +589,18 @@ below.
     Defaults:~
         `direction = nil`
 
+`dict_list`
+    What dicts to use when hint. If `dict_list` is not empty, the hint char
+    or pattern will act as key of dict, and get the dict pattern to search.
+
+    Currently supported dict:~
+        'zh_sc' : Simplified Chinese
+        'zh_tc' : Traditional Chinese
+
+    Defaults:~
+        `dict_list = { }`
+
+
 ==============================================================================
 HIGHLIGHTS                                                      *hop-highlights*
 
