@@ -87,13 +87,14 @@ You can try those commands by typing them in your command line. By default,
 they will use the default options for the configuration of Hop. If you want to
 customize how those commands work, have a look at |hop.setup|.
 
-Some of the commands have a suffix, such as `BC` and `AC`. Those are
+Some of the commands have a suffix, such as `BC` `AC` and `MW`. Those are
 variations of the commands without the suffix, applying to the visible part of
-the buffer before and after the cursor, respectively.
+the buffer before, after the cursor and multiple windows, respectively.
 
 `:HopWord`                                                              *:HopWord*
 `:HopWordBC`                                                          *:HopWordBC*
 `:HopWordAC`                                                          *:HopWordAC*
+`:HopWordMW`                                                          *:HopWordMW*
     Annotate all |word|s in the current window with key sequences. Typing a
     first  key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
@@ -104,6 +105,7 @@ the buffer before and after the cursor, respectively.
 `:HopPattern`                                                        *:HopPattern*
 `:HopPatternBC`                                                    *:HopPatternBC*
 `:HopPatternAC`                                                    *:HopPatternAC*
+`:HopPatternMW`                                                    *:HopPatternMW*
     Ask the user for a pattern and hint the document with it.
 
     This is akin to calling the |hop.hint_patterns| Lua function
@@ -112,6 +114,7 @@ the buffer before and after the cursor, respectively.
 `:HopChar1`                                                            *:HopChar1*
 `:HopChar1BC`                                                        *:HopChar1BC*
 `:HopChar1AC`                                                        *:HopChar1AC*
+`:HopChar1MW`                                                        *:HopChar1MW*
     Type a key and immediately hint the document for this key.
 
     This is akin to calling the |hop.hint_char1| Lua Function
@@ -119,6 +122,7 @@ the buffer before and after the cursor, respectively.
 `:HopChar2`                                                            *:HopChar2*
 `:HopChar2BC`                                                        *:HopChar2BC*
 `:HopChar2AC`                                                        *:HopChar2AC*
+`:HopChar2MW`                                                        *:HopChar2MW*
     Type two keys and immediately hint the document for this bigram.
 
     This is akin to calling the |hop.hint_char2| Lua Function
@@ -126,6 +130,7 @@ the buffer before and after the cursor, respectively.
 `:HopLine`                                                              *:HopLine*
 `:HopLineBC`                                                          *:HopLineBC*
 `:HopLineAC`                                                          *:HopLineAC*
+`:HopLineMW`                                                          *:HopLineMW*
     Jump to the beginning of the line of your choice inside your buffer.
 
     This is akin to calling the |hop.hint_lines| Lua function.
@@ -133,6 +138,7 @@ the buffer before and after the cursor, respectively.
 `:HopLineStart`                                                    *:HopLineStart*
 `:HopLineStartBC`                                                *:HopLineStartBC*
 `:HopLineStartAC`                                                *:HopLineStartAC*
+`:HopLineStartMW`                                                *:HopLineStartMW*
     Like `HopLine` but skips leading whitespace on every line.
     Blank lines are skipped over.
 
@@ -588,6 +594,12 @@ below.
 
     Defaults:~
         `direction = nil`
+
+`multi_windows`                                                   *multi_windows*
+    Enable hop in multiple windows or not.
+
+    Defaults:~
+        `multi_windows = false`
 
 `dict_list`
     What dicts to use when hint. If `dict_list` is not empty, the hint char
