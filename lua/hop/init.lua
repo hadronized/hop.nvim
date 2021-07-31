@@ -27,30 +27,35 @@ end
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
--- - hint_states in which the top_line in the buffer to start highlighting
---   at and the bot_line is the bottom line in the buffer to stop highlighting at
+-- - hint_states in which the lnums in the buffer need to be highlighted
+-- - pat_mode if provided, highlight the pattern
 local function grey_things_out(hl_ns, hint_states)
   for _, hs in ipairs(hint_states) do
     if vim.api.nvim_buf_is_valid(hs.handle.b) then
       clear_namespace(hs.handle.b, hl_ns)
 
+      -- Highlight unmatched lines
       if hs.dir_mode ~= nil then
         if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.top_line, hs.dir_mode.cursor_col, -1)
-          for line_i = hs.top_line + 1, hs.bot_line do
-            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
+          -- Hightlight lines after cursor
+          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[1], hs.dir_mode.cursor_col, -1)
+          for k = 2, #hs.lnums do
+            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
           end
         elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
-          for line_i = hs.top_line, hs.bot_line - 1 do
-            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
+          -- Hightlight lines before cursor
+          for k = 1, #hs.lnums - 1 do
+            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
           end
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.bot_line, 0, hs.dir_mode.cursor_col)
+          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[#hs.lnums], 0, hs.dir_mode.cursor_col)
         end
       else
-        for line_i = hs.top_line, hs.bot_line do
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', line_i, 0, -1)
+        -- Hightlight all lines
+        for k, lnr in ipairs(hs.lnums) do
+          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', lnr, 0, -1)
         end
       end
+
     end
   end
 end
@@ -61,11 +66,9 @@ end
 --   {
 --      handle = { w = <win-handle>, b = <buf-handle> },
 --      cursor_pos = { },
---      top_line = 0,
---      bot_line = 0,
 --      dir_mode = { },
 --      col_offset = 0,
---      lnums = { },
+--      lnums = { }, -- line number is 0-based
 --      lines = { },
 --   },
 --   ...
@@ -125,21 +128,19 @@ local function create_hint_lines(hs, opts)
   vim.api.nvim_win_set_cursor(hwin, cursor_pos)
   local win_view = vim.fn.winsaveview()
   local win_info = vim.fn.getwininfo(hwin)[1]
-  local top_line = win_info.topline - 1
-  local bot_line = win_info.botline - 1
+  local top_line = win_info.topline - 1 -- `getwininfo` use 1-based line number
+  local bot_line = win_info.botline - 1 -- `getwininfo` use 1-based line number
 
   -- adjust the visible part of the buffer to hint based on the direction
   local direction = opts.direction
   local direction_mode = nil
   if direction == hint.HintDirection.BEFORE_CURSOR then
-    bot_line = cursor_pos[1] - 1
+    bot_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   elseif direction == hint.HintDirection.AFTER_CURSOR then
-    top_line = cursor_pos[1] - 1
+    top_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
-  hs.top_line = top_line
-  hs.bot_line = bot_line
   hs.dir_mode = direction_mode
   hs.col_offset = win_view.leftcol
 
@@ -158,13 +159,13 @@ local function create_hint_lines(hs, opts)
   -- get the buffer lines
   hs.lnums = {}
   hs.lines = {}
-  local lnr = top_line + 1
-  while lnr <= bot_line + 1 do
+  local lnr = top_line
+  while lnr <= bot_line do
       table.insert(hs.lnums, lnr)
-      local fold_end = vim.fn.foldclosedend(lnr)
+      local fold_end = vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
       if fold_end == -1 then
         -- save line number and sliced line text to hint
-        local cur_line = vim.fn.getline(lnr)
+        local cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
         if #cur_line >= win_view.leftcol + 1 then
           table.insert(hs.lines, cur_line:sub(win_view.leftcol + 1, win_rightcol))
         else

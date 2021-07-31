@@ -247,7 +247,7 @@ end
 --   length = {},
 -- }
 local function create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, direction_mode, window_dist)
-  local line_hints = M.mark_hints_line(hint_mode, hs.lnums[i] - 1, hs.lines[i], hs.col_offset, direction_mode)
+  local line_hints = M.mark_hints_line(hint_mode, hs.lnums[i], hs.lines[i], hs.col_offset, direction_mode)
 
   if #line_hints.hints > 0 then
     -- Store window and buffer handle for each line
