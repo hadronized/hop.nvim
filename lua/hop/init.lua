@@ -24,6 +24,41 @@ local function clear_namespace(buf_handle, hl_ns)
   end
 end
 
+local function highlight_things_out(hl_ns, hint_states, pat_mode)
+  for _, hs in ipairs(hint_states) do
+    if vim.api.nvim_buf_is_valid(hs.handle.b) then
+
+      -- Collect text list need to highlight
+      local hl_lst = {}
+      if hs.dir_mode ~= nil then
+        if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
+          -- Hightlight lines after cursor
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[1], hs.lines[1], hs.col_offset, hs.dir_mode).hints)
+          for k = 2, #hs.lnums do
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, nil).hints)
+          end
+        elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
+          -- Hightlight lines before cursor
+          for k = 1, #hs.lnums - 1 do
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, nil).hints)
+          end
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[#hs.lnums], hs.lines[#hs.lnums], hs.col_offset, hs.dir_mode).hints)
+        end
+      else
+        -- Hightlight all lines
+        for k = 1, #hs.lnums do
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, hs.dir_mode).hints)
+        end
+      end
+
+      -- Highlight all matched text
+      for _, h in ipairs(hl_lst) do
+        vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopPreview', h.line, h.col - 1, h.col_end - 1)
+      end
+    end
+  end
+end
+
 -- Grey everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
@@ -51,7 +86,7 @@ local function grey_things_out(hl_ns, hint_states)
         end
       else
         -- Hightlight all lines
-        for k, lnr in ipairs(hs.lnums) do
+        for _, lnr in ipairs(hs.lnums) do
           vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', lnr, 0, -1)
         end
       end
@@ -181,13 +216,18 @@ local function create_hint_lines(hs, opts)
   end
 end
 
-local function hint_with(hint_mode, opts)
+local function hint_with(hint_mode, opts, _hint_states)
   local hl_ns = vim.api.nvim_create_namespace('')
-  local hint_states = create_hint_states(opts)
-  for _, hs in ipairs(hint_states) do
-    create_hint_lines(hs, opts)
+  local hint_states
+  if _hint_states then
+    hint_states = _hint_states
+  else
+    hint_states = create_hint_states(opts)
+    for _, hs in ipairs(hint_states) do
+      create_hint_lines(hs, opts)
+    end
+    vim.api.nvim_set_current_win(hint_states[1].handle.w)
   end
-  vim.api.nvim_set_current_win(hint_states[1].handle.w)
 
   -- Create call hints for all windows from hint_states
   local hints = hint.create_hints(hint_mode, hint_states, opts)
@@ -249,12 +289,31 @@ local function hint_with(hint_mode, opts)
   end
 end
 
-local function get_pattern(prompt, maxchar)
+local function get_pattern(prompt, maxchar, opts)
+  local hl_ns = nil
+  local hint_states = nil
+  -- Create hint states for pattern preview
+  if opts then
+    hl_ns = vim.api.nvim_create_namespace('')
+    hint_states = create_hint_states(opts)
+    for _, hs in ipairs(hint_states) do
+      create_hint_lines(hs, opts)
+    end
+    vim.api.nvim_set_current_win(hint_states[1].handle.w)
+  end
+
   local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
   local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
   local pat = ''
   while (true) do
+    if opts then
+      -- Preview the pattern in highlight
+      grey_things_out(hl_ns, hint_states)
+      if #pat > 0 then
+        highlight_things_out(hl_ns, hint_states, hint.by_case_searching(pat, false, opts))
+      end
+    end
     vim.api.nvim_echo({}, false, {})
     vim.cmd('redraw')
     vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
@@ -283,9 +342,12 @@ local function get_pattern(prompt, maxchar)
       break
     end
   end
+  if opts then
+    M.quit(hl_ns, hint_states)
+  end
   vim.api.nvim_echo({}, false, {})
   vim.cmd('redraw')
-  return pat
+  return pat, hint_states
 end
 
 -- Refine hints in the given buffer.
@@ -334,12 +396,13 @@ function M.hint_patterns(opts, pattern)
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
-  local pat = ''
+  local pat
+  local hss
   if pattern then
     pat = pattern
   else
     vim.fn.inputsave()
-    pat = get_pattern('Hop pattern: ')
+    pat, hss = get_pattern('Hop pattern: ', nil, opts)
     vim.fn.inputrestore()
     if not pat then return end
   end
@@ -349,7 +412,7 @@ function M.hint_patterns(opts, pattern)
     return
   end
 
-  hint_with(hint.by_case_searching(pat, false, opts), opts)
+  hint_with(hint.by_case_searching(pat, false, opts), opts, hss)
 end
 
 function M.hint_char1(opts)

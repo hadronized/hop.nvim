@@ -14,6 +14,9 @@ function M.insert_highlights()
 
   -- Highlight used for the unmatched part of the buffer.
   vim.api.nvim_command('highlight default HopUnmatched guifg=#666666 ctermfg=242')
+
+  -- Highlight used for preview pattern
+  vim.api.nvim_command('highlight default HopPreview  guifg=#b8bb26 gui=bold ctermfg=142 cterm=bold')
 end
 
 function M.create_autocmd()

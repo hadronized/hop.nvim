@@ -138,6 +138,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
       hints[#hints + 1] = {
         line = line_nr;
         col = 1;
+        col_end = 0,
       }
     end
     return {
@@ -170,7 +171,8 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
 
     hints[#hints + 1] = {
       line = line_nr;
-      col = math.max(1, col_bias + col + b);
+      col = col_bias + col + b;
+      col_end = col_bias + col + e;
     }
 
     if hint_mode.oneshot then
