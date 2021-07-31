@@ -147,16 +147,15 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   end
 
   -- modify the shifted line to take the direction mode into account, if any
-  local col_bias = 0
+  local col_bias = col_offset
   if direction_mode ~= nil then
-    local col = vim.fn.byteidx(line, direction_mode.cursor_col + 1)
     if direction_mode.direction == M.HintDirection.AFTER_CURSOR then
       -- we want to change the start offset so that we ignore everything before the cursor
-      shifted_line = shifted_line:sub(col - col_offset)
-      col_bias = col - 1
+      shifted_line = shifted_line:sub(direction_mode.cursor_col - col_offset)
+      col_bias = direction_mode.cursor_col - 1
     elseif direction_mode.direction == M.HintDirection.BEFORE_CURSOR then
       -- we want to change the end
-      shifted_line = shifted_line:sub(1, col - col_offset)
+      shifted_line = shifted_line:sub(1, direction_mode.cursor_col - col_offset + 1)
     end
   end
 
@@ -169,10 +168,9 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
       break
     end
 
-    local colb = col + b
     hints[#hints + 1] = {
       line = line_nr;
-      col = math.max(1, colb + col_offset + col_bias);
+      col = math.max(1, col_bias + col + b);
     }
 
     if hint_mode.oneshot then
