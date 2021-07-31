@@ -281,10 +281,7 @@ function M.create_hints(hint_mode, hint_states, opts)
     -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
     if opts.direction == M.HintDirection.AFTER_CURSOR then
       -- the first line is to be checked first
-      create_hints_for_line(1, hints, indirect_hints, hint_mode, hs,
-        { cursor_col = hs.cursor_pos[2], direction = opts.direction },
-        window_dist
-      )
+      create_hints_for_line(1, hints, indirect_hints, hint_mode, hs, hs.dir_mode, window_dist)
       for i = 2, #hs.lines do
         create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
       end
@@ -293,10 +290,7 @@ function M.create_hints(hint_mode, hint_states, opts)
       for i = 1, #hs.lines - 1 do
         create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
       end
-      create_hints_for_line(#hs.lines, hints, indirect_hints, hint_mode, hs,
-        { cursor_col = hs.cursor_pos[2], direction = opts.direction },
-        window_dist
-      )
+      create_hints_for_line(#hs.lines, hints, indirect_hints, hint_mode, hs, hs.dir_mode, window_dist)
     else
       for i = 1, #hs.lines do
         create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
