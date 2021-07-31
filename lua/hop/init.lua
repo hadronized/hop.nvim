@@ -248,6 +248,45 @@ local function hint_with(hint_mode, opts)
   end
 end
 
+local function get_pattern(prompt, maxchar)
+  local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+  local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
+  local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
+  local pat = ''
+  while (true) do
+    vim.api.nvim_echo({}, false, {})
+    vim.cmd('redraw')
+    vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
+
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then break end -- Interrupted by <C-c>
+
+    if type(key) == 'number' then
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      -- It's a special key in string
+    end
+
+    if key == K_Esc then
+      pat = nil
+      break
+    elseif key == K_CR then
+      break
+    elseif key == K_BS then
+      pat = pat:sub(1, #pat - 1)
+    else
+      pat = pat .. key
+    end
+
+    if maxchar and #pat >= maxchar then
+      break
+    end
+  end
+  vim.api.nvim_echo({}, false, {})
+  vim.cmd('redraw')
+  return pat
+end
+
 -- Refine hints in the given buffer.
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
@@ -299,10 +338,9 @@ function M.hint_patterns(opts, pattern)
     pat = pattern
   else
     vim.fn.inputsave()
-    local ok = true
-    ok, pat = pcall(vim.fn.input, 'Search: ')
+    pat = get_pattern('Hop pattern: ')
     vim.fn.inputrestore()
-    if not ok then return end
+    if not pat then return end
   end
 
   if #pat == 0 then
@@ -315,19 +353,18 @@ end
 
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
-  local ok, c = pcall(vim.fn.getchar)
-  if not ok then return end
-  hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
+  local c = get_pattern('Hop 1 char: ', 1)
+  if c then
+    hint_with(hint.by_case_searching(c, true, opts), opts)
+  end
 end
 
 function M.hint_char2(opts)
   opts = get_command_opts(opts)
-  local ok, a = pcall(vim.fn.getchar)
-  if not ok then return end
-  local ok2, b = pcall(vim.fn.getchar)
-  if not ok2 then return end
-  local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
-  hint_with(hint.by_case_searching(pat, true, opts), opts)
+  local c = get_pattern('Hop 2 char: ', 2)
+  if c then
+    hint_with(hint.by_case_searching(c, true, opts), opts)
+  end
 end
 
 function M.hint_lines(opts)
