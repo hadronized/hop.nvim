@@ -54,10 +54,12 @@ function M.by_case_searching(pat, plain_search, opts)
     end
     -- make sure that there are one dict support `char` at least
     if dict_char_pat == '' then
+      dict_pat = ''
       break
     end
     dict_pat = dict_pat .. '['.. dict_char_pat .. ']'
   end
+
   if dict_pat ~= '' then
     pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
   end
