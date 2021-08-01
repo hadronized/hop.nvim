@@ -305,8 +305,10 @@ local function get_pattern(prompt, maxchar, opts)
   local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
   local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
+  local pat_keys = {}
   local pat = ''
   while (true) do
+    pat = vim.fn.join(pat_keys, '')
     if opts then
       -- Preview the pattern in highlight
       grey_things_out(hl_ns, hint_states)
@@ -333,12 +335,13 @@ local function get_pattern(prompt, maxchar, opts)
     elseif key == K_CR then
       break
     elseif key == K_BS then
-      pat = pat:sub(1, #pat - 1)
+      pat_keys[#pat_keys] = nil
     else
-      pat = pat .. key
+      pat_keys[#pat_keys + 1] = key
     end
 
-    if maxchar and #pat >= maxchar then
+    if maxchar and #pat_keys >= maxchar then
+      pat = vim.fn.join(pat_keys, '')
       break
     end
   end
