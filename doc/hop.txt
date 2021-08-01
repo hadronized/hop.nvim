@@ -606,8 +606,12 @@ below.
     or pattern will act as key of dict, and get the dict pattern to search.
 
     Currently supported dict:~
+        'ascii' : Ascii Characters
         'zh_sc' : Simplified Chinese
         'zh_tc' : Traditional Chinese
+
+    For example, if `dict_list` is set to `{'ascii', 'zh_sc'}`, the characters
+    in 'ascii' and 'zh_sc' can be mixed match together.
 
     Defaults:~
         `dict_list = { }`
