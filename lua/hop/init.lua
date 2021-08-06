@@ -16,6 +16,40 @@ local function eprintln(msg, teasing)
   end
 end
 
+-- Return the character index of col position in line
+-- col index is 1-based in cell, char index returned is 0-based
+local function str_col2char(line, col)
+  if col <= 0 then
+    return 0
+  end
+
+  local lw = vim.api.nvim_strwidth(line)
+  local lc = vim.fn.strchars(line)
+  -- No multi-byte character
+  if lw == lc then
+    return col
+  end
+  -- Line is shorter than col, all line should include
+  if lw <= col then
+    return lc
+  end
+
+  local lst
+  if lc >= col then
+    -- Line is very long
+    lst = vim.fn.split(vim.fn.strcharpart(line, 0, col), '\\zs')
+  else
+    lst = vim.fn.split(line, '\\zs')
+  end
+  local i = 0
+  local w = 0
+  repeat
+    i = i + 1
+    w = w + vim.api.nvim_strwidth(lst[i])
+  until (w >= col)
+  return i
+end
+
 -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
 local function clear_namespace(buf_handle, hl_ns)
   if vim.api.nvim_buf_is_valid(buf_handle) then
@@ -24,6 +58,8 @@ local function clear_namespace(buf_handle, hl_ns)
   end
 end
 
+-- Highlight everything marked from pat_mode
+-- - pat_mode if provided, highlight the pattern
 local function highlight_things_out(hl_ns, hint_states, pat_mode)
   for _, hs in ipairs(hint_states) do
     if vim.api.nvim_buf_is_valid(hs.handle.b) then
@@ -33,21 +69,21 @@ local function highlight_things_out(hl_ns, hint_states, pat_mode)
       if hs.dir_mode ~= nil then
         if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
           -- Hightlight lines after cursor
-          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[1], hs.lines[1], hs.col_offset, hs.dir_mode).hints)
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[1], hs.lines[1], hs.lcols[1], hs.dir_mode).hints)
           for k = 2, #hs.lnums do
-            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, nil).hints)
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], nil).hints)
           end
         elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
           -- Hightlight lines before cursor
           for k = 1, #hs.lnums - 1 do
-            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, nil).hints)
+            vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], nil).hints)
           end
-          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[#hs.lnums], hs.lines[#hs.lnums], hs.col_offset, hs.dir_mode).hints)
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[#hs.lnums], hs.lines[#hs.lnums], hs.lcols[#hs.lnums], hs.dir_mode).hints)
         end
       else
         -- Hightlight all lines
         for k = 1, #hs.lnums do
-          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.col_offset, hs.dir_mode).hints)
+          vim.list_extend(hl_lst, hint.mark_hints_line(pat_mode, hs.lnums[k], hs.lines[k], hs.lcols[k], hs.dir_mode).hints)
         end
       end
 
@@ -63,7 +99,6 @@ end
 --
 -- - hl_ns is the highlight namespace.
 -- - hint_states in which the lnums in the buffer need to be highlighted
--- - pat_mode if provided, highlight the pattern
 local function grey_things_out(hl_ns, hint_states)
   for _, hs in ipairs(hint_states) do
     if vim.api.nvim_buf_is_valid(hs.handle.b) then
@@ -100,14 +135,20 @@ end
 -- {
 --   {
 --      handle = { w = <win-handle>, b = <buf-handle> },
---      cursor_pos = { },
+--      cursor_pos = { }, -- byte-based column
 --      dir_mode = { },
---      col_offset = 0,
 --      lnums = { }, -- line number is 0-based
---      lines = { },
+--      lcols = { }, -- column offset of each line
+--      lines = { }, -- context to match hint of each line
 --   },
 --   ...
 -- }
+--
+-- Some confusing column:
+--   byte-based column: #line, strlen(), col(), getpos(), getcurpos(), nvim_win_get_cursor(), winsaveview().col
+--   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
+-- Take on attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
+-- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
 local function create_hint_states(opts)
   local hss = { } -- hint_states
 
@@ -177,7 +218,6 @@ local function create_hint_lines(hs, opts)
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
   hs.dir_mode = direction_mode
-  hs.col_offset = win_view.leftcol
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -187,12 +227,13 @@ local function create_hint_lines(hs, opts)
   local win_rightcol = nil
   if not vim.wo.wrap then
     vim.api.nvim_win_set_cursor(hwin, { cursor_pos[1], 0 })
-    win_rightcol = (win_view.leftcol + 1) + (win_info.width - (vim.fn.wincol() - 1))
+    win_rightcol = win_view.leftcol + (win_info.width - (vim.fn.wincol() - 1))
     vim.fn.winrestview(win_view)
   end
 
   -- get the buffer lines
   hs.lnums = {}
+  hs.lcols = {}
   hs.lines = {}
   local lnr = top_line
   while lnr <= bot_line do
@@ -201,17 +242,26 @@ local function create_hint_lines(hs, opts)
       if fold_end == -1 then
         -- save line number and sliced line text to hint
         local cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
-        if #cur_line >= win_view.leftcol + 1 then
-          table.insert(hs.lines, cur_line:sub(win_view.leftcol + 1, win_rightcol))
-        else
-          -- -1 means no text and only col=1 can jump to
-          table.insert(hs.lines, -1)
+        local cur_cols = win_view.leftcol
+        if win_rightcol then
+          if win_view.leftcol >= vim.api.nvim_strwidth(cur_line) then
+            -- -1 means no text and only col=1 can jump to
+            cur_line = -1
+          else
+            local cidx0 = str_col2char(cur_line, win_view.leftcol)
+            local cidx1 = str_col2char(cur_line, win_rightcol)
+            cur_cols = #vim.fn.strcharpart(cur_line, 0, cidx0)
+            cur_line = vim.fn.strcharpart(cur_line, cidx0, cidx1 - cidx0)
+          end
         end
+        table.insert(hs.lcols, cur_cols)
+        table.insert(hs.lines, cur_line)
         lnr = lnr + 1
       else
         -- skip fold lines and only col=1 can jump to at fold lines
+        table.insert(hs.lcols, win_view.leftcol)
         table.insert(hs.lines, -1)
-        lnr = fold_end + 1
+        lnr = fold_end
       end
   end
 end
