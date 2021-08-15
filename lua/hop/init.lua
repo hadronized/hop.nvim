@@ -151,7 +151,7 @@ end
 --         cursor_pos = { }, -- byte-based column
 --         dir_mode = { },
 --         lnums = { }, -- line number is 0-based
---         lcols = { }, -- column offset of each line
+--         lcols = { }, -- byte-based column offset of each line
 --         lines = { }, -- context to match hint of each line
 --      },
 --      ...
@@ -286,13 +286,70 @@ local function create_hint_winlines(hs, opts)
   end
 end
 
+-- Crop duplicated hint lines area  from `hc` compared with `hp`
+local function crop_winlines(hc, hp)
+  if hc.lnums[#hc.lnums] < hp.lnums[1] or hc.lnums[1] > hp.lnums[#hp.lnums] then
+    return
+  end
+
+  local ci = 1         -- start line index of hc
+  local ce = #hc.lnums -- end line index of hc
+  local pi = 1         -- start line index of hp
+  local pe = #hp.lnums -- end line index of hp
+
+  while ci <= ce and pi <= pe do
+    if hc.lnums[ci] < hp.lnums[pi] then ci = ci + 1 end
+    if hc.lnums[ci] > hp.lnums[pi] then pi = pi + 1 end
+    if hc.lnums[ci] == hp.lnums[pi] then
+      if hc.lines[ci] ~= -1 and hp.lines[pi] ~= -1 then
+        local cl = hc.lcols[ci]       -- left byte-based column of ci line
+        local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
+        local pl = hp.lcols[pi]       -- left byte-based column of pi line
+        local pr = pl + #hp.lines[pi] -- right byte-based column of pi line
+
+        if cl >= pr or cr <= pl then
+          -- Must keep this empty block to guarantee other elseif-condition correct
+          -- Must compare cl-pl prior than cl-pr at elseif-condition
+        elseif cl < pl and cr < pr then
+          -- p:    ******
+          -- c: ******
+          hc.lines[ci] = string.sub(hc.lines[ci], 1, pl)
+        elseif cl <= pl and cr >= pr then
+          -- p:    ******
+          -- c: ************
+          hp.lines[pi] = hc.lines[ci]
+          hp.lcols[pi] = hc.lcols[ci]
+          hc.lines[ci] = -1
+        elseif cl < pr and cr > pr then
+          -- p: ******
+          -- c:    ******
+          hc.lines[ci] = string.sub(hc.lines[ci], pr)
+        elseif cl < pr and cr < pr then
+          -- p: ************
+          -- c:    ******
+          hc.lines[ci] = -1
+        end
+      end
+
+      ci = ci + 1
+      pi = pi + 1
+    end
+  end
+end
+
 -- Create hint lines from each buffer to complete `hint_states` data
 local function create_hint_buflines(hh, opts)
   for _, hs in ipairs(hh) do
     create_hint_winlines(hs, opts)
   end
 
-  -- TODO Remove inter-covered area of different windows with same buffer
+  -- Remove inter-covered area of different windows with same buffer.
+  -- Iterate reverse to guarantee the first window has the max area.
+  for c = #hh, 1, -1 do
+    for p = 1, c-1 do
+      crop_winlines(hh[c], hh[p])
+    end
+  end
 end
 
 local function hint_with(hint_mode, opts, _hint_states)
