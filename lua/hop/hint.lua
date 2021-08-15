@@ -250,12 +250,12 @@ end
 --   },
 --   length = {},
 -- }
-local function create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, direction_mode, window_dist)
+local function create_hints_for_line(i, hints, indirect_hints, hint_mode, hbuf, hs, direction_mode, window_dist)
   local line_hints = M.mark_hints_line(hint_mode, hs.lnums[i], hs.lines[i], hs.lcols[i], direction_mode)
 
   if #line_hints.hints > 0 then
     -- Store window and buffer handle for each line
-    line_hints.handle = hs.handle
+    line_hints.handle = { w = hs.hwin, b = hbuf }
     hints[#hints + 1] = line_hints
 
     for j = 1, #line_hints.hints do
@@ -278,26 +278,29 @@ function M.create_hints(hint_mode, hint_states, opts)
   local hints = {}
   local indirect_hints = {}
 
-  local winpos = vim.api.nvim_win_get_position(hint_states[1].handle.w)
-  for _, hs in ipairs(hint_states) do
-    local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.handle.w))
+  local winpos = vim.api.nvim_win_get_position(hint_states[1][1].hwin)
+  for _, hh in ipairs(hint_states) do
+    local hbuf = hh.hbuf
+    for _, hs in ipairs(hh) do
+      local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
 
-    -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-    if opts.direction == M.HintDirection.AFTER_CURSOR then
-      -- the first line is to be checked first
-      create_hints_for_line(1, hints, indirect_hints, hint_mode, hs, hs.dir_mode, window_dist)
-      for i = 2, #hs.lines do
-        create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
-      end
-    elseif opts.direction == M.HintDirection.BEFORE_CURSOR then
-      -- the last line is to be checked last
-      for i = 1, #hs.lines - 1 do
-        create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
-      end
-      create_hints_for_line(#hs.lines, hints, indirect_hints, hint_mode, hs, hs.dir_mode, window_dist)
-    else
-      for i = 1, #hs.lines do
-        create_hints_for_line(i, hints, indirect_hints, hint_mode, hs, nil, window_dist)
+      -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
+      if opts.direction == M.HintDirection.AFTER_CURSOR then
+        -- the first line is to be checked first
+        create_hints_for_line(1, hints, indirect_hints, hint_mode, hbuf, hs, hs.dir_mode, window_dist)
+        for i = 2, #hs.lines do
+          create_hints_for_line(i, hints, indirect_hints, hint_mode, hbuf, hs, nil, window_dist)
+        end
+      elseif opts.direction == M.HintDirection.BEFORE_CURSOR then
+        -- the last line is to be checked last
+        for i = 1, #hs.lines - 1 do
+          create_hints_for_line(i, hints, indirect_hints, hint_mode, hbuf, hs, nil, window_dist)
+        end
+        create_hints_for_line(#hs.lines, hints, indirect_hints, hint_mode, hbuf, hs, hs.dir_mode, window_dist)
+      else
+        for i = 1, #hs.lines do
+          create_hints_for_line(i, hints, indirect_hints, hint_mode, hbuf, hs, nil, window_dist)
+        end
       end
     end
   end
@@ -332,31 +335,36 @@ end
 
 function M.set_hint_extmarks(hl_ns, hints)
   for _, line_hints in pairs(hints) do
-    if vim.api.nvim_buf_is_valid(line_hints.handle.b) then
-      for _, h in pairs(line_hints.hints) do
-        if vim.fn.strdisplaywidth(h.hint) == 1 then
-          vim.api.nvim_buf_set_extmark(
-            line_hints.handle.b,
-            hl_ns,
-            h.line, h.col - 1,
-            {
-              virt_text = { { h.hint, "HopNextKey" } };
-              virt_text_pos = 'overlay'
-            })
-        else
-          -- get the byte index of the second hint so that we can slice it correctly
-          local snd_idx = vim.fn.byteidx(h.hint, 1)
-          vim.api.nvim_buf_set_extmark(
-            line_hints.handle.b,
-            hl_ns,
-            h.line, h.col - 1,
-            {
-              virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
-              virt_text_pos = 'overlay'
-            })
-        end
+    local hbuf = line_hints.handle.b
+    if not vim.api.nvim_buf_is_valid(hbuf) then
+      goto __NEXT_HH
+    end
+
+    for _, h in pairs(line_hints.hints) do
+      if vim.fn.strdisplaywidth(h.hint) == 1 then
+        vim.api.nvim_buf_set_extmark(
+          hbuf,
+          hl_ns,
+          h.line, h.col - 1,
+          {
+            virt_text = { { h.hint, "HopNextKey" } };
+            virt_text_pos = 'overlay'
+          })
+      else
+        -- get the byte index of the second hint so that we can slice it correctly
+        local snd_idx = vim.fn.byteidx(h.hint, 1)
+        vim.api.nvim_buf_set_extmark(
+          hbuf,
+          hl_ns,
+          h.line, h.col - 1,
+          {
+            virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
+            virt_text_pos = 'overlay'
+          })
       end
     end
+
+    ::__NEXT_HH::
   end
 end
 

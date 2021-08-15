@@ -61,9 +61,13 @@ end
 -- Highlight everything marked from pat_mode
 -- - pat_mode if provided, highlight the pattern
 local function highlight_things_out(hl_ns, hint_states, pat_mode)
-  for _, hs in ipairs(hint_states) do
-    if vim.api.nvim_buf_is_valid(hs.handle.b) then
+  for _, hh in ipairs(hint_states) do
+    local hbuf = hh.hbuf
+    if not vim.api.nvim_buf_is_valid(hbuf) then
+      goto __NEXT_HH
+    end
 
+    for _, hs in ipairs(hh) do
       -- Collect text list need to highlight
       local hl_lst = {}
       if hs.dir_mode ~= nil then
@@ -89,9 +93,11 @@ local function highlight_things_out(hl_ns, hint_states, pat_mode)
 
       -- Highlight all matched text
       for _, h in ipairs(hl_lst) do
-        vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopPreview', h.line, h.col - 1, h.col_end - 1)
+        vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopPreview', h.line, h.col - 1, h.col_end - 1)
       end
     end
+
+    ::__NEXT_HH::
   end
 end
 
@@ -100,54 +106,63 @@ end
 -- - hl_ns is the highlight namespace.
 -- - hint_states in which the lnums in the buffer need to be highlighted
 local function grey_things_out(hl_ns, hint_states)
-  for _, hs in ipairs(hint_states) do
-    if vim.api.nvim_buf_is_valid(hs.handle.b) then
-      clear_namespace(hs.handle.b, hl_ns)
+  for _, hh in ipairs(hint_states) do
+    local hbuf = hh.hbuf
+    if not vim.api.nvim_buf_is_valid(hbuf) then
+      goto __NEXT_HH
+    end
 
+    clear_namespace(hbuf, hl_ns)
+    for _, hs in ipairs(hh) do
       -- Highlight unmatched lines
       if hs.dir_mode ~= nil then
         if hs.dir_mode.direction == hint.HintDirection.AFTER_CURSOR then
           -- Hightlight lines after cursor
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[1], hs.dir_mode.cursor_col, -1)
+          vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopUnmatched', hs.lnums[1], hs.dir_mode.cursor_col, -1)
           for k = 2, #hs.lnums do
-            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
+            vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
           end
         elseif hs.dir_mode.direction == hint.HintDirection.BEFORE_CURSOR then
           -- Hightlight lines before cursor
           for k = 1, #hs.lnums - 1 do
-            vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
+            vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopUnmatched', hs.lnums[k], 0, -1)
           end
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', hs.lnums[#hs.lnums], 0, hs.dir_mode.cursor_col)
+          vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopUnmatched', hs.lnums[#hs.lnums], 0, hs.dir_mode.cursor_col)
         end
       else
         -- Hightlight all lines
         for _, lnr in ipairs(hs.lnums) do
-          vim.api.nvim_buf_add_highlight(hs.handle.b, hl_ns, 'HopUnmatched', lnr, 0, -1)
+          vim.api.nvim_buf_add_highlight(hbuf, hl_ns, 'HopUnmatched', lnr, 0, -1)
         end
       end
-
     end
+
+    ::__NEXT_HH::
   end
 end
 
 -- Create all hint state for all multi-windows.
 -- Specification for `hint_states`:
--- {
---   {
---      handle = { w = <win-handle>, b = <buf-handle> },
---      cursor_pos = { }, -- byte-based column
---      dir_mode = { },
---      lnums = { }, -- line number is 0-based
---      lcols = { }, -- column offset of each line
---      lines = { }, -- context to match hint of each line
+--{
+--   { -- hist state list that each contains one buffer
+--      hbuf = <buf-handle>,
+--      { -- windows list that display the same buffer
+--         hwin = <win-handle>,
+--         cursor_pos = { }, -- byte-based column
+--         dir_mode = { },
+--         lnums = { }, -- line number is 0-based
+--         lcols = { }, -- column offset of each line
+--         lines = { }, -- context to match hint of each line
+--      },
+--      ...
 --   },
 --   ...
--- }
+--}
 --
 -- Some confusing column:
 --   byte-based column: #line, strlen(), col(), getpos(), getcurpos(), nvim_win_get_cursor(), winsaveview().col
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
--- Take on attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
+-- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
 local function create_hint_states(opts)
   local hss = { } -- hint_states
@@ -156,38 +171,43 @@ local function create_hint_states(opts)
   local cur_hwin = vim.api.nvim_get_current_win()
   local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
   hss[#hss + 1] = {
-    handle = { w = cur_hwin, b = cur_hbuf },
-    cursor_pos = vim.api.nvim_win_get_cursor(cur_hwin),
+    hbuf = cur_hbuf,
+    {
+      hwin = cur_hwin,
+      cursor_pos = vim.api.nvim_win_get_cursor(cur_hwin),
+    }
   }
 
   -- Other windows of current tabpage
   if opts.multi_windows then
     for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       local b = vim.api.nvim_win_get_buf(w)
+      if w ~= cur_hwin then
 
-      -- Remove duplicated buffers
-      if w ~= cur_hwin and b ~= cur_hbuf then
-        local h = nil
-        for k in ipairs(hss) do
-          if b == hss[k].handle.b then
-            h = k
+        -- Check duplicated buffers
+        local hh = nil
+        for _, _hh in ipairs(hss) do
+          if b == _hh.hbuf then
+            hh = _hh
             break
           end
         end
 
-        -- Use the window with larger area
-        if h ~= nil then
-          if vim.api.nvim_win_get_width(w) * vim.api.nvim_win_get_height(w) >
-             vim.api.nvim_win_get_width(hss[h].handle.w) * vim.api.nvim_win_get_height(hss[h].handle.w)
-          then
-            hss[h].handle.w = w
-          end
-        else
-          hss[#hss + 1] = {
-            handle = { w = w, b = b },
+        if hh then
+          hh[#hh + 1] = {
+            hwin = w,
             cursor_pos = vim.api.nvim_win_get_cursor(w),
           }
+        else
+          hss[#hss + 1] = {
+            hbuf = b,
+            {
+              hwin = w,
+              cursor_pos = vim.api.nvim_win_get_cursor(w),
+            }
+          }
         end
+
       end
     end
   end
@@ -196,9 +216,9 @@ local function create_hint_states(opts)
 end
 
 -- Create hint lines from each windows to complete `hint_states` data
-local function create_hint_lines(hs, opts)
+local function create_hint_winlines(hs, opts)
   -- get a bunch of information about the window and the cursor
-  local hwin = hs.handle.w
+  local hwin = hs.hwin
   local cursor_pos = hs.cursor_pos
   vim.api.nvim_set_current_win(hwin)
   vim.api.nvim_win_set_cursor(hwin, cursor_pos)
@@ -266,6 +286,15 @@ local function create_hint_lines(hs, opts)
   end
 end
 
+-- Create hint lines from each buffer to complete `hint_states` data
+local function create_hint_buflines(hh, opts)
+  for _, hs in ipairs(hh) do
+    create_hint_winlines(hs, opts)
+  end
+
+  -- TODO Remove inter-covered area of different windows with same buffer
+end
+
 local function hint_with(hint_mode, opts, _hint_states)
   local hl_ns = vim.api.nvim_create_namespace('')
   local hint_states
@@ -273,10 +302,10 @@ local function hint_with(hint_mode, opts, _hint_states)
     hint_states = _hint_states
   else
     hint_states = create_hint_states(opts)
-    for _, hs in ipairs(hint_states) do
-      create_hint_lines(hs, opts)
+    for _, hh in ipairs(hint_states) do
+      create_hint_buflines(hh, opts)
     end
-    vim.api.nvim_set_current_win(hint_states[1].handle.w)
+    vim.api.nvim_set_current_win(hint_states[1][1].hwin)
   end
 
   -- Create call hints for all windows from hint_states
@@ -346,10 +375,10 @@ local function get_pattern(prompt, maxchar, opts)
   if opts then
     hl_ns = vim.api.nvim_create_namespace('')
     hint_states = create_hint_states(opts)
-    for _, hs in ipairs(hint_states) do
-      create_hint_lines(hs, opts)
+    for _, hh in ipairs(hint_states) do
+      create_hint_buflines(hh, opts)
     end
-    vim.api.nvim_set_current_win(hint_states[1].handle.w)
+    vim.api.nvim_set_current_win(hint_states[1][1].hwin)
   end
 
   local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
@@ -435,8 +464,8 @@ end
 
 -- Quit Hop and delete its resources.
 function M.quit(hl_ns, hint_states)
-  for _, hs in ipairs(hint_states) do
-    clear_namespace(hs.handle.b, hl_ns)
+  for _, hh in ipairs(hint_states) do
+    clear_namespace(hh.hbuf, hl_ns)
   end
 end
 
