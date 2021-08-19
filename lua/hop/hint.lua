@@ -54,6 +54,16 @@ function M.by_case_searching(pat, plain_search, opts)
   }
 end
 
+-- Current line hint mode
+--
+-- Used to constrain scope of hopping to current line only
+function M.by_case_searhing_line(pat, plain_search, opts)
+    local m = M.by_case_searching(pat, plain_search, opts)
+    m.curr_line_only = true
+
+    return m
+end
+
 -- Word hint mode.
 --
 -- Used to tag words with hints, its behaviour depends on the
