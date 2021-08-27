@@ -298,9 +298,11 @@ local function crop_winlines(hc, hp)
   local pe = #hp.lnums -- end line index of hp
 
   while ci <= ce and pi <= pe do
-    if hc.lnums[ci] < hp.lnums[pi] then ci = ci + 1 end
-    if hc.lnums[ci] > hp.lnums[pi] then pi = pi + 1 end
-    if hc.lnums[ci] == hp.lnums[pi] then
+    if hc.lnums[ci] < hp.lnums[pi] then
+      ci = ci + 1
+    elseif hc.lnums[ci] > hp.lnums[pi] then
+      pi = pi + 1
+    elseif hc.lnums[ci] == hp.lnums[pi] then
       if hc.lines[ci] ~= -1 and hp.lines[pi] ~= -1 then
         local cl = hc.lcols[ci]       -- left byte-based column of ci line
         local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
