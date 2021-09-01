@@ -265,8 +265,8 @@ local function create_hint_winlines(hs, opts)
         local cur_cols = win_view.leftcol
         if win_rightcol then
           if win_view.leftcol >= vim.api.nvim_strwidth(cur_line) then
-            -- -1 means no text and only col=1 can jump to
-            cur_line = -1
+            -- hint.HintLineException.EMPTY_LINE means empty line and only col=1 can jump to
+            cur_line = hint.HintLineException.EMPTY_LINE
           else
             local cidx0 = str_col2char(cur_line, win_view.leftcol)
             local cidx1 = str_col2char(cur_line, win_rightcol)
@@ -280,7 +280,7 @@ local function create_hint_winlines(hs, opts)
       else
         -- skip fold lines and only col=1 can jump to at fold lines
         table.insert(hs.lcols, win_view.leftcol)
-        table.insert(hs.lines, -1)
+        table.insert(hs.lines, hint.HintLineException.EMPTY_LINE)
         lnr = fold_end
       end
   end
@@ -303,7 +303,8 @@ local function crop_winlines(hc, hp)
     elseif hc.lnums[ci] > hp.lnums[pi] then
       pi = pi + 1
     elseif hc.lnums[ci] == hp.lnums[pi] then
-      if hc.lines[ci] ~= -1 and hp.lines[pi] ~= -1 then
+      if (hc.lines[ci] ~= hint.HintLineException.EMPTY_LINE) and
+         (hp.lines[pi] ~= hint.HintLineException.EMPTY_LINE) then
         local cl = hc.lcols[ci]       -- left byte-based column of ci line
         local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
         local pl = hp.lcols[pi]       -- left byte-based column of pi line
@@ -321,7 +322,7 @@ local function crop_winlines(hc, hp)
           -- c: ************
           hp.lines[pi] = hc.lines[ci]
           hp.lcols[pi] = hc.lcols[ci]
-          hc.lines[ci] = -1
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
         elseif cl < pr and cr > pr then
           -- p: ******
           -- c:    ******
@@ -329,8 +330,11 @@ local function crop_winlines(hc, hp)
         elseif cl < pr and cr < pr then
           -- p: ************
           -- c:    ******
-          hc.lines[ci] = -1
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
         end
+      elseif (hc.lines[ci] == hint.HintLineException.EMPTY_LINE) and
+             (hp.lines[pi] == hint.HintLineException.EMPTY_LINE) then
+          hc.lines[ci] = hint.HintLineException.INVALID_LINE
       end
 
       ci = ci + 1

@@ -7,6 +7,11 @@ M.HintDirection = {
   AFTER_CURSOR = 2,
 }
 
+M.HintLineException = {
+  EMPTY_LINE = -1, -- Empty line: match hint pattern when col_offset = 0
+  INVALID_LINE = -2, -- Invalid line: no need to match hint pattern
+}
+
 -- I hate Lua.
 local function starts_with_uppercase(s)
   if #s == 0 then
@@ -135,8 +140,10 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   local shifted_line = line
 
   -- if no text at line, we can only jump to col=1 when col_offset=0 and hint mode can match empty text
-  if shifted_line == -1 then
-    if col_offset == 0 and hint_mode.match('') ~= nil then
+  if type(shifted_line) == "number" then
+    if (shifted_line == M.HintLineException.EMPTY_LINE) and
+       (col_offset == 0) and
+       (hint_mode.match('')) ~= nil then
       hints[#hints + 1] = {
         line = line_nr;
         col = 1;
