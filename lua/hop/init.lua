@@ -212,6 +212,7 @@ end
 
 function M.hint_patterns(opts, pattern)
   opts = get_command_opts(opts)
+  local pat, ok
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
