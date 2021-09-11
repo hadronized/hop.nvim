@@ -59,6 +59,12 @@ local function hint_with(hint_mode, opts)
   local top_line = win_info.topline - 1
   local bot_line = win_info.botline - 1
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  local cursorline_info = vim.api.nvim_win_get_option(vim.api.nvim_get_current_win(), 'cursorline')
+
+  -- toggle cursorline off if currently set
+  if cursorline_info == true then
+    vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), 'cursorline', false)
+  end
 
   -- adjust the visible part of the buffer to hint based on the direction
   local direction = opts.direction
@@ -136,7 +142,7 @@ local function hint_with(hint_mode, opts)
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      M.quit(0, hl_ns)
+      M.quit(0, hl_ns, cursorline_info)
       break
     end
     local not_special_key = true
@@ -154,11 +160,11 @@ local function hint_with(hint_mode, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h = M.refine_hints(0, key, opts.teasing, direction_mode, hint_state)
+      h = M.refine_hints(0, key, opts.teasing, direction_mode, hint_state, cursorline_info)
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
-      M.quit(0, hl_ns)
+      M.quit(0, hl_ns, cursorline_info)
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -173,7 +179,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state)
+function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state, cursorline_info)
   local h, hints, update_count = hint.reduce_hints_lines(hint_state.hints, key)
 
   if h == nil then
@@ -188,7 +194,7 @@ function M.refine_hints(buf_handle, key, teasing, direction_mode, hint_state)
     hint.set_hint_extmarks(hint_state.hl_ns, hints)
     vim.cmd('redraw')
   else
-    M.quit(buf_handle, hint_state.hl_ns)
+    M.quit(buf_handle, hint_state.hl_ns, cursorline_info)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
@@ -202,8 +208,13 @@ end
 -- Quit Hop and delete its resources.
 --
 -- This works only if the current buffer is Hop one.
-function M.quit(buf_handle, hl_ns)
+function M.quit(buf_handle, hl_ns, cursorline_info)
   clear_namespace(buf_handle, hl_ns)
+  -- toggle cursorline back on
+  if cursorline_info == true then
+    print("TRACE")
+    vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), 'cursorline', true)
+  end
 end
 
 function M.hint_words(opts)
