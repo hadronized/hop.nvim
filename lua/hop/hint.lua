@@ -1,11 +1,8 @@
 local perm = require'hop.perm'
+local window = require'hop.window'
+local constants = require'hop.constants'
 
 local M = {}
-
-M.HintDirection = {
-  BEFORE_CURSOR = 1,
-  AFTER_CURSOR = 2,
-}
 
 -- I hate Lua.
 local function starts_with_uppercase(s)
@@ -17,8 +14,9 @@ local function starts_with_uppercase(s)
   return f:upper() == f
 end
 
--- Regex hint mode.
---
+-- Hint modes follow.
+-- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
+
 -- Used to hint result of a search.
 function M.by_searching(pat, plain_search)
   if plain_search then
@@ -28,6 +26,10 @@ function M.by_searching(pat, plain_search)
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
+    end,
+
+    get_hint_list = function(self, opts)
+      return M.create_hint_list_by_scanning_lines(self, opts)
     end
   }
 end
@@ -50,6 +52,9 @@ function M.by_case_searching(pat, plain_search, opts)
     oneshot = false,
     match = function(s)
       return vim.regex(pat):match_str(s)
+    end,
+    get_hint_list = function(self, hint_opts)
+      return M.create_hint_list_by_scanning_lines(self, hint_opts)
     end
   }
 end
@@ -68,6 +73,9 @@ M.by_line_start = {
   oneshot = true,
   match = function(_)
     return 0, 1, false
+  end,
+  get_hint_list = function(self, hint_opts)
+    return M.create_hint_list_by_scanning_lines(self, hint_opts)
   end
 }
 
@@ -75,11 +83,14 @@ M.by_line_start = {
 --
 -- Used to tag the beginning of each lines with hints.
 function M.by_line_start_skip_whitespace()
-  pat = vim.regex("\\S")
+  local pat = vim.regex("\\S")
   return {
     oneshot = true,
     match = function(s)
       return pat:match_str(s)
+    end,
+    get_hint_list = function(self, hint_opts)
+      return M.create_hint_list_by_scanning_lines(self, hint_opts)
     end
   }
 end
@@ -113,9 +124,7 @@ end
 --
 -- The direction_mode argument allows to start / end hint creation after or before the cursor position
 --
--- This function returns the list of hints as well as the length of the line in the form of table:
---
---   { hints, length }
+-- This function returns the list of hints
 function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, direction_mode)
   local hints = {}
   local end_index = nil
@@ -132,11 +141,11 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
   local col_bias = 0
   if direction_mode ~= nil then
     local col = vim.fn.byteidx(line, direction_mode.cursor_col + 1)
-    if direction_mode.direction == M.HintDirection.AFTER_CURSOR then
+    if direction_mode.direction == constants.HintDirection.AFTER_CURSOR then
       -- we want to change the start offset so that we ignore everything before the cursor
       shifted_line = shifted_line:sub(col - col_offset)
       col_bias = col - 1
-    elseif direction_mode.direction == M.HintDirection.BEFORE_CURSOR then
+    elseif direction_mode.direction == constants.HintDirection.BEFORE_CURSOR then
       -- we want to change the end
       shifted_line = shifted_line:sub(1, col - col_offset)
     end
@@ -164,10 +173,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, win_width, dire
     end
   end
 
-  return {
-    hints = hints;
-    length = vim.fn.strdisplaywidth(shifted_line)
-  }
+  return hints
 end
 
 -- Reduce a hint.
@@ -207,7 +213,7 @@ function M.reduce_hints_lines(per_line_hints, key)
       end
     end
 
-    output[#output + 1] = { hints = next_hints; length = hints.length }
+    output[#output + 1] = { hints = next_hints }
   end
 
   return nil, output, update_count
@@ -220,136 +226,105 @@ end
 -- work in a given direction, requiring a more granular control at the line level.
 local function create_hints_for_line(
   i,
-  hints,
-  indirect_hints,
-  hint_counts,
+  hint_list,
   hint_mode,
-  win_width,
-  cursor_pos,
-  col_offset,
-  top_line,
+  context,
   direction_mode,
   lines
 )
-  local line_hints = M.mark_hints_line(hint_mode, top_line + i - 1, lines[i], col_offset, win_width, direction_mode)
-  hints[i] = line_hints
-
-  hint_counts = hint_counts + #line_hints.hints
-
-  for j = 1, #line_hints.hints do
-    local hint = line_hints.hints[j]
-    indirect_hints[#indirect_hints + 1] = { i = i; j = j; dist = manh_dist(cursor_pos, { hint.line, hint.col }) }
+  local line_hints = M.mark_hints_line(hint_mode, context.top_line + i - 1, lines[i], context.col_offset, context.win_width, direction_mode)
+  for _, val in pairs(line_hints) do
+    hint_list[#hint_list+1] = val
   end
-
-  return hint_counts
 end
 
-function M.create_hints(hint_mode, win_width, cursor_pos, col_offset, top_line, lines, direction, opts)
+function M.create_hint_list_by_scanning_lines(hint_mode, opts)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
   -- cursor, allowing to zip this list with the hints and distribute the hints
-  local hints = {}
-  local indirect_hints = {}
-  local hint_counts = 0
+  local context = window.get_window_context(opts.direction)
+  local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
+  local hint_list = {}
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-  if direction == M.HintDirection.AFTER_CURSOR then
+  if opts.direction == constants.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
-    hint_counts = create_hints_for_line(
+    create_hints_for_line(
       1,
-      hints,
-      indirect_hints,
-      hint_counts,
+      hint_list,
       hint_mode,
-      win_width,
-      cursor_pos,
-      col_offset,
-      top_line,
-      { cursor_col = cursor_pos[2], direction = direction },
+      context,
+      { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
 
     for i = 2, #lines do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        hint_list,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
     end
-  elseif direction == M.HintDirection.BEFORE_CURSOR then
+  elseif opts.direction == constants.HintDirection.BEFORE_CURSOR then
     -- the last line is to be checked last
     for i = 1, #lines - 1 do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        hint_list,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
     end
 
-    hint_counts = create_hints_for_line(
+    create_hints_for_line(
       #lines,
-      hints,
-      indirect_hints,
-      hint_counts,
+      hint_list,
       hint_mode,
-      win_width,
-      cursor_pos,
-      col_offset,
-      top_line,
-      { cursor_col = cursor_pos[2], direction = direction },
+      context,
+      { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
   else
     for i = 1, #lines do
-      hint_counts = create_hints_for_line(
+      create_hints_for_line(
         i,
-        hints,
-        indirect_hints,
-        hint_counts,
+        hint_list,
         hint_mode,
-        win_width,
-        cursor_pos,
-        col_offset,
-        top_line,
+        context,
         nil,
         lines
       )
     end
   end
 
+  return hint_list
+end
+
+function M.assign_character_targets(context, hint_list, opts)
   local dist_comparison = nil
+
+  for _, hint in pairs(hint_list) do
+    hint.dist = manh_dist(context.cursor_pos, {hint.line, hint.col})
+  end
+
   if opts.reverse_distribution then
     dist_comparison = function (a, b) return a.dist > b.dist end
   else
     dist_comparison = function (a, b) return a.dist < b.dist end
   end
 
-  table.sort(indirect_hints, dist_comparison)
+  table.sort(hint_list, dist_comparison)
 
-  -- generate permutations and update the lines with hints
-  local perms = perm.permutations(opts.keys, #indirect_hints, opts)
-  for i, indirect in pairs(indirect_hints) do
-    hints[indirect.i].hints[indirect.j].hint = tbl_to_str(perms[i])
+  local perms = perm.permutations(opts.keys, #hint_list, opts)
+  for i = 1, #hint_list do
+    hint_list[i].hint = tbl_to_str(perms[i])
   end
-
-  return hints,  hint_counts
 end
 
 function M.set_hint_extmarks(hl_ns, per_line_hints)
