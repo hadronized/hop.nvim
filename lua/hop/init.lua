@@ -17,40 +17,6 @@ local function eprintln(msg, teasing)
   end
 end
 
--- Return the character index of col position in line
--- col index is 1-based in cell, char index returned is 0-based
-local function str_col2char(line, col)
-  if col <= 0 then
-    return 0
-  end
-
-  local lw = vim.api.nvim_strwidth(line)
-  local lc = vim.fn.strchars(line)
-  -- No multi-byte character
-  if lw == lc then
-    return col
-  end
-  -- Line is shorter than col, all line should include
-  if lw <= col then
-    return lc
-  end
-
-  local lst
-  if lc >= col then
-    -- Line is very long
-    lst = vim.fn.split(vim.fn.strcharpart(line, 0, col), '\\zs')
-  else
-    lst = vim.fn.split(line, '\\zs')
-  end
-  local i = 0
-  local w = 0
-  repeat
-    i = i + 1
-    w = w + vim.api.nvim_strwidth(lst[i])
-  until (w >= col)
-  return i
-end
-
 -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
 local function clear_namespace(buf_handle, hl_ns)
   if vim.api.nvim_buf_is_valid(buf_handle) then
@@ -245,16 +211,24 @@ local function create_hint_winlines(hs, opts)
   -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
   -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
   -- hack to get the left column offset in nowrap
+
+  -- 0-based cell index of the leftmost visible character
+  local win_leftcol = win_view.leftcol
+  -- 0-based cell index of the rightmost visible character if nowrap, nil otherwise
   local win_rightcol = nil
   if not vim.wo.wrap then
     vim.api.nvim_win_set_cursor(hwin, { cursor_pos[1], 0 })
-    win_rightcol = win_view.leftcol + (win_info.width - (vim.fn.wincol() - 1))
+    local true_width = (win_info.width - (vim.fn.wincol() - 1))
+    win_rightcol = win_leftcol + true_width - 1
     vim.fn.winrestview(win_view)
   end
 
   -- get the buffer lines
+  -- this line number
   hs.lnums = {}
+  -- 0-based byte index of the leftmost character in this line
   hs.lcols = {}
+  -- this line string
   hs.lines = {}
   local lnr = top_line
   while lnr <= bot_line do
@@ -263,16 +237,22 @@ local function create_hint_winlines(hs, opts)
       if fold_end == -1 then
         -- save line number and sliced line text to hint
         local cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
-        local cur_cols = win_view.leftcol
+        local cur_cols = 0
+        -- 0-based cell index of last character in cur_line
+        local last_idx = vim.api.nvim_strwidth(cur_line) - 1
         if win_rightcol then
-          if win_view.leftcol >= vim.api.nvim_strwidth(cur_line) then
+          if win_leftcol > last_idx then
             -- constants.HintLineException.EMPTY_LINE means empty line and only col=1 can jump to
+            cur_cols = -1
             cur_line = constants.HintLineException.EMPTY_LINE
           else
-            local cidx0 = str_col2char(cur_line, win_view.leftcol)
-            local cidx1 = str_col2char(cur_line, win_rightcol)
-            cur_cols = #vim.fn.strcharpart(cur_line, 0, cidx0)
-            cur_line = vim.fn.strcharpart(cur_line, cidx0, cidx1 - cidx0)
+            -- 0-based byte index of leftmost visible character in line
+            local cidx0 = vim.fn.byteidx(cur_line, win_leftcol)
+            -- 0-based byte index of rightmost visible character in line
+            local cidx1 = win_rightcol <= last_idx
+              and vim.fn.byteidx(cur_line, win_rightcol) or vim.fn.byteidx(cur_line, last_idx)
+            cur_cols = cidx0
+            cur_line = cur_line:sub(cidx0 + 1, cidx1 + 1)
           end
         end
         table.insert(hs.lcols, cur_cols)
@@ -280,7 +260,7 @@ local function create_hint_winlines(hs, opts)
         lnr = lnr + 1
       else
         -- skip fold lines and only col=1 can jump to at fold lines
-        table.insert(hs.lcols, win_view.leftcol)
+        table.insert(hs.lcols, -1)
         table.insert(hs.lines, constants.HintLineException.EMPTY_LINE)
         lnr = fold_end
       end
@@ -309,29 +289,30 @@ local function crop_winlines(hc, hp)
          goto next
       end
       if (type(hc.lines[ci]) == "string") and (type(hp.lines[pi]) == "string") then
-        local cl = hc.lcols[ci]       -- left byte-based column of ci line
-        local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
-        local pl = hp.lcols[pi]       -- left byte-based column of pi line
-        local pr = pl + #hp.lines[pi] -- right byte-based column of pi line
+        local cl = hc.lcols[ci]       -- leftmost 0-based byte index of ci line
+        local cr = cl + #hc.lines[ci] - 1 -- rightmost 0-based byte index of ci line
+        local pl = hp.lcols[pi]       -- leftmost 0-based byte index of pi line
+        local pr = pl + #hp.lines[pi] - 1 -- rightmost 0-based byte index of pi line
 
-        if cl >= pr or cr <= pl then
+        if cl > pr or cr < pl then
           -- Must keep this empty block to guarantee other elseif-condition correct
           -- Must compare cl-pl prior than cl-pr at elseif-condition
-        elseif cl < pl and cr < pr then
+        elseif cl <= pl and cr <= pr then
           -- p:    ******
           -- c: ******
-          hc.lines[ci] = string.sub(hc.lines[ci], 1, pl)
+          hc.lines[ci] = string.sub(hc.lines[ci], 1, pl - cl)
         elseif cl <= pl and cr >= pr then
           -- p:    ******
           -- c: ************
           hp.lines[pi] = hc.lines[ci]
           hp.lcols[pi] = hc.lcols[ci]
           hc.lines[ci] = constants.HintLineException.INVALID_LINE
-        elseif cl < pr and cr > pr then
+        elseif cl <= pr and cr >= pr then
           -- p: ******
           -- c:    ******
-          hc.lines[ci] = string.sub(hc.lines[ci], pr)
-        elseif cl < pr and cr < pr then
+          hc.lcols[ci] = pr + 1
+          hc.lines[ci] = string.sub(hc.lines[ci], pr - cl + 2)
+        elseif cl <= pr and cr <= pr then
           -- p: ************
           -- c:    ******
           hc.lines[ci] = constants.HintLineException.INVALID_LINE
