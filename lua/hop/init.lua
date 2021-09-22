@@ -304,8 +304,11 @@ local function crop_winlines(hc, hp)
     elseif hc.lnums[ci] > hp.lnums[pi] then
       pi = pi + 1
     elseif hc.lnums[ci] == hp.lnums[pi] then
-      if (hc.lines[ci] ~= constants.HintLineException.EMPTY_LINE) and
-         (hp.lines[pi] ~= constants.HintLineException.EMPTY_LINE) then
+      if (hc.lines[ci] == constants.HintLineException.INVALID_LINE) or
+         (hp.lines[pi] == constants.HintLineException.INVALID_LINE) then
+         goto next
+      end
+      if (type(hc.lines[ci]) == "string") and (type(hp.lines[pi]) == "string") then
         local cl = hc.lcols[ci]       -- left byte-based column of ci line
         local cr = cl + #hc.lines[ci] -- right byte-based column of ci line
         local pl = hp.lcols[pi]       -- left byte-based column of pi line
@@ -338,6 +341,7 @@ local function crop_winlines(hc, hp)
           hc.lines[ci] = constants.HintLineException.INVALID_LINE
       end
 
+      ::next::
       ci = ci + 1
       pi = pi + 1
     end
