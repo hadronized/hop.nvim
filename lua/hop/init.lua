@@ -15,7 +15,8 @@ local function hint_with(hint_mode, opts)
 
   -- Create call hints for all windows from hint_states
   local hints, hint_opts = hint_mode:get_hint_list(opts)
-  hints = hints or {}
+  -- cancelled
+  if not hints then return end
   hint_opts = hint_opts or {}
 
   if #hints == 0 then

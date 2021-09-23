@@ -66,7 +66,10 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
     vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
 
     local ok, key = pcall(vim.fn.getchar)
-    if not ok then break end -- Interrupted by <C-c>
+    if not ok then -- Interrupted by <C-c>
+      pat = nil
+      break
+    end
 
     if type(key) == 'number' then
       key = vim.fn.nr2char(key)
@@ -114,12 +117,12 @@ function M.by_pattern(prompt, max_chars, pattern)
         vim.fn.inputsave()
         pat = get_pattern(prompt, max_chars, hint_opts.preview and hint_opts, hint_states)
         vim.fn.inputrestore()
-        if not pat then return {} end
+        if not pat then return end
       end
 
       if #pat == 0 then
         ui_util.eprintln('-> empty pattern', hint_opts.teasing)
-        return {}
+        return
       end
 
       return M.by_case_searching(pat, false, hint_opts):_get_hint_list(hint_opts, hint_states)
