@@ -1,5 +1,7 @@
 local perm = require'hop.perm'
 local constants = require'hop.constants'
+local util = require'hop.hint_util'
+local ui_util = require'hop.ui_util'
 
 local M = {}
 
@@ -23,13 +25,104 @@ function M.by_searching(pat, plain_search, oneshot)
   end
   local re = vim.regex(pat)
   return {
-    oneshot = oneshot,
-    match = function(s)
-      return re:match_str(s)
+    get_hint_list = function(self, hint_opts)
+      local hint_states = util.create_hint_states(hint_opts)
+      return self:_get_hint_list(hint_opts, hint_states)
     end,
+    _get_hint_list = function(self, hint_opts, hint_states)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, hint_opts, oneshot),
+        {grey_out = util.get_grey_out(hint_states)}
+    end
+  }
+end
 
-    get_hint_list = function(self, hint_states, opts)
-      return M.create_hint_list_by_scanning_lines(self, hint_states, opts)
+local function get_pattern(prompt, maxchar, opts, hint_states)
+  local hl_ns = nil
+  -- Create hint states for pattern preview
+  if opts then
+    hl_ns = vim.api.nvim_create_namespace('')
+  end
+
+  local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+  local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
+  local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
+  local pat_keys = {}
+  local bufs, hints = {}, {}
+  local hint_opts = {grey_out = util.get_grey_out(hint_states)}
+  local pat = ''
+  while (true) do
+    pat = vim.fn.join(pat_keys, '')
+    if opts then
+      ui_util.clear_all_ns(hl_ns, bufs, hint_opts)
+      -- Preview the pattern in highlight
+      ui_util.grey_things_out(hl_ns, hint_opts)
+      if #pat > 0 then
+        hints = M.by_case_searching(pat, false, opts):_get_hint_list(opts, hint_states)
+        bufs = ui_util.highlight_things_out(hl_ns, hints)
+      end
+    end
+    vim.api.nvim_echo({}, false, {})
+    vim.cmd('redraw')
+    vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
+
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then break end -- Interrupted by <C-c>
+
+    if type(key) == 'number' then
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      -- It's a special key in string
+    end
+
+    if key == K_Esc then
+      pat = nil
+      break
+    elseif key == K_CR then
+      break
+    elseif key == K_BS then
+      pat_keys[#pat_keys] = nil
+    else
+      pat_keys[#pat_keys + 1] = key
+    end
+
+    if maxchar and #pat_keys >= maxchar then
+      pat = vim.fn.join(pat_keys, '')
+      break
+    end
+  end
+  if opts then
+    ui_util.clear_all_ns(hl_ns, bufs, hint_opts)
+  end
+  vim.api.nvim_echo({}, false, {})
+  vim.cmd('redraw')
+  return pat
+end
+
+function M.by_pattern(prompt, max_chars, pattern)
+  return {
+    get_hint_list = function(self, hint_opts)
+      local hint_states = util.create_hint_states(hint_opts)
+      return self:_get_hint_list(hint_opts, hint_states)
+    end,
+    _get_hint_list = function(self, hint_opts, hint_states)
+      -- The pattern to search is either retrieved from the (optional) argument
+      -- or directly from user input.
+      local pat
+      if pattern then
+        pat = pattern
+      else
+        vim.fn.inputsave()
+        pat = get_pattern(prompt, max_chars, hint_opts.preview and hint_opts, hint_states)
+        vim.fn.inputrestore()
+        if not pat then return {} end
+      end
+
+      if #pat == 0 then
+        ui_util.eprintln('-> empty pattern', hint_opts.teasing)
+        return {}
+      end
+
+      return M.by_case_searching(pat, false, hint_opts):_get_hint_list(hint_opts, hint_states)
     end
   }
 end
@@ -75,12 +168,13 @@ function M.by_case_searching(pat, plain_search, opts)
 
   local re = vim.regex(pat)
   return {
-    oneshot = false,
-    match = function(s)
-      return re:match_str(s)
+    get_hint_list = function(self, hint_opts)
+      local hint_states = util.create_hint_states(hint_opts)
+      return self:_get_hint_list(hint_opts, hint_states)
     end,
-    get_hint_list = function(self, hint_states, hint_opts)
-      return M.create_hint_list_by_scanning_lines(self, hint_states, hint_opts)
+    _get_hint_list = function(self, hint_opts, hint_states)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, hint_opts, false),
+        {grey_out = util.get_grey_out(hint_states)}
     end
   }
 end
@@ -132,7 +226,7 @@ end
 -- The direction_mode argument allows to start / end hint creation after or before the cursor position
 --
 -- This function returns the list of hints
-function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
+function M.mark_hints_line(re, line_nr, line, col_offset, direction_mode, oneshot)
   local hints = {}
   local shifted_line = line
 
@@ -140,7 +234,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   if type(shifted_line) == "number" then
     if (shifted_line == constants.HintLineException.EMPTY_LINE) and
        (col_offset == 0) and
-       (hint_mode.match('')) ~= nil then
+       (re:match_str('')) ~= nil then
       hints[#hints + 1] = {
         line = line_nr;
         col = 1;
@@ -166,7 +260,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = hint_mode.match(s)
+    local b, e = re:match_str(s)
 
     if b == nil then
       break
@@ -178,7 +272,7 @@ function M.mark_hints_line(hint_mode, line_nr, line, col_offset, direction_mode)
       col_end = col_bias + col + e;
     }
 
-    if hint_mode.oneshot then
+    if oneshot then
       break
     else
       col = col + e
@@ -233,13 +327,14 @@ end
 local function create_hints_for_line(
   i,
   hint_list,
-  hint_mode,
+  re,
   hbuf,
   hs,
   direction_mode,
-  window_dist
+  window_dist,
+  oneshot
 )
-  local hints = M.mark_hints_line(hint_mode, hs.lnums[i], hs.lines[i], hs.lcols[i], direction_mode)
+  local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], direction_mode, oneshot)
   for _, hint in pairs(hints) do
     hint.handle = {w = hs.hwin, b = hbuf}
     hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col });
@@ -248,7 +343,7 @@ local function create_hints_for_line(
   end
 end
 
-function M.create_hint_list_by_scanning_lines(hint_mode, hint_states, opts)
+function M.create_hint_list_by_scanning_lines(re, hint_states, opts, oneshot)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -264,19 +359,19 @@ function M.create_hint_list_by_scanning_lines(hint_mode, hint_states, opts)
       -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
       if opts.direction == constants.HintDirection.AFTER_CURSOR then
         -- the first line is to be checked first
-        create_hints_for_line(1, hints, hint_mode, hbuf, hs, hs.dir_mode, window_dist)
+        create_hints_for_line(1, hints, re, hbuf, hs, hs.dir_mode, window_dist, oneshot)
         for i = 2, #hs.lines do
-          create_hints_for_line(i, hints, hint_mode, hbuf, hs, nil, window_dist)
+          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
         end
       elseif opts.direction == constants.HintDirection.BEFORE_CURSOR then
         -- the last line is to be checked last
         for i = 1, #hs.lines - 1 do
-          create_hints_for_line(i, hints, hint_mode, hbuf, hs, nil, window_dist)
+          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
         end
-        create_hints_for_line(#hs.lines, hints, hint_mode, hbuf, hs, hs.dir_mode, window_dist)
+        create_hints_for_line(#hs.lines, hints, re, hbuf, hs, hs.dir_mode, window_dist, oneshot)
       else
         for i = 1, #hs.lines do
-          create_hints_for_line(i, hints, hint_mode, hbuf, hs, nil, window_dist)
+          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
         end
       end
     end
@@ -306,39 +401,6 @@ function M.assign_character_targets(hint_list, opts)
   local perms = perm.permutations(opts.keys, #hint_list, opts)
   for i = 1, #hint_list do
     hint_list[i].hint = tbl_to_str(perms[i])
-  end
-end
-
-function M.set_hint_extmarks(hl_ns, hints)
-  for _, h in pairs(hints) do
-    local hbuf = h.handle.b
-    if not vim.api.nvim_buf_is_valid(hbuf) then
-      goto __NEXT_HH
-    end
-
-    if vim.fn.strdisplaywidth(h.hint) == 1 then
-      vim.api.nvim_buf_set_extmark(
-        hbuf,
-        hl_ns,
-        h.line, h.col - 1,
-        {
-          virt_text = { { h.hint, "HopNextKey" } };
-          virt_text_pos = 'overlay'
-        })
-    else
-      -- get the byte index of the second hint so that we can slice it correctly
-      local snd_idx = vim.fn.byteidx(h.hint, 1)
-      vim.api.nvim_buf_set_extmark(
-        hbuf,
-        hl_ns,
-        h.line, h.col - 1,
-        {
-          virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
-          virt_text_pos = 'overlay'
-        })
-    end
-
-    ::__NEXT_HH::
   end
 end
 
