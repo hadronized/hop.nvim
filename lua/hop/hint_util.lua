@@ -73,6 +73,26 @@ local function create_hint_winlines(hs, direction)
             cur_line = cur_line:sub(cidx0 + 1, cidx1 + 1)
           end
         end
+
+        -- adjust line and start col for direction
+        if lnr == top_line then
+          if direction_mode and direction == constants.HintDirection.AFTER_CURSOR then
+            local start_col = direction_mode.cursor_col
+            local new_offset = start_col - cur_cols
+            if new_offset > 0 then
+              cur_line = cur_line:sub(new_offset + 1)
+              cur_cols = start_col
+            end
+          end
+        elseif lnr == bot_line then
+          if direction_mode and direction == constants.HintDirection.BEFORE_CURSOR then
+            local end_col = direction_mode.cursor_col
+            local new_offset = end_col - cur_cols
+            if new_offset >= 0 then
+              cur_line = cur_line:sub(1, new_offset)
+            end
+          end
+        end
         table.insert(hs.lcols, cur_cols)
         table.insert(hs.lines, cur_line)
         lnr = lnr + 1

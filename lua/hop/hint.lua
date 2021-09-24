@@ -32,7 +32,7 @@ function M.by_searching(pat, opts)
       return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
     _get_hint_list = function(self, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.direction, opts.oneshot)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot)
     end
   }
 end
@@ -182,7 +182,7 @@ function M.by_case_searching(pat, plain_search, opts)
       return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
     _get_hint_list = function(self, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.direction, false)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, false)
     end
   }
 end
@@ -257,10 +257,8 @@ end
 --
 -- The input line_nr is the line number of the line currently being marked.
 --
--- The direction_mode argument allows to start / end hint creation after or before the cursor position
---
 -- This function returns the list of hints
-function M.mark_hints_line(re, line_nr, line, col_offset, direction_mode, oneshot)
+function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
   local hints = {}
   local shifted_line = line
 
@@ -280,16 +278,6 @@ function M.mark_hints_line(re, line_nr, line, col_offset, direction_mode, onesho
 
   -- modify the shifted line to take the direction mode into account, if any
   local col_bias = col_offset
-  if direction_mode ~= nil then
-    if direction_mode.direction == constants.HintDirection.AFTER_CURSOR then
-      -- we want to change the start offset so that we ignore everything before the cursor
-      shifted_line = shifted_line:sub(direction_mode.cursor_col - col_offset)
-      col_bias = direction_mode.cursor_col - 1
-    elseif direction_mode.direction == constants.HintDirection.BEFORE_CURSOR then
-      -- we want to change the end
-      shifted_line = shifted_line:sub(1, direction_mode.cursor_col - col_offset + 1)
-    end
-  end
 
   local col = 1
   while true do
@@ -364,11 +352,10 @@ local function create_hints_for_line(
   re,
   hbuf,
   hs,
-  direction_mode,
   window_dist,
   oneshot
 )
-  local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], direction_mode, oneshot)
+  local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
   for _, hint in pairs(hints) do
     hint.handle = {w = hs.hwin, b = hbuf}
     hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col });
@@ -377,7 +364,7 @@ local function create_hints_for_line(
   end
 end
 
-function M.create_hint_list_by_scanning_lines(re, hint_states, direction, oneshot)
+function M.create_hint_list_by_scanning_lines(re, hint_states, oneshot)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -389,24 +376,8 @@ function M.create_hint_list_by_scanning_lines(re, hint_states, direction, onesho
     local hbuf = hh.hbuf
     for _, hs in ipairs(hh) do
       local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
-
-      -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-      if direction == constants.HintDirection.AFTER_CURSOR then
-        -- the first line is to be checked first
-        create_hints_for_line(1, hints, re, hbuf, hs, hs.dir_mode, window_dist, oneshot)
-        for i = 2, #hs.lines do
-          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
-        end
-      elseif direction == constants.HintDirection.BEFORE_CURSOR then
-        -- the last line is to be checked last
-        for i = 1, #hs.lines - 1 do
-          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
-        end
-        create_hints_for_line(#hs.lines, hints, re, hbuf, hs, hs.dir_mode, window_dist, oneshot)
-      else
-        for i = 1, #hs.lines do
-          create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
-        end
+      for i = 1, #hs.lines do
+        create_hints_for_line(i, hints, re, hbuf, hs, window_dist, oneshot)
       end
     end
   end
