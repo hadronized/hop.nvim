@@ -15,7 +15,7 @@ function M.hint(hint_mode, opts)
   local hl_ns = vim.api.nvim_create_namespace('')
 
   -- Create call hints for all windows from hint_states
-  local hints, hint_opts = hint_mode:get_hint_list()
+  local hints, hint_opts = hint_mode.get_hint_list()
   -- cancelled
   if not hints then return end
   hint_opts = hint_opts or {}

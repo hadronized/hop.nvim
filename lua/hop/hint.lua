@@ -26,15 +26,14 @@ function M.by_searching(pat, opts)
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   local re = vim.regex(pat)
-  return {
-    get_hint_list = function(self)
-      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
-      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
-    end,
-    _get_hint_list = function(self, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot)
-    end
-  }
+
+  local strategy = {}
+  strategy.get_hint_list = function()
+    local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+    return M.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
+      {grey_out = util.get_grey_out(hint_states)}
+  end
+  return strategy
 end
 
 local function get_pattern(prompt, maxchar, opts, hint_states)
@@ -51,6 +50,9 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
   local bufs, hints = {}, {}
   local hint_opts = {grey_out = util.get_grey_out(hint_states)}
   local pat = ''
+
+  vim.fn.inputsave()
+
   while (true) do
     pat = vim.fn.join(pat_keys, '')
     if opts then
@@ -58,7 +60,7 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
       -- Preview the pattern in highlight
       ui_util.grey_things_out(hl_ns, hint_opts)
       if #pat > 0 then
-        hints = M.by_case_searching(pat, false, opts):_get_hint_list(hint_states)
+        hints = M.by_case_searching(pat, false, opts)._get_hint_list(hint_states)
         bufs = ui_util.highlight_things_out(hl_ns, hints)
       end
     end
@@ -99,38 +101,26 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
   end
   vim.api.nvim_echo({}, false, {})
   vim.cmd('redraw')
-  return pat
+
+  vim.fn.inputrestore()
+
+  if #pat == 0 then
+    ui_util.eprintln('-> empty pattern', opts.teasing)
+    return
+  end
+
+  return hints
 end
 
-function M.by_pattern(prompt, max_chars, pattern, opts)
+function M.by_pattern(prompt, max_chars, opts)
   opts = opts or {}
 
-  return {
-    get_hint_list = function(self)
-      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
-      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
-    end,
-    _get_hint_list = function(self, hint_states)
-      -- The pattern to search is either retrieved from the (optional) argument
-      -- or directly from user input.
-      local pat
-      if pattern then
-        pat = pattern
-      else
-        vim.fn.inputsave()
-        pat = get_pattern(prompt, max_chars, opts.preview and opts, hint_states)
-        vim.fn.inputrestore()
-        if not pat then return end
-      end
-
-      if #pat == 0 then
-        ui_util.eprintln('-> empty pattern', opts.teasing)
-        return
-      end
-
-      return M.by_case_searching(pat, false, opts):_get_hint_list(hint_states)
-    end
-  }
+  local strategy = {}
+  strategy.get_hint_list = function()
+    local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+    return get_pattern(prompt, max_chars, opts.preview and opts, hint_states), {grey_out = util.get_grey_out(hint_states)}
+  end
+  return strategy
 end
 
 -- Wrapper over M.by_searching to add support for case sensitivity.
@@ -176,15 +166,16 @@ function M.by_case_searching(pat, plain_search, opts)
   end
 
   local re = vim.regex(pat)
-  return {
-    get_hint_list = function(self)
-      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
-      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
-    end,
-    _get_hint_list = function(self, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, false)
-    end
-  }
+
+  local strategy = {}
+  strategy.get_hint_list = function()
+    local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+    return strategy._get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
+  end
+  strategy._get_hint_list = function(hint_states)
+    return M.create_hint_list_by_scanning_lines(re, hint_states, false)
+  end
+  return strategy
 end
 
 -- Word hint mode.
@@ -197,17 +188,17 @@ M.by_word_start = function(opts) return M.by_searching('\\k\\+', opts) end
 M.by_any_pattern = function (opts)
   opts = opts or {}
   opts.preview = true
-  return M.by_pattern("Hop pattern: ", nil, nil, opts)
+  return M.by_pattern("Hop pattern: ", nil, opts)
 end
 
 M.by_char1_pattern = function (opts)
   opts = opts or {}
-  return M.by_pattern("Hop 1 char: ", 1, nil, opts)
+  return M.by_pattern("Hop 1 char: ", 1, opts)
 end
 
 M.by_char2_pattern = function (opts)
   opts = opts or {}
-  return M.by_pattern("Hop 2 char: ", 2, nil, opts)
+  return M.by_pattern("Hop 2 char: ", 2, opts)
 end
 
 -- Line hint mode.
