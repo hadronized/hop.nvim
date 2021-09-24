@@ -10,11 +10,12 @@ local function get_command_opts(local_opts)
   return local_opts and setmetatable(local_opts, {__index = M.opts}) or M.opts
 end
 
-local function hint_with(hint_mode, opts)
+function M.hint(hint_mode, opts)
+  opts = get_command_opts(opts)
   local hl_ns = vim.api.nvim_create_namespace('')
 
   -- Create call hints for all windows from hint_states
-  local hints, hint_opts = hint_mode:get_hint_list(opts)
+  local hints, hint_opts = hint_mode:get_hint_list()
   -- cancelled
   if not hints then return end
   hint_opts = hint_opts or {}
@@ -106,32 +107,6 @@ function M.refine_hints(key, teasing, hl_ns, bufs, hint_opts, hints)
   end
 
   return h, update_hints, bufs
-end
-
-function M.hint_words(opts)
-  hint_with(hint.by_word_start, get_command_opts(opts))
-end
-
-function M.hint_patterns(opts, pattern)
-  opts = get_command_opts(opts)
-  opts.preview = true
-  hint_with(hint.by_pattern('Hop pattern: ', nil, pattern), opts)
-end
-
-function M.hint_char1(opts)
-  hint_with(hint.by_pattern('Hop 1 char: ', 1), get_command_opts(opts))
-end
-
-function M.hint_char2(opts)
-  hint_with(hint.by_pattern('Hop 2 char: ', 2), get_command_opts(opts))
-end
-
-function M.hint_lines(opts)
-  hint_with(hint.by_line_start, get_command_opts(opts))
-end
-
-function M.hint_lines_skip_whitespace(opts)
-  hint_with(hint.by_line_start_skip_whitespace, get_command_opts(opts))
 end
 
 -- Setup user settings.

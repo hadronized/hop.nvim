@@ -2,7 +2,7 @@ local constants = require'hop.constants'
 
 local M = {}
 -- Create hint lines from each windows to complete `hint_states` data
-local function create_hint_winlines(hs, opts)
+local function create_hint_winlines(hs, direction)
   -- get a bunch of information about the window and the cursor
   local hwin = hs.hwin
   local cursor_pos = hs.cursor_pos
@@ -14,7 +14,6 @@ local function create_hint_winlines(hs, opts)
   local bot_line = win_info.botline - 1 -- `getwininfo` use 1-based line number
 
   -- adjust the visible part of the buffer to hint based on the direction
-  local direction = opts.direction
   local direction_mode = nil
   if direction == constants.HintDirection.BEFORE_CURSOR then
     bot_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
@@ -149,9 +148,9 @@ local function crop_winlines(hc, hp)
 end
 
 -- Create hint lines from each buffer to complete `hint_states` data
-local function create_hint_buflines(hh, opts)
+local function create_hint_buflines(hh, direction)
   for _, hs in ipairs(hh) do
-    create_hint_winlines(hs, opts)
+    create_hint_winlines(hs, direction)
   end
 
   -- Remove inter-covered area of different windows with same buffer.
@@ -186,7 +185,7 @@ end
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
 -- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
-function M.create_hint_states(opts)
+function M.create_hint_states(multi_windows, direction)
   local hss = { } -- hint_states
 
   -- Current window as first item
@@ -201,7 +200,7 @@ function M.create_hint_states(opts)
   }
 
   -- Other windows of current tabpage
-  if opts.multi_windows then
+  if multi_windows then
     for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       local b = vim.api.nvim_win_get_buf(w)
       if w ~= cur_hwin then
@@ -235,7 +234,7 @@ function M.create_hint_states(opts)
   end
 
   for _, hh in ipairs(hss) do
-    create_hint_buflines(hh, opts)
+    create_hint_buflines(hh, direction)
   end
 
   vim.api.nvim_set_current_win(hss[1][1].hwin)

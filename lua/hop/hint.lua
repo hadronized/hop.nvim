@@ -19,19 +19,20 @@ end
 -- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
 
 -- Used to hint result of a search.
-function M.by_searching(pat, plain_search, oneshot)
-  if plain_search then
+function M.by_searching(pat, opts)
+  opts = opts or {}
+
+  if opts.plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
   local re = vim.regex(pat)
   return {
-    get_hint_list = function(self, hint_opts)
-      local hint_states = util.create_hint_states(hint_opts)
-      return self:_get_hint_list(hint_opts, hint_states)
+    get_hint_list = function(self)
+      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
-    _get_hint_list = function(self, hint_opts, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, hint_opts, oneshot),
-        {grey_out = util.get_grey_out(hint_states)}
+    _get_hint_list = function(self, hint_states)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.direction, opts.oneshot)
     end
   }
 end
@@ -57,7 +58,7 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
       -- Preview the pattern in highlight
       ui_util.grey_things_out(hl_ns, hint_opts)
       if #pat > 0 then
-        hints = M.by_case_searching(pat, false, opts):_get_hint_list(opts, hint_states)
+        hints = M.by_case_searching(pat, false, opts):_get_hint_list(hint_states)
         bufs = ui_util.highlight_things_out(hl_ns, hints)
       end
     end
@@ -101,13 +102,15 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
   return pat
 end
 
-function M.by_pattern(prompt, max_chars, pattern)
+function M.by_pattern(prompt, max_chars, pattern, opts)
+  opts = opts or {}
+
   return {
-    get_hint_list = function(self, hint_opts)
-      local hint_states = util.create_hint_states(hint_opts)
-      return self:_get_hint_list(hint_opts, hint_states)
+    get_hint_list = function(self)
+      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
-    _get_hint_list = function(self, hint_opts, hint_states)
+    _get_hint_list = function(self, hint_states)
       -- The pattern to search is either retrieved from the (optional) argument
       -- or directly from user input.
       local pat
@@ -115,23 +118,26 @@ function M.by_pattern(prompt, max_chars, pattern)
         pat = pattern
       else
         vim.fn.inputsave()
-        pat = get_pattern(prompt, max_chars, hint_opts.preview and hint_opts, hint_states)
+        pat = get_pattern(prompt, max_chars, opts.preview and opts, hint_states)
         vim.fn.inputrestore()
         if not pat then return end
       end
 
       if #pat == 0 then
-        ui_util.eprintln('-> empty pattern', hint_opts.teasing)
+        ui_util.eprintln('-> empty pattern', opts.teasing)
         return
       end
 
-      return M.by_case_searching(pat, false, hint_opts):_get_hint_list(hint_opts, hint_states)
+      return M.by_case_searching(pat, false, opts):_get_hint_list(hint_states)
     end
   }
 end
 
 -- Wrapper over M.by_searching to add support for case sensitivity.
 function M.by_case_searching(pat, plain_search, opts)
+  opts = opts or {}
+  opts.dict_list = opts.dict_list or {}
+
   local ori = pat
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
@@ -171,13 +177,12 @@ function M.by_case_searching(pat, plain_search, opts)
 
   local re = vim.regex(pat)
   return {
-    get_hint_list = function(self, hint_opts)
-      local hint_states = util.create_hint_states(hint_opts)
-      return self:_get_hint_list(hint_opts, hint_states)
+    get_hint_list = function(self)
+      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+      return self:_get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
-    _get_hint_list = function(self, hint_opts, hint_states)
-      return M.create_hint_list_by_scanning_lines(re, hint_states, hint_opts, false),
-        {grey_out = util.get_grey_out(hint_states)}
+    _get_hint_list = function(self, hint_states)
+      return M.create_hint_list_by_scanning_lines(re, hint_states, opts.direction, false)
     end
   }
 end
@@ -187,17 +192,43 @@ end
 -- Used to tag words with hints, its behaviour depends on the
 -- iskeyword value.
 -- M.by_word_start = M.by_searching('\\<\\k\\+')
-M.by_word_start = M.by_searching('\\k\\+')
+M.by_word_start = function(opts) return M.by_searching('\\k\\+', opts) end
+
+M.by_any_pattern = function (opts)
+  opts = opts or {}
+  opts.preview = true
+  return M.by_pattern("Hop pattern: ", nil, nil, opts)
+end
+
+M.by_char1_pattern = function (opts)
+  opts = opts or {}
+  return M.by_pattern("Hop 1 char: ", 1, nil, opts)
+end
+
+M.by_char2_pattern = function (opts)
+  opts = opts or {}
+  return M.by_pattern("Hop 2 char: ", 2, nil, opts)
+end
 
 -- Line hint mode.
 --
 -- Used to tag the beginning of each lines with hints.
-M.by_line_start = M.by_searching('^', false, true)
+M.by_line_start = function(opts)
+  opts = opts or {}
+  opts.plain_search = false
+  opts.oneshot = true
+  return M.by_searching('^', opts)
+end
 
 -- Line hint mode skipping leading whitespace.
 --
 -- Used to tag the beginning of each lines with hints.
-M.by_line_start_skip_whitespace = M.by_searching([[^\s*\zs\($\|\S\)]], false, true)
+M.by_line_start_skip_whitespace = function(opts)
+  opts = opts or {}
+  opts.plain_search = false
+  opts.oneshot = true
+  M.by_searching([[^\s*\zs\($\|\S\)]], opts)
+end
 
 -- Turn a table representing a hint into a string.
 local function tbl_to_str(hint)
@@ -346,7 +377,7 @@ local function create_hints_for_line(
   end
 end
 
-function M.create_hint_list_by_scanning_lines(re, hint_states, opts, oneshot)
+function M.create_hint_list_by_scanning_lines(re, hint_states, direction, oneshot)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -360,13 +391,13 @@ function M.create_hint_list_by_scanning_lines(re, hint_states, opts, oneshot)
       local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
 
       -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-      if opts.direction == constants.HintDirection.AFTER_CURSOR then
+      if direction == constants.HintDirection.AFTER_CURSOR then
         -- the first line is to be checked first
         create_hints_for_line(1, hints, re, hbuf, hs, hs.dir_mode, window_dist, oneshot)
         for i = 2, #hs.lines do
           create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
         end
-      elseif opts.direction == constants.HintDirection.BEFORE_CURSOR then
+      elseif direction == constants.HintDirection.BEFORE_CURSOR then
         -- the last line is to be checked last
         for i = 1, #hs.lines - 1 do
           create_hints_for_line(i, hints, re, hbuf, hs, nil, window_dist, oneshot)
