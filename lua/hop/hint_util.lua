@@ -383,12 +383,12 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
   while (true) do
     pat = vim.fn.join(pat_keys, '')
     if opts then
-      ui_util.clear_all_ns(hl_ns, bufs, hint_opts)
+      ui_util.clear_all_ns(hl_ns)
       -- Preview the pattern in highlight
       ui_util.grey_things_out(hl_ns, hint_opts)
       if #pat > 0 then
         hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), hint_states, false)
-        bufs = ui_util.highlight_things_out(hl_ns, hints)
+        ui_util.highlight_things_out(hl_ns, hints)
       end
     end
     vim.api.nvim_echo({}, false, {})
@@ -424,7 +424,7 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
     end
   end
   if opts then
-    ui_util.clear_all_ns(hl_ns, bufs, hint_opts)
+    ui_util.clear_all_ns(hl_ns)
   end
   vim.api.nvim_echo({}, false, {})
   vim.cmd('redraw')
