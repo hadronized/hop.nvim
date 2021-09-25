@@ -15,26 +15,52 @@ local function starts_with_uppercase(s)
   return f:upper() == f
 end
 
--- Hint modes follow.
--- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
-
--- Used to hint result of a search.
-function M.by_searching(pat, opts)
+local function format_pat(pat, opts)
   opts = opts or {}
 
+  local ori = pat
   if opts.plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
-  local re = vim.regex(pat)
 
-  local strategy = {}
-  strategy.get_hint_list = function()
-    local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
-    return M.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
-      {grey_out = util.get_grey_out(hint_states)}
+  -- append dict pattern for each char in `pat`
+  if opts.dict_list then
+    local dict_pat = ''
+    for i = 1, #ori do
+      local char = ori:sub(i, i)
+      local dict_char_pat = ''
+      -- checkout dict-char pattern from each dict
+      for _, v in ipairs(opts.dict_list) do
+        local val = require('hop.dict.' .. v)[char]
+        if val ~= nil then
+          dict_char_pat = dict_char_pat .. val
+        end
+      end
+      -- make sure that there are one dict support `char` at least
+      if dict_char_pat == '' then
+        dict_pat = ''
+        break
+      end
+      dict_pat = dict_pat .. '['.. dict_char_pat .. ']'
+    end
+    if dict_pat ~= '' then
+      pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
+    end
   end
-  return strategy
+
+  if not opts.no_smartcase and vim.o.smartcase then
+    if not starts_with_uppercase(ori) then
+      pat = '\\c' .. pat
+    end
+  elseif opts.case_insensitive then
+    pat = '\\c' .. pat
+  end
+
+  return vim.regex(pat)
 end
+
+-- Hint modes follow.
+-- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
 
 local function get_pattern(prompt, maxchar, opts, hint_states)
   local hl_ns = nil
@@ -47,7 +73,7 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
   local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
   local pat_keys = {}
-  local bufs, hints = {}, {}
+  local bufs, hints = {}, nil
   local hint_opts = {grey_out = util.get_grey_out(hint_states)}
   local pat = ''
 
@@ -60,7 +86,7 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
       -- Preview the pattern in highlight
       ui_util.grey_things_out(hl_ns, hint_opts)
       if #pat > 0 then
-        hints = M.by_case_searching(pat, false, opts)._get_hint_list(hint_states)
+        hints = M.create_hint_list_by_scanning_lines(format_pat(pat, opts), hint_states, false)
         bufs = ui_util.highlight_things_out(hl_ns, hints)
       end
     end
@@ -109,6 +135,8 @@ local function get_pattern(prompt, maxchar, opts, hint_states)
     return
   end
 
+  if not hints then hints = M.create_hint_list_by_scanning_lines(format_pat(pat, opts), hint_states, false) end
+
   return hints
 end
 
@@ -123,57 +151,17 @@ function M.by_pattern(prompt, max_chars, opts)
   return strategy
 end
 
--- Wrapper over M.by_searching to add support for case sensitivity.
-function M.by_case_searching(pat, plain_search, opts)
+-- Used to hint result of a search.
+function M.by_searching(pat, opts)
   opts = opts or {}
-  opts.dict_list = opts.dict_list or {}
 
-  local ori = pat
-  if plain_search then
-    pat = vim.fn.escape(pat, '\\/.$^~[]')
-  end
-
-  -- append dict pattern for each char in `pat`
-  local dict_pat = ''
-  for i = 1, #ori do
-    local char = ori:sub(i, i)
-    local dict_char_pat = ''
-    -- checkout dict-char pattern from each dict
-    for _, v in ipairs(opts.dict_list) do
-      local val = require('hop.dict.' .. v)[char]
-      if val ~= nil then
-        dict_char_pat = dict_char_pat .. val
-      end
-    end
-    -- make sure that there are one dict support `char` at least
-    if dict_char_pat == '' then
-      dict_pat = ''
-      break
-    end
-    dict_pat = dict_pat .. '['.. dict_char_pat .. ']'
-  end
-
-  if dict_pat ~= '' then
-    pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
-  end
-
-  if vim.o.smartcase then
-    if not starts_with_uppercase(ori) then
-      pat = '\\c' .. pat
-    end
-  elseif opts.case_insensitive then
-    pat = '\\c' .. pat
-  end
-
-  local re = vim.regex(pat)
+  local re = format_pat(pat, opts)
 
   local strategy = {}
   strategy.get_hint_list = function()
     local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
-    return strategy._get_hint_list(hint_states), {grey_out = util.get_grey_out(hint_states)}
-  end
-  strategy._get_hint_list = function(hint_states)
-    return M.create_hint_list_by_scanning_lines(re, hint_states, false)
+    return M.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
+      {grey_out = util.get_grey_out(hint_states)}
   end
   return strategy
 end
@@ -183,7 +171,11 @@ end
 -- Used to tag words with hints, its behaviour depends on the
 -- iskeyword value.
 -- M.by_word_start = M.by_searching('\\<\\k\\+')
-M.by_word_start = function(opts) return M.by_searching('\\k\\+', opts) end
+M.by_word_start = function(opts)
+  opts = opts or {}
+  opts.no_smartcase = true
+  return M.by_searching('\\k\\+', opts)
+end
 
 M.by_any_pattern = function (opts)
   opts = opts or {}
@@ -208,6 +200,7 @@ M.by_line_start = function(opts)
   opts = opts or {}
   opts.plain_search = false
   opts.oneshot = true
+  opts.no_smartcase = true
   return M.by_searching('^', opts)
 end
 
@@ -218,6 +211,7 @@ M.by_line_start_skip_whitespace = function(opts)
   opts = opts or {}
   opts.plain_search = false
   opts.oneshot = true
+  opts.no_smartcase = true
   M.by_searching([[^\s*\zs\($\|\S\)]], opts)
 end
 
