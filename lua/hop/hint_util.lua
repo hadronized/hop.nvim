@@ -525,8 +525,10 @@ local function create_hints_for_line(
     hint.buf = hbuf
     hint.callback = M.callbacks.win_goto(hs.hwin, {hint.line, hint.col - 1})
 
+    -- extra metadata
     hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
     hint.wdist = window_dist
+    hint.win = hs.hwin
 
     hint_list[#hint_list+1] = hint
   end
