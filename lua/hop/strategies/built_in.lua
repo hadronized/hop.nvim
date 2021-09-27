@@ -9,7 +9,8 @@ function M.by_pattern(prompt, max_chars, opts)
       local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
       return util.get_pattern(prompt, max_chars, opts.preview and opts, hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
-    comparator = util.win_cursor_dist_comparator
+    comparator = util.win_cursor_dist_comparator,
+    callback = util.callbacks.win_goto
   }
   return strategy
 end
@@ -26,7 +27,8 @@ function M.by_searching(pat, opts)
       return util.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
         {grey_out = util.get_grey_out(hint_states)}
     end,
-    comparator = util.comparators.win_cursor_dist_comparator
+    comparator = util.comparators.win_cursor_dist_comparator,
+    callback = util.callbacks.win_goto
   }
   return strategy
 end

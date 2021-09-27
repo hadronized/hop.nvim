@@ -523,7 +523,6 @@ local function create_hints_for_line(
   local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
   for _, hint in pairs(hints) do
     hint.buf = hbuf
-    hint.callback = M.callbacks.win_goto(hs.hwin, {hint.line, hint.col - 1})
 
     -- extra metadata
     hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
@@ -570,10 +569,11 @@ end
 
 M.callbacks = {}
 
-M.callbacks.win_goto = function(win, pos)
-  return function()
-    vim.api.nvim_set_current_win(win)
-    vim.api.nvim_win_set_cursor(win, pos)
-  end
+M.callbacks.win_goto = function(hint)
+  -- prior to jump, register the current position into the jump list
+  vim.cmd("normal! m'")
+
+  vim.api.nvim_set_current_win(hint.win)
+  vim.api.nvim_win_set_cursor(hint.win, {hint.line, hint.col - 1})
 end
 return M

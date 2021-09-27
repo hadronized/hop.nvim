@@ -69,6 +69,10 @@ local function get_command_opts(local_opts)
   return local_opts and setmetatable(local_opts, {__index = require"hop".opts}) or require"hop".opts
 end
 
+local function get_callback(hint_mode, hint)
+  return hint.callback or hint_mode.callback and function() hint_mode.callback(hint) end
+end
+
 -- Refine hints in the given buffer.
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
@@ -87,12 +91,6 @@ function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
     end
   else
     ui_util.clear_all_ns(hl_ns)
-
-    -- prior to jump, register the current position into the jump list
-    vim.cmd("normal! m'")
-
-    -- JUMP!
-    if h.callback then h.callback() end
   end
 
   return h, update_hints
@@ -114,7 +112,8 @@ function M.hint(hint_mode, opts)
   elseif opts.jump_on_sole_occurrence and #hints == 1 then
     -- search the hint and jump to it
     local h = hints[1]
-    if h.callback then h.callback() end
+    local callback = get_callback(hint_mode, h)
+    if callback then callback() end
     return
   end
 
@@ -151,6 +150,11 @@ function M.hint(hint_mode, opts)
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
       h, hints = M.refine_hints(key, opts.teasing, hl_ns, hint_opts, hints)
+
+      if h then
+        local callback = get_callback(hint_mode, h)
+        if callback then callback() end
+      end
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
