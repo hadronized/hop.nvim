@@ -57,14 +57,14 @@ end
 -- - pat_mode if provided, highlight the pattern
 function M.highlight_things_out(hl_ns, hints)
   for _, h in ipairs(hints) do
-    vim.api.nvim_buf_add_highlight(h.handle.b, hl_ns, 'HopPreview', h.line - 1, h.col - 1, h.col_end - 1)
-    M.ns_register_buf(hl_ns, h.handle.b)
+    vim.api.nvim_buf_add_highlight(h.buf, hl_ns, 'HopPreview', h.line - 1, h.col - 1, h.col_end - 1)
+    M.ns_register_buf(hl_ns, h.buf)
   end
 end
 
 function M.set_hint_extmarks(hl_ns, hints)
   for _, h in pairs(hints) do
-    local hbuf = h.handle.b
+    local hbuf = h.buf
     if not vim.api.nvim_buf_is_valid(hbuf) then
       goto __NEXT_HH
     end

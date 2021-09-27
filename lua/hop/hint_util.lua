@@ -522,11 +522,12 @@ local function create_hints_for_line(
 )
   local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
   for _, hint in pairs(hints) do
-    hint.handle = {w = hs.hwin, b = hbuf}
+    hint.buf = hbuf
+    hint.callback = M.callbacks.win_goto(hs.hwin, hint.line, hint.col)
+    hint_list[#hint_list+1] = hint
+
     hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col })
     hint.wdist = window_dist
-    hint.callback = M.callbacks.win_goto(hint.handle.w, hint.line, hint.col)
-    hint_list[#hint_list+1] = hint
   end
 end
 
