@@ -92,8 +92,7 @@ function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
     vim.cmd("normal! m'")
 
     -- JUMP!
-    vim.api.nvim_set_current_win(h.handle.w)
-    vim.api.nvim_win_set_cursor(h.handle.w, { h.line + 1, h.col - 1})
+    if h.callback then h.callback() end
   end
 
   return h, update_hints
@@ -115,8 +114,7 @@ function M.hint(hint_mode, opts)
   elseif opts.jump_on_sole_occurrence and #hints == 1 then
     -- search the hint and jump to it
     local h = hints[1]
-    vim.api.nvim_set_current_win(h.handle.w)
-    vim.api.nvim_win_set_cursor(h.handle.w, { h.line + 1, h.col - 1})
+    if h.callback then h.callback() end
     return
   end
 

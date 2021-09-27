@@ -462,7 +462,7 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
        (col_offset == 0) and
        (re:match_str('')) ~= nil then
       hints[#hints + 1] = {
-        line = line_nr;
+        line = line_nr + 1; -- use 1-indexed line
         col = 1;
         col_end = 0,
       }
@@ -483,7 +483,7 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
     end
 
     hints[#hints + 1] = {
-      line = line_nr;
+      line = line_nr + 1;
       col = col_bias + col + b;
       col_end = col_bias + col + e;
     }
@@ -523,8 +523,9 @@ local function create_hints_for_line(
   local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
   for _, hint in pairs(hints) do
     hint.handle = {w = hs.hwin, b = hbuf}
-    hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col });
-    hint.wdist = window_dist;
+    hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col })
+    hint.wdist = window_dist
+    hint.callback = M.callbacks.win_goto(hint.handle.w, hint.line, hint.col)
     hint_list[#hint_list+1] = hint
   end
 end
@@ -549,7 +550,9 @@ function M.create_hint_list_by_scanning_lines(re, hint_states, oneshot)
   return hints
 end
 
-M.win_cursor_dist_comparator = function(a, b)
+M.comparators = {}
+
+M.comparators.win_cursor_dist_comparator = function(a, b)
   if a.wdist < b.wdist then
     return true
   elseif a.wdist > b.wdist then
@@ -561,4 +564,12 @@ M.win_cursor_dist_comparator = function(a, b)
   end
 end
 
+M.callbacks = {}
+
+M.callbacks.win_goto = function(win, line,  col)
+  return function()
+    vim.api.nvim_set_current_win(win)
+    vim.api.nvim_win_set_cursor(win, { line, col - 1})
+  end
+end
 return M

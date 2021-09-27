@@ -57,7 +57,7 @@ end
 -- - pat_mode if provided, highlight the pattern
 function M.highlight_things_out(hl_ns, hints)
   for _, h in ipairs(hints) do
-    vim.api.nvim_buf_add_highlight(h.handle.b, hl_ns, 'HopPreview', h.line, h.col - 1, h.col_end - 1)
+    vim.api.nvim_buf_add_highlight(h.handle.b, hl_ns, 'HopPreview', h.line - 1, h.col - 1, h.col_end - 1)
     M.ns_register_buf(hl_ns, h.handle.b)
   end
 end
@@ -73,7 +73,7 @@ function M.set_hint_extmarks(hl_ns, hints)
       vim.api.nvim_buf_set_extmark(
         hbuf,
         hl_ns,
-        h.line, h.col - 1,
+        h.line - 1, h.col - 1,
         {
           virt_text = { { h.hint, "HopNextKey" } };
           virt_text_pos = 'overlay'
@@ -84,7 +84,7 @@ function M.set_hint_extmarks(hl_ns, hints)
       vim.api.nvim_buf_set_extmark(
         hbuf,
         hl_ns,
-        h.line, h.col - 1,
+        h.line - 1, h.col - 1,
         {
           virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
           virt_text_pos = 'overlay'

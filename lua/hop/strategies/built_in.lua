@@ -26,7 +26,7 @@ function M.by_searching(pat, opts)
       return util.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
         {grey_out = util.get_grey_out(hint_states)}
     end,
-    comparator = util.win_cursor_dist_comparator
+    comparator = util.comparators.win_cursor_dist_comparator
   }
   return strategy
 end
