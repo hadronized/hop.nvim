@@ -523,11 +523,12 @@ local function create_hints_for_line(
   local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
   for _, hint in pairs(hints) do
     hint.buf = hbuf
-    hint.callback = M.callbacks.win_goto(hs.hwin, hint.line, hint.col)
-    hint_list[#hint_list+1] = hint
+    hint.callback = M.callbacks.win_goto(hs.hwin, {hint.line, hint.col - 1})
 
-    hint.dist = manh_dist(hs.cursor_pos, { hint.line, hint.col })
+    hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
     hint.wdist = window_dist
+
+    hint_list[#hint_list+1] = hint
   end
 end
 
@@ -567,10 +568,10 @@ end
 
 M.callbacks = {}
 
-M.callbacks.win_goto = function(win, line,  col)
+M.callbacks.win_goto = function(win, pos)
   return function()
     vim.api.nvim_set_current_win(win)
-    vim.api.nvim_win_set_cursor(win, { line, col - 1})
+    vim.api.nvim_win_set_cursor(win, pos)
   end
 end
 return M
