@@ -257,7 +257,7 @@ function M.get_grey_out(hint_states)
     hl_buf_data.ranges = ranges
 
     local function add_range(line, col_start, col_end)
-      ranges[#ranges + 1] = {line = line, col_start = col_start, col_end = col_end}
+      ranges[#ranges + 1] = {start = {line, col_start}, ['end'] = {line, col_end}}
     end
 
     for _, hs in ipairs(hh) do

@@ -39,7 +39,13 @@ function M.grey_things_out(hl_ns, hint_opts)
     M.clear_ns(buf, hl_ns)
 
     for _, range in ipairs(hl_buf_data.ranges) do
-      vim.api.nvim_buf_add_highlight(buf, hl_ns, 'HopUnmatched', range.line, range.col_start, range.col_end)
+      vim.highlight.range(
+        buf,
+        hl_ns,
+        'HopUnmatched',
+        range.start,
+        range['end']
+      )
       M.ns_register_buf(hl_ns, buf)
     end
 
