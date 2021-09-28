@@ -407,13 +407,17 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
       break
     end
   end
+
   if opts then
     ui_util.clear_all_ns(hl_ns)
   end
+
   vim.api.nvim_echo({}, false, {})
   vim.cmd('redraw')
 
   vim.fn.inputrestore()
+
+  if not pat then return end
 
   if #pat == 0 then
     ui_util.eprintln('-> empty pattern', opts.teasing)
