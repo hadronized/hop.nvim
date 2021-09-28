@@ -207,51 +207,35 @@ end
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
 -- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
-function M.create_hint_states(multi_windows, direction)
+function M.create_hint_states(windows, direction)
   local hss = { } -- hint_states
 
-  -- Current window as first item
   local cur_hwin = vim.api.nvim_get_current_win()
-  local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
-  hss[#hss + 1] = {
-    hbuf = cur_hbuf,
-    {
-      hwin = cur_hwin,
-      cursor_pos = vim.api.nvim_win_get_cursor(cur_hwin),
-    }
-  }
 
-  -- Other windows of current tabpage
-  if multi_windows then
-    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-      local b = vim.api.nvim_win_get_buf(w)
-      if w ~= cur_hwin then
-
-        -- Check duplicated buffers
-        local hh = nil
-        for _, _hh in ipairs(hss) do
-          if b == _hh.hbuf then
-            hh = _hh
-            break
-          end
-        end
-
-        if hh then
-          hh[#hh + 1] = {
-            hwin = w,
-            cursor_pos = vim.api.nvim_win_get_cursor(w),
-          }
-        else
-          hss[#hss + 1] = {
-            hbuf = b,
-            {
-              hwin = w,
-              cursor_pos = vim.api.nvim_win_get_cursor(w),
-            }
-          }
-        end
-
+  for _, w in ipairs(windows) do
+    local b = vim.api.nvim_win_get_buf(w)
+    -- Check duplicated buffers
+    local hh = nil
+    for _, _hh in ipairs(hss) do
+      if b == _hh.hbuf then
+        hh = _hh
+        break
       end
+    end
+
+    if hh then
+      hh[#hh + 1] = {
+        hwin = w,
+        cursor_pos = vim.api.nvim_win_get_cursor(w),
+      }
+    else
+      hss[#hss + 1] = {
+        hbuf = b,
+        {
+          hwin = w,
+          cursor_pos = vim.api.nvim_win_get_cursor(w),
+        }
+      }
     end
   end
 
@@ -259,7 +243,7 @@ function M.create_hint_states(multi_windows, direction)
     create_hint_buflines(hh, direction)
   end
 
-  vim.api.nvim_set_current_win(hss[1][1].hwin)
+  vim.api.nvim_set_current_win(cur_hwin)
 
   return hss
 end
@@ -540,7 +524,7 @@ function M.create_hint_list_by_scanning_lines(re, hint_states, oneshot)
   -- cursor, allowing to zip this list with the hints and distribute the hints
   local hints = {}
 
-  local winpos = vim.api.nvim_win_get_position(hint_states[1][1].hwin)
+  local winpos = vim.api.nvim_win_get_position(0)
   for _, hh in ipairs(hint_states) do
     local hbuf = hh.hbuf
     for _, hs in ipairs(hh) do

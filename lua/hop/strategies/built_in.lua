@@ -6,7 +6,8 @@ function M.by_pattern(prompt, max_chars, opts)
 
   local strategy = {
     get_hint_list = function()
-      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+      local windows = opts.multi_windows and vim.api.nvim_tabpage_list_wins(0) or {vim.api.nvim_get_current_win()}
+      local hint_states = util.create_hint_states(windows, opts.direction)
       return util.get_pattern(prompt, max_chars, opts.preview and opts, hint_states), {grey_out = util.get_grey_out(hint_states)}
     end,
     comparator = util.win_cursor_dist_comparator,
@@ -23,7 +24,8 @@ function M.by_searching(pat, opts)
 
   local strategy = {
     get_hint_list = function()
-      local hint_states = util.create_hint_states(opts.multi_windows, opts.direction)
+      local windows = opts.multi_windows and vim.api.nvim_tabpage_list_wins(0) or {vim.api.nvim_get_current_win()}
+      local hint_states = util.create_hint_states(windows, opts.direction)
       return util.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
         {grey_out = util.get_grey_out(hint_states)}
     end,
