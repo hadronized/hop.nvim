@@ -367,7 +367,6 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
   while (true) do
     pat = vim.fn.join(pat_keys, '')
     if opts then
-      ui_util.clear_all_ns(hl_ns)
       -- Preview the pattern in highlight
       ui_util.grey_things_out(hl_ns, hint_opts)
       if #pat > 0 then

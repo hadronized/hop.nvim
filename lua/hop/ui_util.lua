@@ -31,6 +31,7 @@ end
 -- - hl_ns is the highlight namespace.
 -- - hint_opts in which the lnums in the buffer need to be highlighted
 function M.grey_things_out(hl_ns, hint_opts)
+  M.clear_all_ns(hl_ns)
   if not hint_opts.grey_out then return end
   for _, hl_buf_data in ipairs(hint_opts.grey_out) do
     local buf = hl_buf_data.buf
