@@ -305,41 +305,6 @@ The hint API allows to create, reduce and display *hints* in easy ways.
         have its hint label yet. Have a look at |hop.hint.create_hints| for
         further information about how the `hint` field is added.
 
-`hop.hint.reduce_hint(`{hint}`,` {key}`)`                       *hop.hint.reduce_hint*
-    Reduce {hint} with {key}.
-
-    If {hint} didn’t start with {key}, it is returned as-is. If {hint} started
-    with {key}, that {key} is removed from its beginning. If the remaining
-    hint is empty, `nil` is returned, otherwise the reduction is returned.
-
-    Arguments:~
-        {hint}  Hint to try to reduce.
-        {key}   Key to reduce with.
-
-    Return:~
-        The reduced hint, if reduced, or the original hint otherwise.
-
-`hop.hint.reduce_hints_lines(`                       *hop.hint.reduce_hints_lines*
-  {per_line_hints}`,`
-  {key}
-`)`
-    Reduce all hints in {per_line_hints} and return the fully reduced one, if
-    any, along with the modified per-line hints and number of changes.
-
-    If a hint is fully reduced, its `hint` field will be `nil` but its `line`,
-    `col` and `real_col` fields can still be used to jump to it.
-
-    Arguments:~
-        {per_line_hints}  Array of hints for each line to reduce.
-        {key}             Key to reduce with
-
-    Return:~
-        A tuple-like table, `{ reduced, new_per_line_hints, update_count }`,
-        where `reduced` is the fully reduced hint (if any),
-        `new_per_line_hints` the list of hints for each line, reduced (if it
-        was possible), and `update_count` is the number of changes that have
-        occurred while reducing.
-
 `hop.hint.HintDirection`                                  *hop.hint.HintDirection*
     Enumeration for hinting direction.
 

@@ -13,10 +13,15 @@ local function tbl_to_str(hint)
   return s
 end
 
--- Reduce a hint.
---
--- This function will remove hints not starting with the input key and will reduce the other ones
--- with one level.
+---Reduce hint with key.
+---
+---If hint didn’t start with key, it is returned as-is. If hint started
+---with key, that key is removed from its beginning. If the remaining
+---hint is empty, `nil` is returned, otherwise the reduction is returned.
+---
+---@param hint string @the hint string to reduce
+---@param key string @the character to reduce with (can be multi-byte)
+---@return string|nil @(see description)
 function M.reduce_hint(hint, key)
   local snd_idx = vim.fn.byteidx(hint, 1)
   if hint:sub(1, snd_idx) == key then
@@ -30,17 +35,21 @@ function M.reduce_hint(hint, key)
   return hint
 end
 
--- Reduce all hints and return the one fully reduced, if any.
+---Reduce all hints and return the one fully reduced, if any.
+---@param hints Hint[] @the list of hints to reduce
+---@param key string @the character to reduce with (can be multi-byte)
+---@return Hint|nil @a hint was reduced fully if there was one, otherwise nil
+---@return Hint[]|nil @the reduced list of hints if no hint was reduced fully, otherwise nil
 function M.reduce_hints(hints, key)
   local output = {}
 
   for _, h in pairs(hints) do
-    local prev_hint = h.hint
-    h.hint = M.reduce_hint(h.hint, key)
+    local prev_target = h.target
+    h.target = M.reduce_hint(h.target, key)
 
-    if h.hint == nil then
+    if h.target == nil then
       return h
-    elseif h.hint ~= prev_hint then
+    elseif h.target ~= prev_target then
       output[#output + 1] = h
     end
   end
@@ -48,9 +57,15 @@ function M.reduce_hints(hints, key)
   return nil, output
 end
 
+---Assign target strings to the hints in the given list, ordered by the given comparator.
+---@param hints Hint[] @the hints to assign targets to
+---@param comparator fun(a:Hint,b:Hint):boolean @the `table.sort` comparator function to use to sort hints
+---@param opts table @hop.nvim options
 function M.assign_character_targets(hints, comparator, opts)
   if comparator then
     if opts.reverse_distribution then
+      ---@param a Hint
+      ---@param b Hint
       comparator = function (a, b) return not comparator(a, b) end
     end
 
@@ -59,7 +74,7 @@ function M.assign_character_targets(hints, comparator, opts)
 
   local perms = perm.permutations(opts.keys, #hints, opts)
   for i = 1, #hints do
-    hints[i].hint = tbl_to_str(perms[i])
+    hints[i].target = tbl_to_str(perms[i])
   end
 end
 
@@ -67,10 +82,6 @@ end
 local function get_command_opts(local_opts)
   -- In case, local opts are defined, chain opts lookup: [user_local] -> [user_global] -> [default]
   return local_opts and setmetatable(local_opts, {__index = require"hop".opts}) or require"hop".opts
-end
-
-local function get_callback(hint_mode, hint)
-  return hint.callback or hint_mode.callback and function() hint_mode.callback(hint) end
 end
 
 -- Refine hints in the given buffer.
@@ -96,29 +107,56 @@ function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
   return h, update_hints
 end
 
-function M.hint(hint_mode, opts)
+---A hint that can be "hopped to".
+---@class Hint
+---@field target string @the UI string used for reducing to and selecting this hint
+---@field callback fun() @the callback to invoke when this hint is selected (overrides Strategy.callback)
+
+---Set of a range of lines to grey out in a buffer.
+---@class GreyOutBuf
+---@field buf number @the buffer to grey out
+---@field range table[] @a list of {start = ..., end = ...} ranges to grey out in this buf, where `...` are (1,0)-indexed (line,row) positions
+
+---UI-related options controlling how hints are displayed.
+---@class HintOpts
+---@field grey_out GreyOutBuf[]
+
+---A method for generating and using hints.
+---@class Strategy
+---@field get_hint_list fun():Hint[]|nil,table @function to get list of hints, returns nil to indicate cancellation,second
+---@field comparator fun(a:Hint,b:Hint):boolean @the `table.sort` comparator function to use to sort hints
+---@field callback fun(h:Hint) @the callback to invoke when a hint is selected (overriden by Hint.callback)
+
+---The "core" function of hop.nvim that generates, organizes, and displays hints.
+---@param strategy Strategy @the strategy to use
+---@param opts table @hop.nvim options
+function M.hint(strategy, opts)
   opts = get_command_opts(opts)
   local hl_ns = vim.api.nvim_create_namespace('')
 
   -- Create call hints for all windows from hint_states
-  local hints, hint_opts = hint_mode.get_hint_list()
+  local hints, hint_opts = strategy.get_hint_list()
   -- cancelled
   if not hints then return end
   hint_opts = hint_opts or {}
+
+  ---@param h Hint
+  local function jump(h)
+    local callback = h.callback or strategy.callback and function() strategy.callback(h) end
+    if callback then callback() end
+  end
 
   if #hints == 0 then
     ui_util.eprintln(' -> there’s no such thing we can see…', opts.teasing)
     return
   elseif opts.jump_on_sole_occurrence and #hints == 1 then
     -- search the hint and jump to it
-    local h = hints[1]
-    local callback = get_callback(hint_mode, h)
-    if callback then callback() end
+    jump(hints[1])
     return
   end
 
   -- mutate hint_list to add character targets
-  M.assign_character_targets(hints, hint_mode.comparator, opts)
+  M.assign_character_targets(hints, strategy.comparator, opts)
 
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
@@ -152,8 +190,7 @@ function M.hint(hint_mode, opts)
       h, hints = M.refine_hints(key, opts.teasing, hl_ns, hint_opts, hints)
 
       if h then
-        local callback = get_callback(hint_mode, h)
-        if callback then callback() end
+        jump(h)
       end
       vim.cmd('redraw')
     else

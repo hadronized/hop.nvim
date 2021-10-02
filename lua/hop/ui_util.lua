@@ -76,24 +76,24 @@ function M.set_hint_extmarks(hl_ns, hints)
       goto __NEXT_HH
     end
 
-    if vim.fn.strdisplaywidth(h.hint) == 1 then
+    if vim.fn.strdisplaywidth(h.target) == 1 then
       vim.api.nvim_buf_set_extmark(
         hbuf,
         hl_ns,
         h.line - 1, h.col - 1,
         {
-          virt_text = { { h.hint, "HopNextKey" } };
+          virt_text = { { h.target, "HopNextKey" } };
           virt_text_pos = 'overlay'
         })
     else
       -- get the byte index of the second hint so that we can slice it correctly
-      local snd_idx = vim.fn.byteidx(h.hint, 1)
+      local snd_idx = vim.fn.byteidx(h.target, 1)
       vim.api.nvim_buf_set_extmark(
         hbuf,
         hl_ns,
         h.line - 1, h.col - 1,
         {
-          virt_text = { { h.hint:sub(1, snd_idx), "HopNextKey1" }, { h.hint:sub(snd_idx + 1), "HopNextKey2" } };
+          virt_text = { { h.target:sub(1, snd_idx), "HopNextKey1" }, { h.target:sub(snd_idx + 1), "HopNextKey2" } };
           virt_text_pos = 'overlay'
         })
     end
