@@ -96,7 +96,9 @@ function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
       ui_util.eprintln('no remaining sequence starts with ' .. key, teasing)
       update_hints = hints
     else
-      ui_util.grey_things_out(hl_ns, hint_opts)
+      if hint_opts.grey_out then
+        ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
+      end
       ui_util.set_hint_extmarks(hl_ns, update_hints)
       vim.cmd('redraw')
     end
@@ -111,11 +113,15 @@ end
 ---@class Hint
 ---@field target string @the UI string used for reducing to and selecting this hint
 ---@field callback fun() @the callback to invoke when this hint is selected (overrides Strategy.callback)
+---@field buf number @this hint's buffer
+---@field line number @this hint's line number (1-indexed)
+---@field col number @this hint's start column number (inclusive, 1-indexed byte-based)
+---@field col_end number @this hint's end column number (inclusive, 1-indexed byte-based)
 
 ---Set of a range of lines to grey out in a buffer.
 ---@class GreyOutBuf
 ---@field buf number @the buffer to grey out
----@field range table[] @a list of {start = ..., end = ...} ranges to grey out in this buf, where `...` are (1,0)-indexed (line,row) positions
+---@field ranges table[] @a list of {start = ..., end = ...} ranges to grey out in this buf, where `...` are (1,0)-indexed (line,row) positions
 
 ---UI-related options controlling how hints are displayed.
 ---@class HintOpts
@@ -160,7 +166,9 @@ function M.hint(strategy, opts)
 
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
-  ui_util.grey_things_out(hl_ns, hint_opts)
+  if hint_opts.grey_out then
+    ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
+  end
   ui_util.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 

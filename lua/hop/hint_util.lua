@@ -358,7 +358,7 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
   local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
   local pat_keys = {}
-  local bufs, hints = {}, nil
+  local hints = nil
   local hint_opts = {grey_out = M.get_grey_out(hint_states)}
   local pat = ''
 
@@ -368,7 +368,9 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
     pat = vim.fn.join(pat_keys, '')
     if opts then
       -- Preview the pattern in highlight
-      ui_util.grey_things_out(hl_ns, hint_opts)
+      if hint_opts.grey_out then
+        ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
+      end
       if #pat > 0 then
         hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), hint_states, false)
         ui_util.highlight_things_out(hl_ns, hints)
