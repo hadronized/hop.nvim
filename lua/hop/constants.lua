@@ -1,5 +1,7 @@
 local M = {}
 
+---@alias HintDirection "require'hop.constants'.HintDirection.BEFORE_CURSOR"|"require'hop.constants'.HintDirection.AFTER_CURSOR"
+
 M.HintDirection = {
   BEFORE_CURSOR = 1,
   AFTER_CURSOR = 2,

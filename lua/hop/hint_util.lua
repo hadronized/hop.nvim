@@ -3,7 +3,8 @@ local ui_util = require'hop.ui_util'
 
 local M = {}
 
--- Create hint lines from each windows to complete `hint_states` data
+-- Create hint lines from each windows to complete `views_data` data
+---@param direction HintDirection
 local function create_hint_winlines(hs, direction)
   -- get a bunch of information about the window and the cursor
   local hwin = hs.hwin
@@ -16,15 +17,11 @@ local function create_hint_winlines(hs, direction)
   local bot_line = win_info.botline - 1 -- `getwininfo` use 1-based line number
 
   -- adjust the visible part of the buffer to hint based on the direction
-  local direction_mode = nil
   if direction == constants.HintDirection.BEFORE_CURSOR then
     bot_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   elseif direction == constants.HintDirection.AFTER_CURSOR then
     top_line = cursor_pos[1] - 1 -- `nvim_win_get_cursor()` use 1-based line number
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
-  hs.dir_mode = direction_mode
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -45,94 +42,97 @@ local function create_hint_winlines(hs, direction)
 
   -- get the buffer lines
   -- this line number
-  hs.lnums = {}
-  -- 0-based byte index of the leftmost character in this line
-  hs.lcols = {}
-  -- this line string
-  hs.lines = {}
+  hs.lines_data = {}
   local lnr = top_line
   while lnr <= bot_line do
-      table.insert(hs.lnums, lnr)
-      local fold_end = vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
-      if fold_end == -1 then
-        -- save line number and sliced line text to hint
-        local cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
-        local cur_cols = 0
-        -- 0-based cell index of last character in cur_line
-        local last_idx = vim.api.nvim_strwidth(cur_line) - 1
-        if win_rightcol then
-          if win_leftcol > last_idx then
-            -- constants.HintLineException.EMPTY_LINE means empty line and only col=1 can jump to
-            cur_cols = -1
-            cur_line = constants.HintLineException.EMPTY_LINE
-          else
-            -- 0-based byte index of leftmost visible character in line
-            local cidx0 = vim.fn.byteidx(cur_line, win_leftcol)
-            -- 0-based byte index of rightmost visible character in line
-            local cidx1 = win_rightcol <= last_idx
-              and vim.fn.byteidx(cur_line, win_rightcol) or vim.fn.byteidx(cur_line, last_idx)
-            cur_cols = cidx0
-            cur_line = cur_line:sub(cidx0 + 1, cidx1 + 1)
-          end
+    local fold_end = vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
+    local cur_line, cur_cols
+    if fold_end == -1 then
+      -- save line number and sliced line text to hint
+      cur_line = vim.fn.getline(lnr + 1) -- `getline()` use 1-based line number
+      cur_cols = 0
+      -- 0-based cell index of last character in cur_line
+      local last_idx = vim.api.nvim_strwidth(cur_line) - 1
+      if win_rightcol then
+        if win_leftcol > last_idx then
+          -- constants.HintLineException.EMPTY_LINE means empty line and only col=1 can jump to
+          cur_cols = -1
+          cur_line = constants.HintLineException.EMPTY_LINE
+        else
+          -- 0-based byte index of leftmost visible character in line
+          local cidx0 = vim.fn.byteidx(cur_line, win_leftcol)
+          -- 0-based byte index of rightmost visible character in line
+          local cidx1 = win_rightcol <= last_idx
+            and vim.fn.byteidx(cur_line, win_rightcol) or vim.fn.byteidx(cur_line, last_idx)
+          cur_cols = cidx0
+          cur_line = cur_line:sub(cidx0 + 1, cidx1 + 1)
         end
-
-        -- adjust line and start col for direction
-        if lnr == top_line then
-          if direction_mode and direction == constants.HintDirection.AFTER_CURSOR then
-            local start_col = direction_mode.cursor_col
-            local new_offset = start_col - cur_cols
-            if new_offset > 0 then
-              cur_line = cur_line:sub(new_offset + 1)
-              cur_cols = start_col
-            end
-          end
-        elseif lnr == bot_line then
-          if direction_mode and direction == constants.HintDirection.BEFORE_CURSOR then
-            local end_col = direction_mode.cursor_col
-            local new_offset = end_col - cur_cols
-            if new_offset >= 0 then
-              cur_line = cur_line:sub(1, new_offset)
-            end
-          end
-        end
-        table.insert(hs.lcols, cur_cols)
-        table.insert(hs.lines, cur_line)
-        lnr = lnr + 1
-      else
-        -- skip fold lines and only col=1 can jump to at fold lines
-        table.insert(hs.lcols, -1)
-        table.insert(hs.lines, constants.HintLineException.EMPTY_LINE)
-        lnr = fold_end
       end
+
+      -- adjust line and start col for direction
+      if lnr == top_line then
+        if direction == constants.HintDirection.AFTER_CURSOR then
+          local start_col = cursor_pos[2]
+          local new_offset = start_col - cur_cols
+          if new_offset > 0 then
+            cur_line = cur_line:sub(new_offset + 1)
+            cur_cols = start_col
+          end
+        end
+      elseif lnr == bot_line then
+        if direction == constants.HintDirection.BEFORE_CURSOR then
+          local end_col = cursor_pos[2]
+          local new_offset = end_col - cur_cols
+          if new_offset >= 0 then
+            cur_line = cur_line:sub(1, new_offset)
+          end
+        end
+      end
+      lnr = lnr + 1
+    else
+      -- skip fold lines and only col=1 can jump to at fold lines
+      cur_cols = -1
+      cur_line = constants.HintLineException.EMPTY_LINE
+      lnr = fold_end
+    end
+
+    local line_data = {
+      line_number = lnr,
+      col_start = cur_cols,
+      line = cur_line,
+    }
+
+    table.insert(hs.lines_data, line_data)
   end
 end
 
 -- Crop duplicated hint lines area  from `hc` compared with `hp`
 local function crop_winlines(hc, hp)
-  if hc.lnums[#hc.lnums] < hp.lnums[1] or hc.lnums[1] > hp.lnums[#hp.lnums] then
+  if hc[#hc].line_number < hp[1].line_number or hc[1].line_number > hp[#hp].line_number then
     return
   end
 
   local ci = 1         -- start line index of hc
-  local ce = #hc.lnums -- end line index of hc
+  local ce = #hc
   local pi = 1         -- start line index of hp
-  local pe = #hp.lnums -- end line index of hp
+  local pe = #hp
 
   while ci <= ce and pi <= pe do
-    if hc.lnums[ci] < hp.lnums[pi] then
+    local lc, lp = hc[ci], hp[pi]
+    if lc.line_number < lp.line_number then
       ci = ci + 1
-    elseif hc.lnums[ci] > hp.lnums[pi] then
+    elseif lc.line_number > lp.line_number then
       pi = pi + 1
-    elseif hc.lnums[ci] == hp.lnums[pi] then
-      if (hc.lines[ci] == constants.HintLineException.INVALID_LINE) or
-         (hp.lines[pi] == constants.HintLineException.INVALID_LINE) then
+    elseif lc.line_number == lp.line_number then
+      if (lc.line == constants.HintLineException.INVALID_LINE) or
+         (lp.line == constants.HintLineException.INVALID_LINE) then
          goto next
       end
-      if (type(hc.lines[ci]) == "string") and (type(hp.lines[pi]) == "string") then
-        local cl = hc.lcols[ci]       -- leftmost 0-based byte index of ci line
-        local cr = cl + #hc.lines[ci] - 1 -- rightmost 0-based byte index of ci line
-        local pl = hp.lcols[pi]       -- leftmost 0-based byte index of pi line
-        local pr = pl + #hp.lines[pi] - 1 -- rightmost 0-based byte index of pi line
+      if (type(lc.line) == "string") and (type(lp.line) == "string") then
+        local cl = lc.col_start       -- leftmost 0-based byte index of ci line
+        local cr = cl + #lc.line - 1  -- rightmost 0-based byte index of ci line
+        local pl = lp.col_start       -- leftmost 0-based byte index of pi line
+        local pr = pl + #lp.line - 1  -- rightmost 0-based byte index of pi line
 
         if cl > pr or cr < pl then
           -- Must keep this empty block to guarantee other elseif-condition correct
@@ -140,26 +140,26 @@ local function crop_winlines(hc, hp)
         elseif cl <= pl and cr <= pr then
           -- p:    ******
           -- c: ******
-          hc.lines[ci] = string.sub(hc.lines[ci], 1, pl - cl)
+          lc.line = string.sub(lc.line, 1, pl - cl)
         elseif cl <= pl and cr >= pr then
           -- p:    ******
           -- c: ************
-          hp.lines[pi] = hc.lines[ci]
-          hp.lcols[pi] = hc.lcols[ci]
-          hc.lines[ci] = constants.HintLineException.INVALID_LINE
+          lp.line = lc.line
+          lp.col_start = lc.col_start
+          lc.line = constants.HintLineException.INVALID_LINE
         elseif cl <= pr and cr >= pr then
           -- p: ******
           -- c:    ******
-          hc.lcols[ci] = pr + 1
-          hc.lines[ci] = string.sub(hc.lines[ci], pr - cl + 2)
+          lc.col_start = pr + 1
+          lc.line = string.sub(lc.line, pr - cl + 2)
         elseif cl <= pr and cr <= pr then
           -- p: ************
           -- c:    ******
-          hc.lines[ci] = constants.HintLineException.INVALID_LINE
+          lc.line = constants.HintLineException.INVALID_LINE
         end
-      elseif (hc.lines[ci] == constants.HintLineException.EMPTY_LINE) and
-             (hp.lines[pi] == constants.HintLineException.EMPTY_LINE) then
-          hc.lines[ci] = constants.HintLineException.INVALID_LINE
+      elseif (lc.line == constants.HintLineException.EMPTY_LINE) and
+             (lp.line == constants.HintLineException.EMPTY_LINE) then
+          lc.line = constants.HintLineException.INVALID_LINE
       end
 
       ::next::
@@ -169,23 +169,35 @@ local function crop_winlines(hc, hp)
   end
 end
 
--- Create hint lines from each buffer to complete `hint_states` data
+-- Create hint lines from each buffer to complete `views_data` data
 local function create_hint_buflines(hh, direction)
-  for _, hs in ipairs(hh) do
+  local wins_data = hh.wins_data
+  for _, hs in ipairs(wins_data) do
     create_hint_winlines(hs, direction)
   end
 
   -- Remove inter-covered area of different windows with same buffer.
   -- Iterate reverse to guarantee the first window has the max area.
-  for c = #hh, 1, -1 do
+  for c = #wins_data, 1, -1 do
     for p = 1, c-1 do
-      crop_winlines(hh[c], hh[p])
+      crop_winlines(wins_data[c].lines_data, wins_data[p].lines_data)
     end
   end
 end
 
+---To contain any possibly relevant data about all the views on a buffer.
+---@class ViewsWinData
+---@field hwin number @the window
+---@field cursor_pos table @(1,0)-indexed cursor position within this window
+---@field direction HintDirection @(1,0)-indexed cursor position within this window
+
+---To contain any possibly relevant data about all the views on a buffer.
+---@class ViewsData
+---@field hbuf number @the buffer whose views we are considering
+---@field wins_data ViewsWinData[] @list of the data by window
+
 -- Create all hint state for all multi-windows.
--- Specification for `hint_states`:
+-- Specification for `views_data`:
 --{
 --   { -- hist state list that each contains one buffer
 --      hbuf = <buf-handle>,
@@ -207,8 +219,8 @@ end
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
 -- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
-function M.create_hint_states(windows, direction)
-  local hss = { } -- hint_states
+function M.create_views_data(windows, direction)
+  local hss = { } -- views_data
 
   local cur_hwin = vim.api.nvim_get_current_win()
 
@@ -224,17 +236,18 @@ function M.create_hint_states(windows, direction)
     end
 
     if hh then
-      hh[#hh + 1] = {
+      local wins_data = hh.wins_data
+      wins_data[#wins_data + 1] = {
         hwin = w,
         cursor_pos = vim.api.nvim_win_get_cursor(w),
       }
     else
       hss[#hss + 1] = {
         hbuf = b,
-        {
+        wins_data = {{
           hwin = w,
           cursor_pos = vim.api.nvim_win_get_cursor(w),
-        }
+        }}
       }
     end
   end
@@ -248,42 +261,23 @@ function M.create_hint_states(windows, direction)
   return hss
 end
 
-function M.get_grey_out(hint_states)
+function M.get_grey_out(views_data)
   local grey_out = {}
-  for _, hh in ipairs(hint_states) do
+  for _, hh in ipairs(views_data) do
     local hl_buf_data = {}
     hl_buf_data.buf = hh.hbuf
     local ranges = {}
     hl_buf_data.ranges = ranges
 
-    local function add_range(line, col_start, col_end)
-      ranges[#ranges + 1] = {start = {line, col_start}, ['end'] = {line, col_end}}
-    end
-
-    for _, hs in ipairs(hh) do
-      -- Highlight unmatched lines
-      if hs.dir_mode ~= nil then
-        if hs.dir_mode.direction == constants.HintDirection.AFTER_CURSOR then
-          -- Hightlight lines after cursor
-          add_range(hs.lnums[1], hs.dir_mode.cursor_col, -1)
-          for k = 2, #hs.lnums do
-            add_range(hs.lnums[k], 0, -1)
-          end
-        elseif hs.dir_mode.direction == constants.HintDirection.BEFORE_CURSOR then
-          -- Hightlight lines before cursor
-          for k = 1, #hs.lnums - 1 do
-            add_range(hs.lnums[k], 0, -1)
-          end
-          add_range(hs.lnums[#hs.lnums], 0, hs.dir_mode.cursor_col)
-        end
-      else
-        -- Hightlight all lines
-        for _, lnr in ipairs(hs.lnums) do
-          add_range(lnr, 0, -1)
-        end
+    for _, hs in ipairs(hh.wins_data) do
+      -- Hightlight all lines
+      for _, line_data in ipairs(hs.lines_data) do
+        local line_number = line_data.line_number - 1
+        local col_start = line_data.col_start
+        local col_end = type(line_data.line) == "string" and line_data.col_start + #line_data.line or -1
+        ranges[#ranges + 1] = {start = {line_number, col_start}, ['end'] = {line_number, col_end}}
       end
     end
-
     grey_out[#grey_out + 1] = hl_buf_data
   end
 
@@ -347,7 +341,7 @@ end
 -- Hint modes follow.
 -- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
 
-function M.get_pattern(prompt, maxchar, opts, hint_states)
+function M.get_pattern(prompt, maxchar, opts, views_data)
   local hl_ns = nil
   -- Create hint states for pattern preview
   if opts then
@@ -359,7 +353,7 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
   local pat_keys = {}
   local hints = nil
-  local hint_opts = {grey_out = M.get_grey_out(hint_states)}
+  local hint_opts = {grey_out = M.get_grey_out(views_data)}
   local pat = ''
 
   vim.fn.inputsave()
@@ -372,7 +366,7 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
         ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
       end
       if #pat > 0 then
-        hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), hint_states, false)
+        hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), views_data, false)
         ui_util.highlight_things_out(hl_ns, hints)
       end
     end
@@ -425,7 +419,7 @@ function M.get_pattern(prompt, maxchar, opts, hint_states)
     return
   end
 
-  if not hints then hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), hint_states, false) end
+  if not hints then hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), views_data, false) end
 
   return hints
 end
@@ -451,7 +445,7 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
        (col_offset == 0) and
        (re:match_str('')) ~= nil then
       hints[#hints + 1] = {
-        line = line_nr + 1; -- use 1-indexed line
+        line = line_nr; -- use 1-indexed line
         col = 1;
         col_end = 0,
       }
@@ -459,7 +453,6 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
     return hints
   end
 
-  -- modify the shifted line to take the direction mode into account, if any
   local col_bias = col_offset
 
   local col = 1
@@ -472,7 +465,7 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
     end
 
     hints[#hints + 1] = {
-      line = line_nr + 1;
+      line = line_nr;
       col = col_bias + col + b;
       col_end = col_bias + col + e;
     }
@@ -493,36 +486,7 @@ local function manh_dist(a, b, x_bias)
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
 
--- Create hints for a given indexed line.
---
--- This function is used in M.create_hints to apply the hints to all the visible lines in the buffer. The need for such
--- a specialized function is made real because of the possibility to have variations of hinting functions that will also
--- work in a given direction, requiring a more granular control at the line level.
---
--- Then hs argument is the item of `hint_states`.
-local function create_hints_for_line(
-  i,
-  hint_list,
-  re,
-  hbuf,
-  hs,
-  window_dist,
-  oneshot
-)
-  local hints = M.mark_hints_line(re, hs.lnums[i], hs.lines[i], hs.lcols[i], oneshot)
-  for _, hint in pairs(hints) do
-    hint.buf = hbuf
-
-    -- extra metadata
-    hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
-    hint.wdist = window_dist
-    hint.win = hs.hwin
-
-    hint_list[#hint_list+1] = hint
-  end
-end
-
-function M.create_hint_list_by_scanning_lines(re, hint_states, oneshot)
+function M.create_hint_list_by_scanning_lines(re, views_data, oneshot)
   -- extract all the words currently visible on screen; the hints variable contains the list
   -- of words as a pair of { line, column } for each word on a given line and indirect_words is a
   -- simple list containing { line, word_index, distance_to_cursor } that is sorted by distance to
@@ -530,12 +494,23 @@ function M.create_hint_list_by_scanning_lines(re, hint_states, oneshot)
   local hints = {}
 
   local winpos = vim.api.nvim_win_get_position(0)
-  for _, hh in ipairs(hint_states) do
+  for _, hh in ipairs(views_data) do
     local hbuf = hh.hbuf
-    for _, hs in ipairs(hh) do
+    for _, hs in ipairs(hh.wins_data) do
       local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
-      for i = 1, #hs.lines do
-        create_hints_for_line(i, hints, re, hbuf, hs, window_dist, oneshot)
+      for i = 1, #hs.lines_data do
+        local line_data = hs.lines_data[i]
+        local new_hints = M.mark_hints_line(re, line_data.line_number, line_data.line,
+          line_data.col_start, oneshot)
+        for _, hint in pairs(new_hints) do
+          hint.buf = hbuf
+
+          -- extra metadata
+          hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
+          hint.wdist = window_dist
+          hint.win = hs.hwin
+        end
+        vim.list_extend(hints, new_hints)
       end
     end
   end

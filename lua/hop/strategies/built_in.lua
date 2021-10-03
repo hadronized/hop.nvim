@@ -7,8 +7,9 @@ function M.by_pattern(prompt, max_chars, opts)
   local strategy = {
     get_hint_list = function()
       local windows = opts.multi_windows and vim.api.nvim_tabpage_list_wins(0) or {vim.api.nvim_get_current_win()}
-      local hint_states = util.create_hint_states(windows, opts.direction)
-      return util.get_pattern(prompt, max_chars, opts.preview and opts, hint_states), {grey_out = util.get_grey_out(hint_states)}
+      local views_data = util.create_views_data(windows, opts.direction)
+      return util.get_pattern(prompt, max_chars, opts.preview and opts, views_data),
+        {grey_out = util.get_grey_out(views_data)}
     end,
     comparator = util.win_cursor_dist_comparator,
     callback = util.callbacks.win_goto
@@ -25,9 +26,9 @@ function M.by_searching(pat, opts)
   local strategy = {
     get_hint_list = function()
       local windows = opts.multi_windows and vim.api.nvim_tabpage_list_wins(0) or {vim.api.nvim_get_current_win()}
-      local hint_states = util.create_hint_states(windows, opts.direction)
-      return util.create_hint_list_by_scanning_lines(re, hint_states, opts.oneshot),
-        {grey_out = util.get_grey_out(hint_states)}
+      local views_data = util.create_views_data(windows, opts.direction)
+      return util.create_hint_list_by_scanning_lines(re, views_data, opts.oneshot),
+        {grey_out = util.get_grey_out(views_data)}
     end,
     comparator = util.comparators.win_cursor_dist_comparator,
     callback = util.callbacks.win_goto
