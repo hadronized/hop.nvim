@@ -4,6 +4,7 @@ local ui_util = require'hop.ui_util'
 local M = {}
 
 -- Create hint lines from each windows to complete `views_data` data
+---@param hs ViewsWinData @the view data to populate
 ---@param direction HintDirection
 local function create_hint_winlines(hs, direction)
   -- get a bunch of information about the window and the cursor
@@ -106,18 +107,18 @@ local function create_hint_winlines(hs, direction)
   end
 end
 
--- Crop duplicated hint lines area  from `hc` compared with `hp`
+---Crop duplicated hint lines area  from `hc` compared with `hp`
+---@param hc LineData[] @line data that can be cropped
+---@param hp LineData[] @line data to crop with
 local function crop_winlines(hc, hp)
   if hc[#hc].line_number < hp[1].line_number or hc[1].line_number > hp[#hp].line_number then
     return
   end
 
   local ci = 1         -- start line index of hc
-  local ce = #hc
   local pi = 1         -- start line index of hp
-  local pe = #hp
 
-  while ci <= ce and pi <= pe do
+  while ci <= #hc and pi <= #hp do
     local lc, lp = hc[ci], hp[pi]
     if lc.line_number < lp.line_number then
       ci = ci + 1
@@ -141,12 +142,35 @@ local function crop_winlines(hc, hp)
           -- p:    ******
           -- c: ******
           lc.line = string.sub(lc.line, 1, pl - cl)
+          if #lc.line == 0 then
+            lc.line = constants.HintLineException.INVALID_LINE
+          end
         elseif cl <= pl and cr >= pr then
           -- p:    ******
           -- c: ************
-          lp.line = lc.line
-          lp.col_start = lc.col_start
-          lc.line = constants.HintLineException.INVALID_LINE
+          -- we want to split c in two, cropping out the middle
+
+          ---@type LineData
+          local left_cropped = {
+            col_start = cl,
+            line = lc.line:sub(1, pl - cl),
+            line_number = lc.line_number
+          }
+          if #left_cropped.line == 0 then left_cropped.line = constants.HintLineException.INVALID_LINE end
+          ---@type LineData
+          local right_cropped = nil
+          if cr > pr then
+            right_cropped = {
+              col_start = pr + 1,
+              line = lc.line:sub((pr + 2) - cl),
+              line_number = lc.line_number
+            }
+          end
+          hc[ci] = left_cropped
+          if right_cropped then
+            table.insert(hc, ci + 1, right_cropped)
+            ci = ci + 1
+          end
         elseif cl <= pr and cr >= pr then
           -- p: ******
           -- c:    ******
@@ -169,10 +193,13 @@ local function crop_winlines(hc, hp)
   end
 end
 
--- Create hint lines from each buffer to complete `views_data` data
+---Create hint lines from each buffer to complete `views_data` data
+---@param hh ViewsData @view data to complete
+---@param direction HintDirection @direction to use to complete data
 local function create_hint_buflines(hh, direction)
   local wins_data = hh.wins_data
   for _, hs in ipairs(wins_data) do
+    -- populate lines_data
     create_hint_winlines(hs, direction)
   end
 
@@ -185,49 +212,47 @@ local function create_hint_buflines(hh, direction)
   end
 end
 
----To contain any possibly relevant data about all the views on a buffer.
+---Describes a "view" on a line in a buffer.
+---@class LineData
+---@field line_number number @1-indexed line number of this line in its buffer
+---@field col_start number @0-indexed, byte-based column position where this line view starts
+---@field line string|HintLineException @the contents of this line view
+
+---To contain any possibly relevant data about all this view on a buffer.
 ---@class ViewsWinData
 ---@field hwin number @the window
 ---@field cursor_pos table @(1,0)-indexed cursor position within this window
----@field direction HintDirection @(1,0)-indexed cursor position within this window
+---@field lines_data LineData[] @line data for this view on the buffer
 
 ---To contain any possibly relevant data about all the views on a buffer.
 ---@class ViewsData
 ---@field hbuf number @the buffer whose views we are considering
 ---@field wins_data ViewsWinData[] @list of the data by window
 
--- Create all hint state for all multi-windows.
--- Specification for `views_data`:
---{
---   { -- hist state list that each contains one buffer
---      hbuf = <buf-handle>,
---      { -- windows list that display the same buffer
---         hwin = <win-handle>,
---         cursor_pos = { }, -- byte-based column
---         dir_mode = { },
---         lnums = { }, -- line number is 0-based
---         lcols = { }, -- byte-based column offset of each line
---         lines = { }, -- context to match hint of each line
---      },
---      ...
---   },
---   ...
---}
---
 -- Some confusing column:
 --   byte-based column: #line, strlen(), col(), getpos(), getcurpos(), nvim_win_get_cursor(), winsaveview().col
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
 -- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
+
+---Gathers information on the views on buffers in the given set of windows that could be relevant to hinting, 
+---taking the given direction into account.
+---@param windows number[] @window handles to collect information for
+---@param direction HintDirection @direction to use to restrict the scope of the information returned
+---@return ViewsData @a data structure containing the retrieved information
 function M.create_views_data(windows, direction)
+  ---@type ViewsData[]
   local hss = { } -- views_data
 
   local cur_hwin = vim.api.nvim_get_current_win()
 
   for _, w in ipairs(windows) do
     local b = vim.api.nvim_win_get_buf(w)
-    -- Check duplicated buffers
+    ---@type ViewsData
     local hh = nil
+
+    -- Check duplicated buffers
+    ---@param _hh ViewsData
     for _, _hh in ipairs(hss) do
       if b == _hh.hbuf then
         hh = _hh
