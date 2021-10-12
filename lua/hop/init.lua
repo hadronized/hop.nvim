@@ -1,5 +1,6 @@
 local defaults = require'hop.defaults'
 local hint = require'hop.hint'
+local prio = require'hop.priority'
 
 local M = {}
 
@@ -27,14 +28,14 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode, priority)
+local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
   if direction_mode ~= nil then
     if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
       vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, direction_mode.cursor_col, {
         end_line = bottom_line + 1,
         hl_group = 'HopUnmatched',
         hl_eol = true,
-        priority = priority
+        priority = prio.GREY_PRIO
       })
     elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
       vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
@@ -42,7 +43,7 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
         end_col = direction_mode.cursor_col,
         hl_group = 'HopUnmatched',
         hl_eol = true,
-        priority = priority
+        priority = prio.GREY_PRIO
       })
     end
   else
@@ -50,7 +51,7 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
       end_line = bottom_line + 1,
       hl_group = 'HopUnmatched',
       hl_eol = true,
-      priority = priority
+      priority = prio.GREY_PRIO
     })
   end
 end
@@ -60,7 +61,7 @@ end
 --   tab character or past the end of the line
 -- - the current line is empty
 -- - there are multibyte characters on the line
-local function add_virt_cur(ns, priority)
+local function add_virt_cur(ns)
   local cur_info = vim.fn.getcurpos()
   local cur_row = cur_info[2] - 1
   local cur_col = cur_info[3] - 1 -- this gives cursor column location, in bytes
@@ -73,21 +74,21 @@ local function add_virt_cur(ns, priority)
     vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
       virt_text = {{'█', 'Normal'}},
       virt_text_win_col = virt_col,
-      priority = priority
+      priority = prio.CURSOR_PRIO
     })
   -- otherwise check to see if cursor is at end of line or on empty line
   elseif #cur_line == cur_col then
     vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
       virt_text = {{'█', 'Normal'}},
       virt_text_pos = 'overlay',
-      priority = priority
+      priority = prio.CURSOR_PRIO
     })
   else
     vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
       -- end_col must be column of next character, in bytes
       end_col = vim.fn.byteidx(cur_line, vim.fn.charidx(cur_line, cur_col) + 1),
       hl_group = 'HopCursor',
-      priority = priority
+      priority = prio.CURSOR_PRIO
     })
   end
 end
@@ -174,14 +175,8 @@ local function hint_with(hint_mode, opts)
   }
 
   -- grey everything out and add the virtual cursor
-  -- the priority key dictates which extmark should be shown if there are multiple in the same location
-  -- higher priority extmarks are shown above lower priority
-  -- the priority key has a minimum value of 0, maximum value of 65535 (2^16 - 1) and it defaults to 4096 (2^12)
-  -- the grey highlight should have very high priority so it's shown above all other highlights in the buffer
-  -- the hint highlights should then be 1 priority above grey so they're shown above the grey
-  -- the virtual cursor should then be 1 priority above the hints so it's shown above the hints
-  grey_things_out(0, grey_cur_ns, top_line, bot_line, direction_mode, 65533)
-  add_virt_cur(grey_cur_ns, 65535)
+  grey_things_out(0, grey_cur_ns, top_line, bot_line, direction_mode)
+  add_virt_cur(grey_cur_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
@@ -273,7 +268,7 @@ function M.hint_patterns(opts, pattern)
   if pattern then
     pat = pattern
   else
-    add_virt_cur(cur_ns, 65535)
+    add_virt_cur(cur_ns)
     vim.cmd('redraw')
     vim.fn.inputsave()
     ok, pat = pcall(vim.fn.input, 'Search: ')
@@ -296,7 +291,7 @@ end
 function M.hint_char1(opts)
   opts = get_command_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns, 65535)
+  add_virt_cur(cur_ns)
   vim.cmd('redraw')
   local ok, c = pcall(vim.fn.getchar)
   if not ok then
@@ -309,7 +304,7 @@ end
 function M.hint_char2(opts)
   opts = get_command_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns, 65535)
+  add_virt_cur(cur_ns)
   vim.cmd('redraw')
   local ok, a = pcall(vim.fn.getchar)
   if not ok then
