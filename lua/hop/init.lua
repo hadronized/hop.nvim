@@ -143,9 +143,13 @@ function M.hint_with(jump_target_gtr, opts)
     bot_line = context.bot_line,
   }
 
-  -- dim everything out and add the virtual cursor
+  -- dim everything out, add the virtual cursor and hide diagnostics
   apply_dimming(0, dim_ns, context.top_line, context.bot_line, context.cursor_pos, opts.direction, opts.current_line_only)
   add_virt_cur(hl_ns)
+  if vim.fn.has("nvim-0.6") == 1 then
+    hint_state.diag_ns = vim.diagnostic.get_namespaces()
+    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.hide(ns) end
+  end
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
@@ -221,6 +225,9 @@ end
 function M.quit(buf_handle, hint_state)
   clear_namespace(buf_handle, hint_state.hl_ns)
   clear_namespace(buf_handle, hint_state.dim_ns)
+  if vim.fn.has("nvim-0.6") == 1 then
+    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, buf_handle) end
+  end
 end
 
 function M.hint_words(opts)
