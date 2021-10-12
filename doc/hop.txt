@@ -608,6 +608,10 @@ highlight is used. For the rest:
     Highlight used for unmatched part of the buffer when running a Hop command
     / Lua functions.
 
+`HopCursor`                                                     *hop-hl-HopCursor*
+    Highlight used for the fake cursor visible when running a Hop command /
+    Lua functions.
+
 Highlights are inserted in an augroup, `HopInitHighlight`, and an autocommand
 is automatically set when initializing the plugin, unless you set
 |hop-config-create_hl_autocmd| to `false`.
