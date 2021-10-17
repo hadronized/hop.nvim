@@ -22,7 +22,7 @@ function M.by_pattern(prompt, max_chars, opts)
       return util.get_pattern(prompt, max_chars, opts.preview, opts.fmt_opts, views_data),
         {grey_out = util.get_grey_out(views_data)}
     end,
-    comparator = util.win_cursor_dist_comparator,
+    comparator = util.comparators.win_cursor_dist_comparator,
     callback = util.callbacks.win_goto
   }
   return strategy
