@@ -121,12 +121,12 @@ end
 ---@field ranges table[] @a list of {start = ..., end = ...} ranges to grey out in this buf, where `...` are (1,0)-indexed (line,row) positions
 
 ---UI-related options controlling how hints are displayed.
----@class HintOpts
+---@class HintUIOpts
 ---@field grey_out GreyOutBuf[]
 
 ---A method for generating and using hints.
 ---@class Strategy
----@field get_hint_list fun():Hint[]|nil,table @function to get list of hints, returns nil to indicate cancellation,second
+---@field get_hint_list fun():Hint[]|nil,HintUIOpts @function to get list of hints, returns nil to indicate cancellation, second return value is HintUIOpts to use
 ---@field comparator fun(a:Hint,b:Hint):boolean @the `table.sort` comparator function to use to sort hints
 ---@field callback fun(h:Hint) @the callback to invoke when a hint is selected (overriden by Hint.callback)
 

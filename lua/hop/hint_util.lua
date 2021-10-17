@@ -298,9 +298,14 @@ function M.create_views_data(windows, direction)
   return hss
 end
 
+---Converts the given ViewsData into GreyOutBuf[] data for greying out the lines it includes.
+---@param views_data ViewsData[] @views data to be greyed out
+---@return GreyOutBuf[] @data for use in ui_util.grey_things_out corresponding to `views_data`
 function M.get_grey_out(views_data)
+  ---@type GreyOutBuf[]
   local grey_out = {}
   for _, hh in ipairs(views_data) do
+    ---@type GreyOutBuf
     local hl_buf_data = {}
     hl_buf_data.buf = hh.hbuf
     local ranges = {}
@@ -309,10 +314,12 @@ function M.get_grey_out(views_data)
     for _, hs in ipairs(hh.wins_data) do
       -- Hightlight all lines
       for _, line_data in ipairs(hs.lines_data) do
-        local line_number = line_data.line_number - 1
-        local col_start = line_data.col_start
-        local col_end = type(line_data.line) == "string" and line_data.col_start + #line_data.line or -1
-        ranges[#ranges + 1] = {start = {line_number, col_start}, ['end'] = {line_number, col_end}}
+        if type(line_data.line) == "string" then
+          local line_number = line_data.line_number - 1
+          local col_start = line_data.col_start
+          local col_end = line_data.col_start + #line_data.line
+          ranges[#ranges + 1] = {start = {line_number, col_start}, ['end'] = {line_number, col_end}}
+        end
       end
     end
     grey_out[#grey_out + 1] = hl_buf_data
@@ -331,22 +338,21 @@ local function starts_with_uppercase(s)
   return f:upper() == f
 end
 
-function M.format_pat(pat, opts)
-  opts = opts or {}
-
+function M.format_pat(pat, fmt_opts)
+  fmt_opts = fmt_opts or {}
   local ori = pat
-  if opts.plain_search then
+  if fmt_opts.plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
 
   -- append dict pattern for each char in `pat`
-  if opts.dict_list then
+  if fmt_opts.dict_list then
     local dict_pat = ''
     for i = 1, #ori do
       local char = ori:sub(i, i)
       local dict_char_pat = ''
       -- checkout dict-char pattern from each dict
-      for _, v in ipairs(opts.dict_list) do
+      for _, v in ipairs(fmt_opts.dict_list) do
         local val = require('hop.dict.' .. v)[char]
         if val ~= nil then
           dict_char_pat = dict_char_pat .. val
@@ -364,11 +370,11 @@ function M.format_pat(pat, opts)
     end
   end
 
-  if not opts.no_smartcase and vim.o.smartcase then
+  if not fmt_opts.no_smartcase and vim.o.smartcase then
     if not starts_with_uppercase(ori) then
       pat = '\\c' .. pat
     end
-  elseif opts.case_insensitive then
+  elseif fmt_opts.case_insensitive then
     pat = '\\c' .. pat
   end
 
@@ -378,7 +384,7 @@ end
 -- Hint modes follow.
 -- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
 
-function M.get_pattern(prompt, maxchar, opts, views_data)
+function M.get_pattern(prompt, maxchar, preview, fmt_opts, views_data)
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
   local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
@@ -401,9 +407,9 @@ function M.get_pattern(prompt, maxchar, opts, views_data)
   while (true) do
     ui_util.clear_all_ns(hl_ns)
     pat = vim.fn.join(pat_keys, '')
-    if opts then
+    if preview then
       if #pat > 0 then
-        hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), views_data, false)
+        hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, fmt_opts), views_data, false)
         ui_util.highlight_things_out(hl_ns, hints)
       end
     end
@@ -451,11 +457,11 @@ function M.get_pattern(prompt, maxchar, opts, views_data)
   if not pat then return end
 
   if #pat == 0 then
-    ui_util.eprintln('-> empty pattern', opts.teasing)
+    --ui_util.eprintln('-> empty pattern', opts.teasing)
     return
   end
 
-  if not hints then hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), views_data, false) end
+  if not hints then hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, fmt_opts), views_data, false) end
 
   return hints
 end

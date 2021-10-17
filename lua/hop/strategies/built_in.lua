@@ -1,14 +1,17 @@
 local util = require"hop.hint_util"
 local M = {}
 
+---@param prompt string @prompt to display when querying pattern
+---@param max_chars number @maximum number of chars to input before automatically hinting
 function M.by_pattern(prompt, max_chars, opts)
   opts = opts or {}
 
+  ---@type Strategy
   local strategy = {
     get_hint_list = function()
       local windows = opts.multi_windows and vim.api.nvim_tabpage_list_wins(0) or {vim.api.nvim_get_current_win()}
       local views_data = util.create_views_data(windows, opts.direction)
-      return util.get_pattern(prompt, max_chars, opts.preview and opts, views_data),
+      return util.get_pattern(prompt, max_chars, opts.preview, opts.fmt_opts, views_data),
         {grey_out = util.get_grey_out(views_data)}
     end,
     comparator = util.win_cursor_dist_comparator,
@@ -21,7 +24,7 @@ end
 function M.by_searching(pat, opts)
   opts = opts or {}
 
-  local re = util.format_pat(pat, opts)
+  local re = util.format_pat(pat, opts.fmt_opts)
 
   local strategy = {
     get_hint_list = function()
@@ -43,7 +46,8 @@ end
 -- M.by_word_start = M.by_searching('\\<\\k\\+')
 M.by_word_start = function(opts)
   opts = opts or {}
-  opts.no_smartcase = true
+  opts.fmt_opts = opts.fmt_opts or {}
+  opts.fmt_opts.no_smartcase = true
   return M.by_searching('\\k\\+', opts)
 end
 
@@ -68,9 +72,10 @@ end
 -- Used to tag the beginning of each lines with hints.
 M.by_line_start = function(opts)
   opts = opts or {}
-  opts.plain_search = false
   opts.oneshot = true
-  opts.no_smartcase = true
+  opts.fmt_opts = opts.fmt_opts or {}
+  opts.fmt_opts.plain_search = false
+  opts.fmt_opts.no_smartcase = true
   return M.by_searching('^', opts)
 end
 
@@ -79,9 +84,10 @@ end
 -- Used to tag the beginning of each lines with hints.
 M.by_line_start_skip_whitespace = function(opts)
   opts = opts or {}
-  opts.plain_search = false
   opts.oneshot = true
-  opts.no_smartcase = true
+  opts.fmt_opts = opts.fmt_opts or {}
+  opts.fmt_opts.plain_search = false
+  opts.fmt_opts.no_smartcase = true
   return M.by_searching([[^\s*\zs\($\|\S\)]], opts)
 end
 
