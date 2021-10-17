@@ -88,7 +88,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
+function M.refine_hints(key, teasing, hl_ns, hints)
   local h, update_hints = M.reduce_hints(hints, key)
 
   if h == nil then
@@ -96,9 +96,6 @@ function M.refine_hints(key, teasing, hl_ns, hint_opts, hints)
       ui_util.eprintln('no remaining sequence starts with ' .. key, teasing)
       update_hints = hints
     else
-      if hint_opts.grey_out then
-        ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
-      end
       ui_util.set_hint_extmarks(hl_ns, update_hints)
       vim.cmd('redraw')
     end
@@ -138,7 +135,8 @@ end
 ---@param opts table @hop.nvim options
 function M.hint(strategy, opts)
   opts = get_command_opts(opts)
-  local hl_ns = vim.api.nvim_create_namespace('')
+  local hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   local hints, hint_opts = strategy.get_hint_list()
   -- cancelled
@@ -166,8 +164,9 @@ function M.hint(strategy, opts)
   -- create the highlight group and grey everything out; the highlight group will allow us to clean everything at once
   -- when hop quits
   if hint_opts.grey_out then
-    ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
+    ui_util.grey_things_out(grey_cur_ns, hint_opts.grey_out)
   end
+  ui_util.add_virt_cur(grey_cur_ns)
   ui_util.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
@@ -177,6 +176,7 @@ function M.hint(strategy, opts)
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
       ui_util.clear_all_ns(hl_ns)
+      ui_util.clear_all_ns(grey_cur_ns)
       break
     end
     local not_special_key = true
@@ -194,15 +194,17 @@ function M.hint(strategy, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in hop (via opts.keys), deal with it in hop
-      h, hints = M.refine_hints(key, opts.teasing, hl_ns, hint_opts, hints)
+      h, hints = M.refine_hints(key, opts.teasing, hl_ns, hints)
 
       if h then
         jump(h)
+        ui_util.clear_all_ns(grey_cur_ns)
       end
       vim.cmd('redraw')
     else
       -- If it's not, quit hop
       ui_util.clear_all_ns(hl_ns)
+      ui_util.clear_all_ns(grey_cur_ns)
 
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)

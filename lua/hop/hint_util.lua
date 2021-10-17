@@ -367,11 +367,8 @@ end
 -- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
 
 function M.get_pattern(prompt, maxchar, opts, views_data)
-  local hl_ns = nil
-  -- Create hint states for pattern preview
-  if opts then
-    hl_ns = vim.api.nvim_create_namespace('')
-  end
+  local hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
   local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
@@ -379,17 +376,20 @@ function M.get_pattern(prompt, maxchar, opts, views_data)
   local pat_keys = {}
   local hints = nil
   local hint_opts = {grey_out = M.get_grey_out(views_data)}
+  -- Preview the pattern in highlight
+  if hint_opts.grey_out then
+    ui_util.grey_things_out(grey_cur_ns, hint_opts.grey_out)
+  end
+  ui_util.add_virt_cur(grey_cur_ns)
+  vim.cmd('redraw')
   local pat = ''
 
   vim.fn.inputsave()
 
   while (true) do
+    ui_util.clear_all_ns(hl_ns)
     pat = vim.fn.join(pat_keys, '')
     if opts then
-      -- Preview the pattern in highlight
-      if hint_opts.grey_out then
-        ui_util.grey_things_out(hl_ns, hint_opts.grey_out)
-      end
       if #pat > 0 then
         hints = M.create_hint_list_by_scanning_lines(M.format_pat(pat, opts), views_data, false)
         ui_util.highlight_things_out(hl_ns, hints)
@@ -428,9 +428,8 @@ function M.get_pattern(prompt, maxchar, opts, views_data)
     end
   end
 
-  if opts then
-    ui_util.clear_all_ns(hl_ns)
-  end
+  ui_util.clear_all_ns(hl_ns)
+  ui_util.clear_all_ns(grey_cur_ns)
 
   vim.api.nvim_echo({}, false, {})
   vim.cmd('redraw')
