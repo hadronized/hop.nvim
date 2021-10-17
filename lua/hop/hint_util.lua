@@ -338,6 +338,15 @@ local function starts_with_uppercase(s)
   return f:upper() == f
 end
 
+---@class FormatOpts
+---@field plain_search boolean @whether to interpret the pattern literally (not as lua regex)
+---@field dict_list string[] @list of dictionaries to use for ASCII shorthands
+---@field no_smartcase boolean @whether to disable smartcase-like matching (see `vim.o.smartcase`)
+---@field case_insensitive boolean @whether to match ignoring case
+
+---Format the given pattern, considering the given options.
+---@param pat string @pattern to match
+---@param fmt_opts FormatOpts @options to use when building pattern
 function M.format_pat(pat, fmt_opts)
   fmt_opts = fmt_opts or {}
   local ori = pat
@@ -381,9 +390,13 @@ function M.format_pat(pat, fmt_opts)
   return vim.regex(pat)
 end
 
--- Hint modes follow.
--- a hint mode should define a get_hint_list function that returns a list of {line, col} positions for hop targets.
-
+---Get a pattern from the user and use this to generate a list of hints.
+---@param prompt string @the prompt to show the user
+---@param maxchar number @maximum number of chars to input before automatically hinting
+---@param preview boolean @whether to visually preview the pattern search
+---@param fmt_opts FormatOpts @options to use when building pattern
+---@param views_data ViewsData[] @view data to pattern match on
+---@return Hint[]|nil @list of hints found matching the input pattern, or nil to indicate cancellation
 function M.get_pattern(prompt, maxchar, preview, fmt_opts, views_data)
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
   local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
@@ -538,6 +551,7 @@ function M.create_hint_list_by_scanning_lines(re, views_data, oneshot)
         local line_data = hs.lines_data[i]
         local new_hints = M.mark_hints_line(re, line_data.line_number, line_data.line,
           line_data.col_start, oneshot)
+        ---@param hint Hint
         for _, hint in pairs(new_hints) do
           hint.buf = hbuf
 

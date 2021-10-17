@@ -106,7 +106,8 @@ function M.refine_hints(key, teasing, hl_ns, hints)
   return h, update_hints
 end
 
----A hint that can be "hopped to".
+---A hint that can be "hopped to". It should have at least these fields, but you can add any others you want
+---(for sorting etc.)
 ---@class Hint
 ---@field target string @the UI string used for reducing to and selecting this hint
 ---@field callback fun() @the callback to invoke when this hint is selected (overrides Strategy.callback)
