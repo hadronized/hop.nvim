@@ -230,7 +230,7 @@ end
 ---@field wins_data ViewsWinData[] @list of the data by window
 
 -- Manhattan distance with column and row, weighted on x so that results are more packed on y.
-local function manh_dist(a, b, x_bias)
+function M.manh_dist(a, b, x_bias)
   local bias = x_bias or 10
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
@@ -249,8 +249,8 @@ end
 function M.create_views_data(windows, direction)
   table.sort(windows, function(wa, wb)
       local winpos = vim.api.nvim_win_get_position(0)
-      return manh_dist(winpos, vim.api.nvim_win_get_position(wa))
-      < manh_dist(winpos, vim.api.nvim_win_get_position(wb))
+      return M.manh_dist(winpos, vim.api.nvim_win_get_position(wa))
+      < M.manh_dist(winpos, vim.api.nvim_win_get_position(wb))
     end)
 
   ---@type ViewsData[]
@@ -546,7 +546,7 @@ function M.create_hint_list_by_scanning_lines(re, views_data, oneshot)
   for _, hh in ipairs(views_data) do
     local hbuf = hh.hbuf
     for _, hs in ipairs(hh.wins_data) do
-      local window_dist = manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
+      local window_dist = M.manh_dist(winpos, vim.api.nvim_win_get_position(hs.hwin))
       for i = 1, #hs.lines_data do
         local line_data = hs.lines_data[i]
         local new_hints = M.mark_hints_line(re, line_data.line_number, line_data.line,
@@ -556,7 +556,7 @@ function M.create_hint_list_by_scanning_lines(re, views_data, oneshot)
           hint.buf = hbuf
 
           -- extra metadata
-          hint.dist = manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
+          hint.dist = M.manh_dist(hs.cursor_pos, {hint.line, hint.col - 1})
           hint.wdist = window_dist
           hint.win = hs.hwin
         end
