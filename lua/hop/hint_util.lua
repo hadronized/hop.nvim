@@ -229,18 +229,30 @@ end
 ---@field hbuf number @the buffer whose views we are considering
 ---@field wins_data ViewsWinData[] @list of the data by window
 
+-- Manhattan distance with column and row, weighted on x so that results are more packed on y.
+local function manh_dist(a, b, x_bias)
+  local bias = x_bias or 10
+  return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
+end
+
 -- Some confusing column:
 --   byte-based column: #line, strlen(), col(), getpos(), getcurpos(), nvim_win_get_cursor(), winsaveview().col
 --   cell-based column: strwidth(), strdisplaywidth(), nvim_strwidth(), wincol(), winsaveview().leftcol
 -- Take attention on that nvim_buf_set_extmark() and vim.regex:match_str() use byte-based buffer column.
 -- To get exactly what's showing in window, use strchars() and strcharpart() which can handle multi-byte characters.
 
----Gathers information on the views on buffers in the given set of windows that could be relevant to hinting, 
+---Gathers information on the views on buffers in the given set of windows that could be relevant to hinting,
 ---taking the given direction into account.
 ---@param windows number[] @window handles to collect information for
 ---@param direction HintDirection @direction to use to restrict the scope of the information returned
 ---@return ViewsData @a data structure containing the retrieved information
 function M.create_views_data(windows, direction)
+  table.sort(windows, function(wa, wb)
+      local winpos = vim.api.nvim_win_get_position(0)
+      return manh_dist(winpos, vim.api.nvim_win_get_position(wa))
+      < manh_dist(winpos, vim.api.nvim_win_get_position(wb))
+    end)
+
   ---@type ViewsData[]
   local hss = { } -- views_data
 
@@ -502,12 +514,6 @@ function M.mark_hints_line(re, line_nr, line, col_offset, oneshot)
   end
 
   return hints
-end
-
--- Manhattan distance with column and row, weighted on x so that results are more packed on y.
-local function manh_dist(a, b, x_bias)
-  local bias = x_bias or 10
-  return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
 
 function M.create_hint_list_by_scanning_lines(re, views_data, oneshot)
