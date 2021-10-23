@@ -6,6 +6,8 @@
                                                      /_/
                                       · Neovim motions on speed! ·
 
+[![](https://img.shields.io/badge/matrix-join%20the%20speed!-blueviolet)](https://matrix.to/#/#hop.nvim:matrix.org)
+
 **Hop** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
 document with as few keystrokes as possible. It does so by annotating text in
 your buffer with hints, short string sequences for which each character
@@ -46,12 +48,13 @@ Neovim.
   * [Use as operator motion](#use-as-operator-motion)
 * [Getting started](#getting-started)
   * [Installation](#installation)
-    * [Using vim-plug](#using-vim-plug)
-    * [Using packer](#using-packer)
+    * [Using [vim-plug]](#using-vim-plug)
+    * [Using [packer]](#using-packer)
     * [Special notes regarding extended marks and virtual text](#special-notes-regarding-extended-marks-and-virtual-text)
 * [Usage](#usage)
 * [Keybindings](#keybindings)
 * [Configuration](#configuration)
+* [Chat](#chat)
 
 <!-- vim-markdown-toc -->
 
@@ -231,6 +234,11 @@ You can configure Hop via several different mechanisms:
 - In the case of none of the above are provided, options are automatically read from the _default_ options. See `:h
   hop-config` for a list of default values.
 
+# Chat
+
+Join the discussion on the official [Matrix room](https://matrix.to/#/#hop.nvim:matrix.org)!
+
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
 [vim-plug]: https://github.com/junegunn/vim-plug
 [packer]: https://github.com/wbthomason/packer.nvim
+
