@@ -138,9 +138,9 @@ the buffer before and after the cursor, respectively.
 
     This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
 
-`:HopChar1Line`                                                    *:HopLineStart*
-`:HopChar1LineBC`                                                *:HopLineStartBC*
-`:HopChar1LineAC`                                                *:HopLineStartAC*
+`:HopChar1Line`                                                    *:HopChar1Line*
+`:HopChar1LineBC`                                                *:HopChar1LineBC*
+`:HopChar1LineAC`                                                *:HopChar1LineAC*
     Like `HopChar1` but its scope constrained to current line only.
 
     This is akin to calling the |hop.hint_char1_line| Lua function.
