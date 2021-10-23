@@ -115,6 +115,12 @@ local function hint_with(hint_mode, opts)
     direction_mode = { cursor_col = cursor_pos[2], direction = direction }
   end
 
+  -- Constrain range of lines if we are in current-line-only mode
+  if hint_mode.curr_line_only then
+    top_line = cursor_pos[1] - 1
+    bot_line = cursor_pos[1] - 1
+  end
+
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
   -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
@@ -299,6 +305,13 @@ function M.hint_char1(opts)
     return
   end
   hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
+end
+
+function M.hint_char1_line(opts)
+    opts = get_command_opts(opts)
+    local ok, c = pcall(vim.fn.getchar)
+    if not ok then return end
+    hint_with(hint.by_case_searching_line(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)

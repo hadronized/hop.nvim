@@ -1,4 +1,4 @@
-*hop.txt*    For Neovim version 0.5                  Last change: 2021 Feb 6
+*hop.txt*    For Neovim version 0.5                  Last change: 2021 Aug 19
 
                                  __
                                 / /_  ____  ____
@@ -137,6 +137,13 @@ the buffer before and after the cursor, respectively.
     Blank lines are skipped over.
 
     This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
+
+`:HopChar1Line`                                                    *:HopChar1Line*
+`:HopChar1LineBC`                                                *:HopChar1LineBC*
+`:HopChar1LineAC`                                                *:HopChar1LineAC*
+    Like `HopChar1` but its scope constrained to current line only.
+
+    This is akin to calling the |hop.hint_char1_line| Lua function.
 
                                                                    *hop-lua-api*
 Lua API~
