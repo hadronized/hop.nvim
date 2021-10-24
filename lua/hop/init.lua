@@ -163,6 +163,11 @@ local function hint_with(hint_mode, opts)
     for _, line_hints in pairs(hints) do
       if #line_hints.hints == 1 then
         h = line_hints.hints[1]
+
+        -- prior to jump, register the current position into the jump list
+        vim.cmd("normal! m'")
+
+        -- JUMP!
         vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
         break
       end
