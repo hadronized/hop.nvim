@@ -109,6 +109,16 @@ local function create_jump_targets_for_line(
 end
 
 -- Create jump targets by scanning lines in the currently visible buffer.
+--
+-- This function returns the lined jump targets (an array of N lines, where N is the number of currently visible lines).
+-- Lines without jump targets are assigned an empty table ({}). For lines with jump targets, a list-table contains the
+-- jump targets as pair of { line, col }.
+--
+-- In addition the jump targets, this function returns the total number of jump targets (i.e. this is the same thing as
+-- traversing the lined jump targets and summing the number of jump targets for all lines) as a courtesy, plus «
+-- indirect jump targets. » Indirect jump targets are encoded as a flat list-table containing three values: i, for the
+-- ith line, j, for the rank of the jump target, and dist, the score distance of the associated jump target. This list
+-- is sorted according to that last dist parameter in order to know how to distribute the jump targets over the buffer.
 function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
   local context = window.get_window_context(opts.direction)
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
@@ -191,6 +201,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
 
   table.sort(indirect_jump_targets, dist_comparison)
 
+  print(#jump_targets, jump_target_counts)
   return jump_targets, jump_target_counts, indirect_jump_targets
 end
 

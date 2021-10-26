@@ -117,7 +117,6 @@ local function hint_with(hint_mode, opts)
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
     clear_namespace(0, grey_cur_ns)
     return
-  -- TODO: this whole thing is weird; if we know we have a single jump target, why do we need to search anything?
   elseif jump_target_counts == 1 and opts.jump_on_sole_occurrence then
     for _, line_jump_targets in pairs(jump_targets) do
       if #line_jump_targets.jump_targets == 1 then
