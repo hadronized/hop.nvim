@@ -1,6 +1,8 @@
 local defaults = require'hop.defaults'
 local hint = require'hop.hint'
+local jump_target = require'hop.jump_target'
 local prio = require'hop.priority'
+local window = require'hop.window'
 
 local M = {}
 
@@ -35,7 +37,7 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
         end_line = bottom_line + 1,
         hl_group = 'HopUnmatched',
         hl_eol = true,
-        priority = prio.GREY_PRIO
+        priority = prio.DIM_PRIO
       })
     elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
       vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
@@ -43,7 +45,7 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
         end_col = direction_mode.cursor_col,
         hl_group = 'HopUnmatched',
         hl_eol = true,
-        priority = prio.GREY_PRIO
+        priority = prio.DIM_PRIO
       })
     end
   else
@@ -51,7 +53,7 @@ local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, directi
       end_line = bottom_line + 1,
       hl_group = 'HopUnmatched',
       hl_eol = true,
-      priority = prio.GREY_PRIO
+      priority = prio.DIM_PRIO
     })
   end
 end
@@ -93,77 +95,34 @@ local function add_virt_cur(ns)
   end
 end
 
+-- TODO: move as part of a « buffer line » mode
 -- Hint the whole visible part of the buffer.
 --
 -- The 'hint_mode' argument is the mode to use to hint the buffer.
 local function hint_with(hint_mode, opts)
-  -- get a bunch of information about the window and the cursor
-  local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
-  local win_view = vim.fn.winsaveview()
-  local top_line = win_info.topline - 1
-  local bot_line = win_info.botline - 1
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  local context = window.get_window_context(opts.direction)
 
-  -- adjust the visible part of the buffer to hint based on the direction
-  local direction = opts.direction
-  local direction_mode = nil
-  if direction == hint.HintDirection.BEFORE_CURSOR then
-    bot_line = cursor_pos[1] - 1
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
-  elseif direction == hint.HintDirection.AFTER_CURSOR then
-    top_line = cursor_pos[1] - 1
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
-  end
-
-  -- Constrain range of lines if we are in current-line-only mode
-  if hint_mode.curr_line_only then
-    top_line = cursor_pos[1] - 1
-    bot_line = cursor_pos[1] - 1
-  end
-
-  -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
-  -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
-  -- is going to disable the signs while hop is running (I’m sorry); the state is restored after jump
-  -- local left_col_offset = win_info.variables.context.number_width + win_info.variables.context.sign_width
-  local win_width = nil
-
-  -- hack to get the left column offset in nowrap
-  if not vim.wo.wrap then
-    vim.api.nvim_win_set_cursor(0, { cursor_pos[1], 0 })
-    local left_col_offset = vim.fn.wincol() - 1
-    vim.fn.winrestview(win_view)
-    win_width = win_info.width - left_col_offset
-  end
-
-  -- create the highlight groups; the highlight groups will allow us to clean everything at once when hop quits
+  -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
   local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
-  -- get the buffer lines and create hints; hint_counts allows us to display some error diagnostics to the user, if any,
-  -- or even perform direct jump in the case of a single match
-  local win_lines = vim.api.nvim_buf_get_lines(0, top_line, bot_line + 1, false)
-  local hints, hint_counts = hint.create_hints(
+  -- create jump targets for the visible part of the buffer
+  local jump_targets, jump_target_counts, indirect_jump_targets = jump_target.create_jump_targets_by_scanning_lines(
     hint_mode,
-    win_width,
-    cursor_pos,
-    win_view.leftcol,
-    top_line,
-    win_lines,
-    direction,
     opts
   )
 
   local h = nil
-  if hint_counts == 0 then
+  if jump_target_counts == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
     clear_namespace(0, grey_cur_ns)
     return
-  elseif opts.jump_on_sole_occurrence and hint_counts == 1 then
-    -- search the hint and jump to it
-    for _, line_hints in pairs(hints) do
-      if #line_hints.hints == 1 then
-        h = line_hints.hints[1]
-        vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
+  -- TODO: this whole thing is weird; if we know we have a single jump target, why do we need to search anything?
+  elseif jump_target_counts == 1 and opts.jump_on_sole_occurrence then
+    for _, line_jump_targets in pairs(jump_targets) do
+      if #line_jump_targets.jump_targets == 1 then
+        jt = line_jump_targets.jump_targets[1]
+        vim.api.nvim_win_set_cursor(0, { jt.line + 1, jt.col - 1})
         break
       end
     end
@@ -172,16 +131,20 @@ local function hint_with(hint_mode, opts)
     return
   end
 
+  -- we have at least two targets, so generate hints to display
+  -- print(vim.inspect(indirect_jump_targets))
+  local hints = hint.create_hints(jump_targets, indirect_jump_targets, opts)
+
   local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
     grey_cur_ns = grey_cur_ns;
-    top_line = top_line;
-    bot_line = bot_line
+    top_line = context.top_line;
+    bot_line = context.bot_line
   }
 
   -- grey everything out and add the virtual cursor
-  grey_things_out(0, grey_cur_ns, top_line, bot_line, direction_mode)
+  grey_things_out(0, grey_cur_ns, context.top_line, context.bot_line, context.direction_mode)
   add_virt_cur(grey_cur_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
@@ -206,11 +169,11 @@ local function hint_with(hint_mode, opts)
     end
 
     if not_special_key and opts.keys:find(key, 1, true) then
-      -- If this is a key used in hop (via opts.keys), deal with it in hop
+      -- If this is a key used in Hop (via opts.keys), deal with it in Hop
       h = M.refine_hints(0, key, opts.teasing, hint_state)
       vim.cmd('redraw')
     else
-      -- If it's not, quit hop
+      -- If it's not, quit Hop
       M.quit(0, hint_state)
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
@@ -247,7 +210,7 @@ function M.refine_hints(buf_handle, key, teasing, hint_state)
     vim.cmd("normal! m'")
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(0, { h.line + 1, h.col - 1})
+    vim.api.nvim_win_set_cursor(0, { h.jump_target.line + 1, h.jump_target.col - 1})
     return h
   end
 end
@@ -267,7 +230,6 @@ end
 function M.hint_patterns(opts, pattern)
   opts = get_command_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  local pat, ok
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
