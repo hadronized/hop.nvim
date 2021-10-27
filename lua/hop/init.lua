@@ -668,6 +668,14 @@ function M.setup(opts)
   -- Look up keys in user-defined table with fallback to defaults.
   M.opts = setmetatable(opts or {}, {__index = defaults})
 
+  -- Load dict of match mappings
+  for _, d in ipairs(M.opts.match_mappings) do
+    local val = require('hop.dict.' .. d)
+    if val ~= nil then
+      M.opts.match_mappings[d] = val
+    end
+  end
+
   -- Insert the highlights and register the autocommand if asked to.
   local highlight = require'hop.highlight'
   highlight.insert_highlights()

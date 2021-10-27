@@ -41,22 +41,48 @@ end
 
 -- Wrapper over M.by_searching to add support for case sensitivity.
 function M.by_case_searching(pat, plain_search, opts)
+  local ori = pat
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
 
+  -- append dict pattern for each char in `pat`
+  local dict_pat = ''
+  for i = 1, #ori do
+    local char = ori:sub(i, i)
+    local dict_char_pat = ''
+    -- checkout dict-char pattern from each dict
+    for _, v in ipairs(opts.match_mappings) do
+      local val = opts.match_mappings[v][char]
+      if val ~= nil then
+        dict_char_pat = dict_char_pat .. val
+      end
+    end
+    -- make sure that there are one dict support `char` at least
+    if dict_char_pat == '' then
+      dict_pat = ''
+      break
+    end
+    dict_pat = dict_pat .. '['.. dict_char_pat .. ']'
+  end
+
+  if dict_pat ~= '' then
+    pat = string.format([[\(%s\)\|\(%s\)]], pat, dict_pat)
+  end
+
   if vim.o.smartcase then
-    if not starts_with_uppercase(pat) then
+    if not starts_with_uppercase(ori) then
       pat = '\\c' .. pat
     end
   elseif opts.case_insensitive then
     pat = '\\c' .. pat
   end
 
+  local re = vim.regex(pat)
   return {
     oneshot = false,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return re:match_str(s)
     end
   }
 end
