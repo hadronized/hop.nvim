@@ -5,19 +5,48 @@ local window = require'hop.window'
 
 local M = {}
 
+-- Jump targets.
+--
+-- Jump targets are wrapped in this table and provide the required information so that Hop can associate label and
+-- display the hints.
+--
+-- {
+--   jump_targets = {},
+--   jump_target_count = 0,
+--   indirect_jump_targets = {},
+-- }
+
+-- A single jump target.
+--
+-- A jump target is simply a location in a given buffer. So you can picture a jump target as a triple
+-- (line, column, buffer).
+--
+-- {
+--   line = 0,
+--   column = 0,
+--   buffer = 0,
+-- }
+
+-- An indirect jump target.
+--
+-- This table allows to quickly score and sort jump targets. The `index` field gives the index in the `JumpTargetList`
+-- the `score` references.
+--
+-- {
+--   index = 0,
+--   score = 0,
+-- }
+
 -- Manhattan distance with column and row, weighted on x so that results are more packed on y.
 local function manh_dist(a, b, x_bias)
   local bias = x_bias or 10
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
 
--- FIXME: determine why we need the length here
 -- Mark the current line with jump targets.
 --
--- A jump target is a simple { line, col } pair. This function returns { jump_targets, length }, where jump_targets is a
--- list (table) of jump targets as described above and length is the length of the line for which we computed the jump
--- target.
-local function mark_jump_targets_line(hint_mode, line_nr, line, col_offset, win_width, direction_mode)
+-- Returns the jump targets as described above.
+local function mark_jump_targets_line(regex, line_nr, line, col_offset, win_width, direction_mode)
   local jump_targets = {}
   local end_index = nil
 
@@ -46,7 +75,7 @@ local function mark_jump_targets_line(hint_mode, line_nr, line, col_offset, win_
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = hint_mode.match(s)
+    local b, e = regex.match(s)
 
     if b == nil or (b == 0 and e == 0) then
       break
@@ -54,21 +83,19 @@ local function mark_jump_targets_line(hint_mode, line_nr, line, col_offset, win_
 
     local colb = col + b
     jump_targets[#jump_targets + 1] = {
-      line = line_nr;
-      col = math.max(1, colb + col_offset + col_bias);
+      line = line_nr,
+      column = math.max(1, colb + col_offset + col_bias),
+      buffer = 0,
     }
 
-    if hint_mode.oneshot then
+    if regex.oneshot then
       break
     else
       col = col + e
     end
   end
 
-  return {
-    jump_targets = jump_targets;
-    length = vim.fn.strdisplaywidth(shifted_line)
-  }
+  return jump_targets
 end
 
 -- Create jump targets for a given indexed line.
@@ -76,39 +103,39 @@ end
 -- This function creates the jump targets for the current (indexed) line and appends them to the input list of jump
 -- targets `jump_targets`.
 --
--- `indirect_jump_targets` is appended a table of three objects: the `i` index, referencing the line of the jump target,
--- the `j` index, referencing the index in the jump targets list for the ith line, and a score called `dist`. That score
--- is currently implemented in terms of a Manhattan distance to the cursor in the buffer (the closer the lower).
---
 -- Indirect jump targets are used later to sort jump targets by score and create hints.
 local function create_jump_targets_for_line(
   i,
   jump_targets,
   indirect_jump_targets,
   jump_target_counts,
-  hint_mode,
+  regex,
   context,
   direction_mode,
   lines
 )
   local line_jump_targets = mark_jump_targets_line(
-    hint_mode,
+    regex,
     context.top_line + i - 1,
     lines[i], context.col_offset,
     context.win_width, direction_mode
   )
   jump_targets[i] = line_jump_targets
-  jump_target_counts = jump_target_counts + #line_jump_targets.jump_targets
+  jump_target_counts = jump_target_counts + #line_jump_targets
 
-  for j = 1, #line_jump_targets.jump_targets do
-    local jump_target = line_jump_targets.jump_targets[j]
-    indirect_jump_targets[#indirect_jump_targets + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { jump_target.line, jump_target.col }) }
+  for j = 1, #line_jump_targets do
+    local jump_target = line_jump_targets[j]
+    indirect_jump_targets[#indirect_jump_targets + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column }) }
   end
 
   return jump_target_counts
 end
 
 -- Create jump targets by scanning lines in the currently visible buffer.
+--
+-- This function takes a regex argument, which is an object containing a match function that must return the span
+-- (inclusive beginning, exclusive end) of the match item, or nil when no more match is possible. This object also
+-- contains the `oneshot` field, a boolean stating whether only the first match of a line should be taken into account.
 --
 -- This function returns the lined jump targets (an array of N lines, where N is the number of currently visible lines).
 -- Lines without jump targets are assigned an empty table ({}). For lines with jump targets, a list-table contains the
@@ -119,7 +146,7 @@ end
 -- indirect jump targets. » Indirect jump targets are encoded as a flat list-table containing three values: i, for the
 -- ith line, j, for the rank of the jump target, and dist, the score distance of the associated jump target. This list
 -- is sorted according to that last dist parameter in order to know how to distribute the jump targets over the buffer.
-function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
+local function create_jump_targets_by_scanning_lines(regex, opts)
   local context = window.get_window_context(opts.direction)
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
   local jump_targets = {}
@@ -134,7 +161,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
       jump_targets,
       indirect_jump_targets,
       jump_target_counts,
-      hint_mode,
+      regex,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
@@ -146,7 +173,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
         jump_targets,
         indirect_jump_targets,
         jump_target_counts,
-        hint_mode,
+        regex,
         context,
         nil,
         lines
@@ -160,7 +187,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
         jump_targets,
         indirect_jump_targets,
         jump_target_counts,
-        hint_mode,
+        regex,
         context,
         nil,
         lines
@@ -172,7 +199,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
       jump_targets,
       indirect_jump_targets,
       jump_target_counts,
-      hint_mode,
+      regex,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
@@ -184,7 +211,7 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
         jump_targets,
         indirect_jump_targets,
         jump_target_counts,
-        hint_mode,
+        regex,
         context,
         nil,
         lines
@@ -201,8 +228,88 @@ function M.create_jump_targets_by_scanning_lines(hint_mode, opts)
 
   table.sort(indirect_jump_targets, dist_comparison)
 
-  print(#jump_targets, jump_target_counts)
   return jump_targets, jump_target_counts, indirect_jump_targets
 end
+
+-- Jump target generator for buffer-based line regexes.
+function M.jump_target_generator_by_scanning_lines(regex)
+  return {
+    get_jump_targets = function(opts)
+      return create_jump_targets_by_scanning_lines(regex, opts)
+    end
+  }
+end
+
+-- Regex modes for the buffer-driven generator.
+local function starts_with_uppercase(s)
+  if #s == 0 then
+    return false
+  end
+
+  local f = s:sub(1, vim.fn.byteidx(s, 1))
+  return f:upper() == f
+end
+
+-- Regex by searching a pattern.
+function M.regex_by_searching(pat, plain_search)
+  if plain_search then
+    pat = vim.fn.escape(pat, '\\/.$^~[]')
+  end
+  return {
+    oneshot = false,
+    match = function(s)
+      return vim.regex(pat):match_str(s)
+    end
+  }
+end
+
+-- Wrapper over M.regex_by_searching to add support for case sensitivity.
+function M.regex_by_case_searching(pat, plain_search, opts)
+  if plain_search then
+    pat = vim.fn.escape(pat, '\\/.$^~[]')
+  end
+
+  if vim.o.smartcase then
+    if not starts_with_uppercase(pat) then
+      pat = '\\c' .. pat
+    end
+  elseif opts.case_insensitive then
+    pat = '\\c' .. pat
+  end
+
+  return {
+    oneshot = false,
+    match = function(s)
+      return vim.regex(pat):match_str(s)
+    end
+  }
+end
+
+-- Word regex.
+function M.regex_by_word_start()
+  return M.regex_by_searching('\\k\\+')
+end
+
+-- Line regex.
+function M.regex_by_line_start()
+  return {
+    oneshot = true,
+    match = function(_)
+      return 0, 1, false
+    end
+  }
+end
+
+-- Line regex skipping finding the first non-whitespace character on each line.
+function M.regex_by_line_start_skip_whitespace()
+  local pat = vim.regex("\\S")
+  return {
+    oneshot = true,
+    match = function(s)
+      return pat:match_str(s)
+    end
+  }
+end
+
 
 return M

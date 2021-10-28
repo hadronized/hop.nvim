@@ -163,7 +163,7 @@ function M.create_hints(jump_targets, indirect_jump_targets, opts)
 
     hints[indirect.i][indirect.j] = {
       label = tbl_to_str(perms[i]),
-      jump_target = jump_targets[indirect.i].jump_targets[indirect.j]
+      jump_target = jump_targets[indirect.i][indirect.j]
     }
   end
 
@@ -178,7 +178,7 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
         print('holy fuck', vim.inspect(hint))
       end
       if vim.fn.strdisplaywidth(hint.label) == 1 then
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.jump_target.line, hint.jump_target.col - 1, {
+        vim.api.nvim_buf_set_extmark(hint.jump_target.buffer, hl_ns, hint.jump_target.line, hint.jump_target.column - 1, {
           virt_text = { { hint.label, "HopNextKey" } },
           virt_text_pos = 'overlay',
           hl_mode = 'combine',
@@ -187,7 +187,7 @@ function M.set_hint_extmarks(hl_ns, per_line_hints)
       else
         -- get the byte index of the second hint so that we can slice it correctly
         local snd_idx = vim.fn.byteidx(hint.label, 1)
-        vim.api.nvim_buf_set_extmark(0, hl_ns, hint.jump_target.line, hint.jump_target.col - 1, {
+        vim.api.nvim_buf_set_extmark(hint.jump_target.buffer, hl_ns, hint.jump_target.line, hint.jump_target.column - 1, {
           virt_text = { { hint.label:sub(1, snd_idx), "HopNextKey1" }, { hint.label:sub(snd_idx + 1), "HopNextKey2" } },
           virt_text_pos = 'overlay',
           hl_mode = 'combine',

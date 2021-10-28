@@ -7,9 +7,8 @@ local window = require'hop.window'
 local M = {}
 
 -- Allows to override global options with user local overrides.
-local function get_command_opts(local_opts)
-  -- In case, local opts are defined, chain opts lookup: [user_local] -> [user_global] -> [default]
-  return local_opts and setmetatable(local_opts, {__index = M.opts}) or M.opts
+local function override_opts(opts)
+  return setmetatable(opts or {}, {__index = M.opts})
 end
 
 -- Display error messages.
@@ -120,8 +119,93 @@ local function hint_with(hint_mode, opts)
   elseif jump_target_counts == 1 and opts.jump_on_sole_occurrence then
     for _, line_jump_targets in pairs(jump_targets) do
       if #line_jump_targets.jump_targets == 1 then
-        jt = line_jump_targets.jump_targets[1]
-        vim.api.nvim_win_set_cursor(0, { jt.line + 1, jt.col - 1})
+        local jt = line_jump_targets.jump_targets[1]
+        vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- potential issue with window vs. buffer here
+        break
+      end
+    end
+
+    clear_namespace(0, grey_cur_ns)
+    return
+  end
+
+  -- we have at least two targets, so generate hints to display
+  -- print(vim.inspect(indirect_jump_targets))
+  local hints = hint.create_hints(jump_targets, indirect_jump_targets, opts)
+
+  local hint_state = {
+    hints = hints;
+    hl_ns = hl_ns;
+    grey_cur_ns = grey_cur_ns;
+    top_line = context.top_line;
+    bot_line = context.bot_line
+  }
+
+  -- grey everything out and add the virtual cursor
+  grey_things_out(0, grey_cur_ns, context.top_line, context.bot_line, context.direction_mode)
+  add_virt_cur(grey_cur_ns)
+  hint.set_hint_extmarks(hl_ns, hints)
+  vim.cmd('redraw')
+
+  while h == nil do
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then
+      M.quit(0, hint_state)
+      break
+    end
+    local not_special_key = true
+    -- :h getchar(): "If the result of expr is a single character, it returns a
+    -- number. Use nr2char() to convert it to a String." Also the result is a
+    -- special key if it's a string and its first byte is 128.
+    --
+    -- Note of caution: Even though the result of `getchar()` might be a single
+    -- character, that character might still be multiple bytes.
+    if type(key) == 'number' then
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      not_special_key = false
+    end
+
+    if not_special_key and opts.keys:find(key, 1, true) then
+      -- If this is a key used in Hop (via opts.keys), deal with it in Hop
+      h = M.refine_hints(0, key, opts.teasing, hint_state)
+      vim.cmd('redraw')
+    else
+      -- If it's not, quit Hop
+      M.quit(0, hint_state)
+      -- If the key captured via getchar() is not the quit_key, pass it through
+      -- to nvim to be handled normally (including mappings)
+      if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
+        vim.api.nvim_feedkeys(key, '', true)
+      end
+      break
+    end
+  end
+end
+
+-- Hint the whole visible part of the buffer.
+--
+-- The 'hint_mode' argument is the mode to use to hint the buffer.
+local function hint_with2(jump_target_gtr, opts)
+  local context = window.get_window_context(opts.direction)
+
+  -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
+  local hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
+
+  -- create jump targets
+  local jump_targets, jump_target_counts, indirect_jump_targets = jump_target_gtr.get_jump_targets(opts)
+
+  local h = nil
+  if jump_target_counts == 0 then
+    eprintln(' -> there’s no such thing we can see…', opts.teasing)
+    clear_namespace(0, grey_cur_ns)
+    return
+  elseif jump_target_counts == 1 and opts.jump_on_sole_occurrence then
+    for _, line_jump_targets in pairs(jump_targets) do
+      if #line_jump_targets.jump_targets == 1 then
+        local jt = line_jump_targets.jump_targets[1]
+        vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME ditto
         break
       end
     end
@@ -209,7 +293,7 @@ function M.refine_hints(buf_handle, key, teasing, hint_state)
     vim.cmd("normal! m'")
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(0, { h.jump_target.line + 1, h.jump_target.col - 1})
+    vim.api.nvim_win_set_cursor(h.jump_target.buffer, { h.jump_target.line + 1, h.jump_target.column - 1}) -- FIXME: ditto
     return h
   end
 end
@@ -223,11 +307,16 @@ function M.quit(buf_handle, hint_state)
 end
 
 function M.hint_words(opts)
-  hint_with(hint.by_word_start, get_command_opts(opts))
+  hint_with(hint.by_word_start, override_opts(opts))
+end
+
+function M.hint_words2(opts)
+  local config = override_opts(opts)
+  hint_with2(jump_target.jump_target_generator_by_scanning_lines(jump_target.regex_by_word_start(), config), config)
 end
 
 function M.hint_patterns(opts, pattern)
-  opts = get_command_opts(opts)
+  opts = override_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   -- The pattern to search is either retrieved from the (optional) argument
@@ -258,7 +347,7 @@ function M.hint_patterns(opts, pattern)
 end
 
 function M.hint_char1(opts)
-  opts = get_command_opts(opts)
+  opts = override_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
   add_virt_cur(cur_ns)
   vim.cmd('redraw')
@@ -271,14 +360,14 @@ function M.hint_char1(opts)
 end
 
 function M.hint_char1_line(opts)
-    opts = get_command_opts(opts)
+    opts = override_opts(opts)
     local ok, c = pcall(vim.fn.getchar)
     if not ok then return end
     hint_with(hint.by_case_searching_line(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)
-  opts = get_command_opts(opts)
+  opts = override_opts(opts)
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
   add_virt_cur(cur_ns)
   vim.cmd('redraw')
@@ -297,15 +386,14 @@ function M.hint_char2(opts)
 end
 
 function M.hint_lines(opts)
-  hint_with(hint.by_line_start, get_command_opts(opts))
+  hint_with(hint.by_line_start, override_opts(opts))
 end
 
 function M.hint_lines_skip_whitespace(opts)
-  hint_with(hint.by_line_start_skip_whitespace(), get_command_opts(opts))
+  hint_with(hint.by_line_start_skip_whitespace(), override_opts(opts))
 end
 
 -- Setup user settings.
-M.opts = defaults
 function M.setup(opts)
   -- Look up keys in user-defined table with fallback to defaults.
   M.opts = setmetatable(opts or {}, {__index = defaults})
