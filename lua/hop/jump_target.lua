@@ -108,27 +108,29 @@ local function create_jump_targets_for_line(
   i,
   jump_targets,
   indirect_jump_targets,
-  jump_target_counts,
   regex,
   context,
   direction_mode,
   lines
 )
+  -- first, create the jump targets for the ith line
   local line_jump_targets = mark_jump_targets_line(
     regex,
     context.top_line + i - 1,
-    lines[i], context.col_offset,
-    context.win_width, direction_mode
+    lines[i],
+    context.col_offset,
+    context.win_width,
+    direction_mode
   )
-  jump_targets[i] = line_jump_targets
-  jump_target_counts = jump_target_counts + #line_jump_targets
 
+  -- then, append those to the input jump target list and create the indexed jump targets
   for j = 1, #line_jump_targets do
-    local jump_target = line_jump_targets[j]
-    indirect_jump_targets[#indirect_jump_targets + 1] = { i = i; j = j; dist = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column }) }
-  end
+    local index = #jump_targets + j
+    jump_targets[index] = line_jump_targets[j]
 
-  return jump_target_counts
+    local jump_target = line_jump_targets[j]
+    indirect_jump_targets[#indirect_jump_targets + 1] = { index = index, score = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column }) }
+  end
 end
 
 -- Create jump targets by scanning lines in the currently visible buffer.
@@ -151,16 +153,14 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
   local jump_targets = {}
   local indirect_jump_targets = {}
-  local jump_target_counts = 0
 
   -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
   if opts.direction == hint.HintDirection.AFTER_CURSOR then
     -- the first line is to be checked first
-    jump_target_counts = create_jump_targets_for_line(
+    create_jump_targets_for_line(
       1,
       jump_targets,
       indirect_jump_targets,
-      jump_target_counts,
       regex,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -168,11 +168,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
     )
 
     for i = 2, #lines do
-      jump_target_counts = create_jump_targets_for_line(
+      create_jump_targets_for_line(
         i,
         jump_targets,
         indirect_jump_targets,
-        jump_target_counts,
         regex,
         context,
         nil,
@@ -182,11 +181,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
   elseif opts.direction == hint.HintDirection.BEFORE_CURSOR then
     -- the last line is to be checked last
     for i = 1, #lines - 1 do
-      jump_target_counts = create_jump_targets_for_line(
+      create_jump_targets_for_line(
         i,
         jump_targets,
         indirect_jump_targets,
-        jump_target_counts,
         regex,
         context,
         nil,
@@ -194,11 +192,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
       )
     end
 
-    jump_target_counts = create_jump_targets_for_line(
+    create_jump_targets_for_line(
       #lines,
       jump_targets,
       indirect_jump_targets,
-      jump_target_counts,
       regex,
       context,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
@@ -206,11 +203,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
     )
   else
     for i = 1, #lines do
-      jump_target_counts = create_jump_targets_for_line(
+      create_jump_targets_for_line(
         i,
         jump_targets,
         indirect_jump_targets,
-        jump_target_counts,
         regex,
         context,
         nil,
@@ -219,16 +215,16 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
     end
   end
 
-  local dist_comparison = nil
+  local score_comparison = nil
   if opts.reverse_distribution then
-    dist_comparison = function (a, b) return a.dist > b.dist end
+    score_comparison = function (a, b) return a.score > b.score end
   else
-    dist_comparison = function (a, b) return a.dist < b.dist end
+    score_comparison = function (a, b) return a.score < b.score end
   end
 
-  table.sort(indirect_jump_targets, dist_comparison)
+  table.sort(indirect_jump_targets, score_comparison)
 
-  return jump_targets, jump_target_counts, indirect_jump_targets
+  return jump_targets, indirect_jump_targets
 end
 
 -- Jump target generator for buffer-based line regexes.
@@ -310,6 +306,5 @@ function M.regex_by_line_start_skip_whitespace()
     end
   }
 end
-
 
 return M
