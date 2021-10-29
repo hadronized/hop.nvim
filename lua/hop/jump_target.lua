@@ -216,6 +216,13 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
     end
   end
 
+  M.score_jump_targets(indirect_jump_targets, opts)
+
+  return jump_targets, indirect_jump_targets
+end
+
+-- Apply a score function based on the Manhattan distance to indirect jump targets.
+function M.score_jump_targets(indirect_jump_targets, opts)
   local score_comparison = nil
   if opts.reverse_distribution then
     score_comparison = function (a, b) return a.score > b.score end
@@ -224,8 +231,6 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
   end
 
   table.sort(indirect_jump_targets, score_comparison)
-
-  return jump_targets, indirect_jump_targets
 end
 
 -- Jump target generator for buffer-based line regexes.
