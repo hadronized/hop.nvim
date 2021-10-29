@@ -260,15 +260,28 @@ end
 
 function M.hint_char1(opts)
   opts = override_opts(opts)
+
   local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
   add_virt_cur(cur_ns)
   vim.cmd('redraw')
+
   local ok, c = pcall(vim.fn.getchar)
   if not ok then
     clear_namespace(0, cur_ns)
     return
   end
-  hint_with(hint.by_case_searching(vim.fn.nr2char(c), true, opts), opts)
+
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_case_searching(
+        vim.fn.nr2char(c),
+        true,
+        opts
+      ),
+      opts
+    ),
+    opts
+  )
 end
 
 function M.hint_char1_line(opts)
