@@ -214,12 +214,14 @@ function M.quit(buf_handle, hint_state)
 end
 
 function M.hint_words(opts)
-  hint_with(hint.by_word_start, override_opts(opts))
-end
-
-function M.hint_words2(opts)
-  local config = override_opts(opts)
-  hint_with(jump_target.jump_target_generator_by_scanning_lines(jump_target.regex_by_word_start(), config), config)
+  opts = override_opts(opts)
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_word_start(),
+      opts
+    ),
+    opts
+  )
 end
 
 function M.hint_patterns(opts, pattern)
@@ -228,15 +230,12 @@ function M.hint_patterns(opts, pattern)
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
-  local pat
-  if pattern then
-    pat = pattern
-  else
+  if pattern == nil then
     add_virt_cur(cur_ns)
     vim.cmd('redraw')
     vim.fn.inputsave()
     local ok
-    ok, pat = pcall(vim.fn.input, 'Search: ')
+    ok, pattern = pcall(vim.fn.input, 'Search: ')
     vim.fn.inputrestore()
     if not ok then
       clear_namespace(0, cur_ns)
@@ -244,13 +243,19 @@ function M.hint_patterns(opts, pattern)
     end
   end
 
-  if #pat == 0 then
+  if #pattern == 0 then
     eprintln('-> empty pattern', opts.teasing)
     clear_namespace(0, cur_ns)
     return
   end
 
-  hint_with(hint.by_case_searching(pat, false, opts), opts)
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_case_searching(pattern, false, opts),
+      opts
+    ),
+    opts
+  )
 end
 
 function M.hint_char1(opts)
