@@ -114,13 +114,8 @@ local function hint_with(jump_target_gtr, opts)
     clear_namespace(0, grey_cur_ns)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
-    for _, line_jump_targets in pairs(jump_targets) do
-      if #line_jump_targets.jump_targets == 1 then
-        local jt = line_jump_targets.jump_targets[1]
-        vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME ditto
-        break
-      end
-    end
+    local jt = jump_targets[1]
+    vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
 
     clear_namespace(0, grey_cur_ns)
     return

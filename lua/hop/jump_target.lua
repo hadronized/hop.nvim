@@ -124,12 +124,13 @@ local function create_jump_targets_for_line(
   )
 
   -- then, append those to the input jump target list and create the indexed jump targets
-  for j = 1, #line_jump_targets do
-    local index = #jump_targets + j
-    jump_targets[index] = line_jump_targets[j]
+  for _, jump_target in pairs(line_jump_targets) do
+    jump_targets[#jump_targets + 1] = jump_target
 
-    local jump_target = line_jump_targets[j]
-    indirect_jump_targets[#indirect_jump_targets + 1] = { index = index, score = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column }) }
+    indirect_jump_targets[#indirect_jump_targets + 1] = {
+      index = #jump_targets,
+      score = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column })
+    }
   end
 end
 
