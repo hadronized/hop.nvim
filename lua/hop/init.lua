@@ -103,7 +103,6 @@ local function hint_with(jump_target_gtr, opts)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
-  local grey_cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   -- create jump targets
   local jump_targets, indirect_jump_targets = jump_target_gtr.get_jump_targets(opts)
@@ -112,13 +111,13 @@ local function hint_with(jump_target_gtr, opts)
   local h = nil
   if jump_target_count == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    clear_namespace(0, grey_cur_ns)
+    clear_namespace(0, hl_ns)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = jump_targets[1]
     vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
 
-    clear_namespace(0, grey_cur_ns)
+    clear_namespace(0, hl_ns)
     return
   end
 
@@ -129,14 +128,13 @@ local function hint_with(jump_target_gtr, opts)
   local hint_state = {
     hints = hints;
     hl_ns = hl_ns;
-    grey_cur_ns = grey_cur_ns;
     top_line = context.top_line;
     bot_line = context.bot_line
   }
 
   -- grey everything out and add the virtual cursor
-  grey_things_out(0, grey_cur_ns, context.top_line, context.bot_line, context.direction_mode)
-  add_virt_cur(grey_cur_ns)
+  grey_things_out(0, hl_ns, context.top_line, context.bot_line, context.direction_mode)
+  add_virt_cur(hl_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
 
@@ -210,7 +208,6 @@ end
 --
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle, hint_state)
-  clear_namespace(buf_handle, hint_state.grey_cur_ns)
   clear_namespace(buf_handle, hint_state.hl_ns)
 end
 
@@ -227,27 +224,19 @@ end
 
 function M.hint_patterns(opts, pattern)
   opts = override_opts(opts)
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
   if pattern == nil then
-    add_virt_cur(cur_ns)
-    vim.cmd('redraw')
     vim.fn.inputsave()
+
     local ok
     ok, pattern = pcall(vim.fn.input, 'Search: ')
     vim.fn.inputrestore()
+
     if not ok then
-      clear_namespace(0, cur_ns)
       return
     end
-  end
-
-  if #pattern == 0 then
-    eprintln('-> empty pattern', opts.teasing)
-    clear_namespace(0, cur_ns)
-    return
   end
 
   hint_with(
@@ -262,13 +251,8 @@ end
 function M.hint_char1(opts)
   opts = override_opts(opts)
 
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns)
-  vim.cmd('redraw')
-
   local ok, c = pcall(vim.fn.getchar)
   if not ok then
-    clear_namespace(0, cur_ns)
     return
   end
 
@@ -294,29 +278,54 @@ end
 
 function M.hint_char2(opts)
   opts = override_opts(opts)
-  local cur_ns = vim.api.nvim_create_namespace('hop_grey_cur')
-  add_virt_cur(cur_ns)
-  vim.cmd('redraw')
+
   local ok, a = pcall(vim.fn.getchar)
   if not ok then
-    clear_namespace(0, cur_ns)
     return
   end
+
   local ok2, b = pcall(vim.fn.getchar)
   if not ok2 then
-    clear_namespace(0, cur_ns)
     return
   end
-  local pat = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
-  hint_with(hint.by_case_searching(pat, true, opts), opts)
+
+  local pattern = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
+
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_case_searching(
+        pattern,
+        true,
+        opts
+      ),
+      opts
+    ),
+    opts
+  )
 end
 
 function M.hint_lines(opts)
-  hint_with(hint.by_line_start, override_opts(opts))
+  opts = override_opts(opts)
+
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_line_start(),
+      opts
+    ),
+    opts
+  )
 end
 
 function M.hint_lines_skip_whitespace(opts)
-  hint_with(hint.by_line_start_skip_whitespace(), override_opts(opts))
+  opts = override_opts(opts)
+
+  hint_with(
+    jump_target.jump_target_generator_by_scanning_lines(
+      jump_target.regex_by_line_start_skip_whitespace(),
+      opts
+    ),
+    opts
+  )
 end
 
 -- Setup user settings.
