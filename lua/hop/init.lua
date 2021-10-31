@@ -24,12 +24,12 @@ local function clear_namespace(buf_handle, hl_ns)
   vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
 end
 
--- Grey everything out to prepare the Hop session.
+-- Dim everything out to prepare the Hop session.
 --
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function grey_things_out(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
+local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
   if direction_mode ~= nil then
     if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
       vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, direction_mode.cursor_col, {
@@ -136,8 +136,8 @@ local function hint_with(jump_target_gtr, opts)
     bot_line = context.bot_line,
   }
 
-  -- grey everything out and add the virtual cursor
-  grey_things_out(0, dim_ns, context.top_line, context.bot_line, context.direction_mode)
+  -- dim everything out and add the virtual cursor
+  apply_dimming(0, dim_ns, context.top_line, context.bot_line, context.direction_mode)
   add_virt_cur(hl_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
