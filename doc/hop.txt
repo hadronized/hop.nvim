@@ -18,6 +18,7 @@ CONTENTS                                                          *hop-contents*
     Lua API ······················································ |hop-lua-api|
     Jump target API ······································ |hop-jump-target-api|
   Configuration ··················································· |hop-config|
+  Extension ···················································· |hop-extension|
   Highlights ·················································· |hop-highlights|
   License ························································ |hop-license|
 
@@ -275,7 +276,7 @@ The hint API provide the `HintDirection`
     Enumeration variants:~
         {BEFORE_CURSOR} Create and apply hints before the cursor.
         {AFTER_CURSOR}  Create and apply hints after the cursor.
-                                                          *hop-jump-target-api*
+                                                           *hop-jump-target-api*
 Jump target API~
 
 The jump target API is probably the most core API of all. It provides some
@@ -382,7 +383,7 @@ called jump target generator. Such functions are to be passed to
         {indirect_jump_targets} Indirect jump targets to sort.
         {opts}                  User options.
 
-`hop.jump_target.regex_by_searching(`          *hop.jump_target.regex_by_searching*
+`hop.jump_target.regex_by_searching(`         *hop.jump_target.regex_by_searching*
   {pat}`,`
   {plain_search}
 `)`
@@ -438,12 +439,12 @@ Highlight API~
 
 The highlight API gives two functions to manipulate the highlights Hop uses:
 
-`hop.highlight.insert_highlights()`             *hop.highlight.insert_highlights*
+`hop.highlight.insert_highlights()`              *hop.highlight.insert_highlights*
     Manually insert the highlights by calling the `highlight default` command.
     See |hop-highlights| for further details about the list of highlights
     currently available.
 
-`hop.highlight.create_autocmd`                     *hop.highlight.create_autocmd*
+`hop.highlight.create_autocmd`                      *hop.highlight.create_autocmd*
     Register autocommands for the `ColorScheme` event, calling
     |hop.highlight.insert_highlights|. This is called when you require Hop and
     you shouldn’t need to call this function by yourself.
@@ -495,11 +496,11 @@ below.
 	This is only for the old permutation algorithm only, which is to get
 	deprecated soon.
 
-	Another important aspect is that the order of the characters you put in
-    	your `keys` is important. Depending on the value you use in
+	Another important aspect is that the order of the characters you put
+        in your `keys` is important. Depending on the value you use in
     	|hop-config-term_seq_bias|, the keys will be split in two and the first
-    	part of it will be used for terminal keys and the second part for sequence
-    	keys.
+    	part of it will be used for terminal keys and the second part for
+        sequence keys.
 
     Defaults:~
         `keys = 'asdghklqwertyuiopzxcvbnmfj'`
@@ -510,8 +511,8 @@ below.
 
     It is possible to quit hopping by pressing any key that is not present in
     |hop-config-keys|; however, when you do this, the keys normal function is
-    also performed. For example if, hopping in |visual-mode|, pressing <Esc> will
-    quit hopping and also exit |visual-mode|.
+    also performed. For example if, hopping in |visual-mode|, pressing <Esc>
+    will quit hopping and also exit |visual-mode|.
 
     If the user presses `quit_key`, Hop will be quit without the keys normal
     function being performed. For example if hopping in |visual-mode| with
@@ -590,22 +591,6 @@ below.
     Defaults:~
         `reverse_distribution = false`
 
-`term_seq_bias`                                         *hop-config-term_seq_bias*
-    Bias used to alter the proportion of keys used as terminal keys vs. used
-    as sequence keys. It is not recommended to tweak around with this value
-    too much as it will degrade the experience, but if you really want to give
-    it a try, you should set this value to a number representing the ratio of
-    terminal keys and sequence keys. A ratio of `3/4`, for instance, means
-    that for 12 keys, 9 will be used as terminal keys and 3 will be used as
-    sequence keys.
-
-    Note:~
-        This option is only used if you set |hop-config-perm_method| to
-        `TermSeqBias`.
-
-    Defaults:~
-        `term_seq_bias = 3 / 4`
-
 `teasing`                                                     *hop-config-teasing*
     Boolean value stating whether Hop should tease you when you do something
     you are not supposed to.
@@ -636,7 +621,7 @@ below.
     Defaults:~
         `create_hl_autocmd = true`
 
-`direction`                                                *hop-config-direction*
+`direction`                                                 *hop-config-direction*
     Direction in which to hint. See |hop.hint.HintDirection| for further
     details.
 
@@ -645,6 +630,48 @@ below.
 
     Defaults:~
         `direction = nil`
+
+`current_line_only`                                 *hop-config-current_line_only*
+    Apply Hop commands only to the current line.
+
+    Defaults:~
+        `current_line_only = false`
+
+`extensions`                                               *hop-config-extensions*
+    List-table of extensions to enable (names). As described in |hop-extension|,
+    extensions for which the name is in that list must have a `register(opts)`
+    function in their public API for Hop to correctly initialized them.
+
+==============================================================================
+EXTENSION                                                        *hop-extension*
+
+Hop supports extensions, that can provide ad hoc jump targets that are not
+part of the core of Hop. If you want to write a Hop extension, this section
+should provide all the required informations.
+
+The first important part is to know how to generate jump targets. You will
+then first want to read the |hop-jump-target-api|, that describes this process
+in terms of Lua protocol.
+
+The second part is that because you will depend on the Hop API, you need to be
+sure that Hop is completely setup before initiating your Hop extension plugin.
+In order to do so, your users will have to read the user guide of the package
+manager they are using to mark Hop as a dependency of your plugin when
+installing. You should ensure such instructions are easily accessible to them,
+for instance in your help pages and README.
+
+Finally, Hop extension plugins do not get initialized via the regular `setup`
+function — well, it’s up to you to still provide that function, but keep in
+mind that Hop should not be assumed ready if you do so, so really keep setting
+up things unrelated to Hop in your `setup` function. In order to setup a Hop
+extension plugin, your plugin must provide the `register(opts)` function, that
+takes the same {opts} arguments as `setup(opts)`. This function will be called
+by Hop automatically.
+
+Once a user has installed both Hop and the extension plugin, they can simply
+modify the configuration of Hop and pass the name of your plugin in the
+`extensions` user configuration. See |hop-config-extensions| for further
+details about that.
 
 ==============================================================================
 HIGHLIGHTS                                                      *hop-highlights*

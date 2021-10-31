@@ -53,6 +53,7 @@ Neovim.
 * [Usage](#usage)
 * [Keybindings](#keybindings)
 * [Configuration](#configuration)
+* [Extension](#extension)
 * [Chat](#chat)
 
 <!-- vim-markdown-toc -->
@@ -222,10 +223,21 @@ You can configure Hop via several different mechanisms:
   you want to test a special option for a single Lua function, such as `require'hop'.hint_lines()`. You can test them
   inside the command line, such as:
   ```
-  :lua require'hop'.hint_words({ term_seq_bias = 0.5 })
+  :lua require'hop'.hint_words({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
   ```
 - In the case of none of the above are provided, options are automatically read from the _default_ options. See `:h
   hop-config` for a list of default values.
+
+# Extension
+
+It is possible to extend Hop by creating *Hop extension plugins*. For more info:
+
+```vim
+:h hop-extension
+```
+
+> Disclaimer: you may have written a nice Hop extension plugin. You can open an issue to merge it upstream but remember
+> that it’s unlikely to be merged as Hop should remain small and straight-to-the point.
 
 # Chat
 

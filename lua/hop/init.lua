@@ -357,6 +357,23 @@ function M.setup(opts)
   if M.opts.create_hl_autocmd then
     highlight.create_autocmd()
   end
+
+  -- register Hop extensions, if any
+  if opts.extensions ~= nil then
+    for _, ext_name in pairs(opts.extensions) do
+      local ok, extension = pcall(require, ext_name)
+      if not ok then
+        -- 4 is error; thanks Neovim… :(
+        vim.notify(string.format('extension %s wasn’t correctly loaded', ext_name), 4)
+      else
+        if extension.register == nil then
+          vim.notify(string.format('extension %s lacks the register function', ext_name), 4)
+        else
+          extension.register(opts)
+        end
+      end
+    end
+  end
 end
 
 return M
