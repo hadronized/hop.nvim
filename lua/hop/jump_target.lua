@@ -109,17 +109,20 @@ local function create_jump_targets_for_line(
   jump_targets,
   indirect_jump_targets,
   regex,
-  context,
+  top_line,
+  col_offset,
+  win_width,
+  cursor_pos,
   direction_mode,
   lines
 )
   -- first, create the jump targets for the ith line
   local line_jump_targets = mark_jump_targets_line(
     regex,
-    context.top_line + i - 1,
+    top_line + i - 1,
     lines[i],
-    context.col_offset,
-    context.win_width,
+    col_offset,
+    win_width,
     direction_mode
   )
 
@@ -129,7 +132,7 @@ local function create_jump_targets_for_line(
 
     indirect_jump_targets[#indirect_jump_targets + 1] = {
       index = #jump_targets,
-      score = manh_dist(context.cursor_pos, { jump_target.line, jump_target.column })
+      score = manh_dist(cursor_pos, { jump_target.line, jump_target.column })
     }
   end
 end
@@ -163,7 +166,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
       jump_targets,
       indirect_jump_targets,
       regex,
-      context,
+      context.top_line,
+      context.col_offset,
+      context.win_width,
+      context.cursor_pos,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
@@ -174,7 +180,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
         jump_targets,
         indirect_jump_targets,
         regex,
-        context,
+        context.top_line,
+        context.col_offset,
+        context.win_width,
+        context.cursor_pos,
         nil,
         lines
       )
@@ -187,7 +196,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
         jump_targets,
         indirect_jump_targets,
         regex,
-        context,
+        context.top_line,
+        context.col_offset,
+        context.win_width,
+        context.cursor_pos,
         nil,
         lines
       )
@@ -198,7 +210,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
       jump_targets,
       indirect_jump_targets,
       regex,
-      context,
+      context.top_line,
+      context.col_offset,
+      context.win_width,
+      context.cursor_pos,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
       lines
     )
@@ -209,7 +224,10 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
         jump_targets,
         indirect_jump_targets,
         regex,
-        context,
+        context.top_line,
+        context.col_offset,
+        context.win_width,
+        context.cursor_pos,
         nil,
         lines
       )
