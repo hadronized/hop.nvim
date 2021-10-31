@@ -69,6 +69,7 @@ local function mark_jump_targets_line(regex, line_nr, line, col_offset, win_widt
   local shifted_line = line:sub(1 + col_offset, vim.fn.byteidx(line, end_index))
 
   -- modify the shifted line to take the direction mode into account, if any
+  -- FIXME: we also need to do that for the cursor
   local col_bias = 0
   if direction_mode ~= nil then
     local col = vim.fn.byteidx(line, direction_mode.cursor_col + 1)

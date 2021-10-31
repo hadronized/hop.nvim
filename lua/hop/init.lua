@@ -29,32 +29,37 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, direction_mode)
-  if direction_mode ~= nil then
-    if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
-      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, direction_mode.cursor_col, {
-        end_line = bottom_line + 1,
-        hl_group = 'HopUnmatched',
-        hl_eol = true,
-        priority = prio.DIM_PRIO
-      })
-    elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
-      vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
-        end_line = bottom_line,
-        end_col = direction_mode.cursor_col,
-        hl_group = 'HopUnmatched',
-        hl_eol = true,
-        priority = prio.DIM_PRIO
-      })
+local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
+  local start_line = top_line
+  local end_line = bottom_line
+  local start_col = 0
+  local end_col = nil
+
+  if direction == hint.HintDirection.AFTER_CURSOR then
+    start_col = cursor_pos[2]
+  elseif direction == hint.HintDirection.BEFORE_CURSOR then
+    if cursor_pos[2] ~= 0 then
+      end_col = cursor_pos[2] + 1
     end
-  else
-    vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, top_line, 0, {
-      end_line = bottom_line + 1,
-      hl_group = 'HopUnmatched',
-      hl_eol = true,
-      priority = prio.DIM_PRIO
-    })
   end
+
+  if current_line_only then
+    if direction == hint.HintDirection.BEFORE_CURSOR then
+      start_line = cursor_pos[1] - 1
+      end_line = cursor_pos[1] - 1
+    else
+      start_line = cursor_pos[1] - 1
+      end_line = cursor_pos[1]
+    end
+  end
+
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col, {
+    end_line = end_line,
+    end_col = end_col,
+    hl_group = 'HopUnmatched',
+    hl_eol = true,
+    priority = prio.DIM_PRIO
+  })
 end
 
 -- Add the virtual cursor, taking care to handle the cases where:
@@ -137,7 +142,7 @@ local function hint_with(jump_target_gtr, opts)
   }
 
   -- dim everything out and add the virtual cursor
-  apply_dimming(0, dim_ns, context.top_line, context.bot_line, context.direction_mode)
+  apply_dimming(0, dim_ns, context.top_line, context.bot_line, context.cursor_pos, opts.direction, opts.current_line_only)
   add_virt_cur(hl_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')

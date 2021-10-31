@@ -7,7 +7,7 @@ function M.get_window_context()
   local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
   local win_view = vim.fn.winsaveview()
   local top_line = win_info.topline - 1
-  local bot_line = win_info.botline - 1
+  local bot_line = win_info.botline
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
