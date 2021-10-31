@@ -9,7 +9,7 @@
 -- }
 --
 -- The `jump_targets` field is a list-table of jump targets. A single jump target is simply a location in a given
--- window. So you can picture a jump target as a triple (line, column, window).
+-- buffer. So you can picture a jump target as a triple (line, column, window).
 --
 -- {
 --   line = 0,
@@ -48,7 +48,7 @@ local window = require'hop.window'
 local M = {}
 
 -- Manhattan distance with column and row, weighted on x so that results are more packed on y.
-local function manh_dist(a, b, x_bias)
+function M.manh_dist(a, b, x_bias)
   local bias = x_bias or 10
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
 end
@@ -143,7 +143,7 @@ local function create_jump_targets_for_line(
 
     indirect_jump_targets[#indirect_jump_targets + 1] = {
       index = #jump_targets,
-      score = manh_dist(cursor_pos, { jump_target.line, jump_target.column })
+      score = M.manh_dist(cursor_pos, { jump_target.line, jump_target.column })
     }
   end
 end
@@ -249,7 +249,7 @@ function M.jump_targets_by_scanning_lines(regex)
       end
     end
 
-    M.score_jump_targets(indirect_jump_targets, opts)
+    M.sort_indirect_jump_targets(indirect_jump_targets, opts)
 
     return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }
   end
@@ -277,14 +277,14 @@ function M.jump_targets_for_current_line(regex)
       line
     )
 
-    M.score_jump_targets(indirect_jump_targets, opts)
+    M.sort_indirect_jump_targets(indirect_jump_targets, opts)
 
     return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }
   end
 end
 
 -- Apply a score function based on the Manhattan distance to indirect jump targets.
-function M.score_jump_targets(indirect_jump_targets, opts)
+function M.sort_indirect_jump_targets(indirect_jump_targets, opts)
   local score_comparison = nil
   if opts.reverse_distribution then
     score_comparison = function (a, b) return a.score > b.score end

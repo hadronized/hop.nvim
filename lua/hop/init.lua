@@ -99,10 +99,7 @@ local function add_virt_cur(ns)
   end
 end
 
--- Hint the whole visible part of the buffer.
---
--- The 'hint_mode' argument is the mode to use to hint the buffer.
-local function hint_with(jump_target_gtr, opts)
+function M.hint_with(jump_target_gtr, opts)
   local context = window.get_window_context()
   window.clip_window_context(context, opts.direction)
 
@@ -231,7 +228,7 @@ function M.hint_words(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_word_start()),
     opts
   )
@@ -261,7 +258,7 @@ function M.hint_patterns(opts, pattern)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_case_searching(pattern, false, opts)),
     opts
   )
@@ -282,7 +279,7 @@ function M.hint_char1(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_case_searching(vim.fn.nr2char(c), true, opts)),
     opts
   )
@@ -310,7 +307,7 @@ function M.hint_char2(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_case_searching(pattern, true, opts)),
     opts
   )
@@ -326,7 +323,7 @@ function M.hint_lines(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_line_start()),
     opts
   )
@@ -342,7 +339,7 @@ function M.hint_lines_skip_whitespace(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  hint_with(
+  M.hint_with(
     generator(jump_target.regex_by_line_start_skip_whitespace()),
     opts
   )
