@@ -213,8 +213,16 @@ end
 
 function M.hint_words(opts)
   opts = override_opts(opts)
+
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_word_start(),
       opts
     ),
@@ -239,8 +247,15 @@ function M.hint_patterns(opts, pattern)
     end
   end
 
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_case_searching(pattern, false, opts),
       opts
     ),
@@ -256,8 +271,15 @@ function M.hint_char1(opts)
     return
   end
 
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_case_searching(
         vim.fn.nr2char(c),
         true,
@@ -267,13 +289,6 @@ function M.hint_char1(opts)
     ),
     opts
   )
-end
-
-function M.hint_char1_line(opts)
-    opts = override_opts(opts)
-    local ok, c = pcall(vim.fn.getchar)
-    if not ok then return end
-    hint_with(hint.by_case_searching_line(vim.fn.nr2char(c), true, opts), opts)
 end
 
 function M.hint_char2(opts)
@@ -291,8 +306,15 @@ function M.hint_char2(opts)
 
   local pattern = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
 
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_case_searching(
         pattern,
         true,
@@ -307,8 +329,15 @@ end
 function M.hint_lines(opts)
   opts = override_opts(opts)
 
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_line_start(),
       opts
     ),
@@ -319,8 +348,15 @@ end
 function M.hint_lines_skip_whitespace(opts)
   opts = override_opts(opts)
 
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_target_generator_for_current_line
+  else
+    generator = jump_target.jump_target_generator_by_scanning_lines
+  end
+
   hint_with(
-    jump_target.jump_target_generator_by_scanning_lines(
+    generator(
       jump_target.regex_by_line_start_skip_whitespace(),
       opts
     ),

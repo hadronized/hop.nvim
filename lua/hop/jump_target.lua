@@ -242,6 +242,31 @@ local function create_jump_targets_by_scanning_lines(regex, opts)
   return jump_targets, indirect_jump_targets
 end
 
+local function create_jump_targets_for_current_line(regex, opts)
+  local context = window.get_window_context()
+  local line_n = context.cursor_pos[1]
+  local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
+  local jump_targets = {}
+  local indirect_jump_targets = {}
+
+  create_jump_targets_for_line(
+    1,
+    jump_targets,
+    indirect_jump_targets,
+    regex,
+    line_n - 1,
+    context.col_offset,
+    context.win_width,
+    context.cursor_pos,
+    { cursor_col = context.cursor_pos[2], direction = opts.direction },
+    line
+  )
+
+  M.score_jump_targets(indirect_jump_targets, opts)
+
+  return jump_targets, indirect_jump_targets
+end
+
 -- Apply a score function based on the Manhattan distance to indirect jump targets.
 function M.score_jump_targets(indirect_jump_targets, opts)
   local score_comparison = nil
@@ -259,6 +284,15 @@ function M.jump_target_generator_by_scanning_lines(regex)
   return {
     get_jump_targets = function(opts)
       return create_jump_targets_by_scanning_lines(regex, opts)
+    end
+  }
+end
+
+-- Jump target generator for regex applied only on the cursor line.
+function M.jump_target_generator_for_current_line(regex)
+  return {
+    get_jump_targets = function(opts)
+      return create_jump_targets_for_current_line(regex, opts)
     end
   }
 end
