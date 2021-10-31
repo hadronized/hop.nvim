@@ -1,41 +1,51 @@
--- Jump targets are locations in buffers where users might jump to.
-
-local hint = require'hop.hint'
-local window = require'hop.window'
-
-local M = {}
-
 -- Jump targets.
 --
--- Jump targets are wrapped in this table and provide the required information so that Hop can associate label and
--- display the hints.
+-- Jump targets are locations in buffers where users might jump to. They are wrapped in a table and provide the
+-- required information so that Hop can associate label and display the hints.
 --
 -- {
 --   jump_targets = {},
---   jump_target_count = 0,
 --   indirect_jump_targets = {},
 -- }
-
--- A single jump target.
 --
--- A jump target is simply a location in a given buffer. So you can picture a jump target as a triple
--- (line, column, buffer).
+-- The `jump_targets` field is a list-table of jump targets. A single jump target is simply a location in a given
+-- window. So you can picture a jump target as a triple (line, column, window).
 --
 -- {
 --   line = 0,
 --   column = 0,
---   buffer = 0,
+--   window = 0,
 -- }
-
--- An indirect jump target.
 --
--- This table allows to quickly score and sort jump targets. The `index` field gives the index in the `JumpTargetList`
--- the `score` references.
+-- Indirect jump targets are encoded as a flat list-table of pairs (index, score). This table allows to quickly score
+-- and sort jump targets. The `index` field gives the index in the `jump_targets` list. The `score` is any number. The
+-- rule is that the lower the score is, the less prioritized the jump target will be.
 --
 -- {
 --   index = 0,
 --   score = 0,
 -- }
+--
+-- So for instance, for two jump targets, a jump target generator must return such a table:
+--
+-- {
+--   jump_targets = {
+--     { line = 1, column = 14, window = 0 },
+--     { line = 2, column = 1, window = 0 },
+--   },
+--
+--   indirect_jump_targets = {
+--     { index = 0, score = 14 },
+--     { index = 1, score = 7 },
+--   },
+-- }
+--
+-- This is everything you need to know to extend Hop with your own jump targets.
+
+local hint = require'hop.hint'
+local window = require'hop.window'
+
+local M = {}
 
 -- Manhattan distance with column and row, weighted on x so that results are more packed on y.
 local function manh_dist(a, b, x_bias)
