@@ -152,119 +152,124 @@ end
 -- indirect jump targets. » Indirect jump targets are encoded as a flat list-table containing three values: i, for the
 -- ith line, j, for the rank of the jump target, and dist, the score distance of the associated jump target. This list
 -- is sorted according to that last dist parameter in order to know how to distribute the jump targets over the buffer.
-local function create_jump_targets_by_scanning_lines(regex, opts)
-  -- get the window context; this is used to know which part of the visible buffer is to hint
-  local context = window.get_window_context()
-  window.clip_window_context(context, opts.direction)
+function M.jump_targets_by_scanning_lines(regex)
+  return function(opts)
+    -- get the window context; this is used to know which part of the visible buffer is to hint
+    local context = window.get_window_context()
+    window.clip_window_context(context, opts.direction)
 
-  local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
-  local jump_targets = {}
-  local indirect_jump_targets = {}
+    local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
+    local jump_targets = {}
+    local indirect_jump_targets = {}
 
-  -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
-  if opts.direction == hint.HintDirection.AFTER_CURSOR then
-    -- the first line is to be checked first
+    -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
+    if opts.direction == hint.HintDirection.AFTER_CURSOR then
+      -- the first line is to be checked first
+      create_jump_targets_for_line(
+        1,
+        jump_targets,
+        indirect_jump_targets,
+        regex,
+        context.top_line,
+        context.col_offset,
+        context.win_width,
+        context.cursor_pos,
+        { cursor_col = context.cursor_pos[2], direction = opts.direction },
+        lines
+      )
+
+      for i = 2, #lines do
+        create_jump_targets_for_line(
+          i,
+          jump_targets,
+          indirect_jump_targets,
+          regex,
+          context.top_line,
+          context.col_offset,
+          context.win_width,
+          context.cursor_pos,
+          nil,
+          lines
+        )
+      end
+    elseif opts.direction == hint.HintDirection.BEFORE_CURSOR then
+      -- the last line is to be checked last
+      for i = 1, #lines - 1 do
+        create_jump_targets_for_line(
+          i,
+          jump_targets,
+          indirect_jump_targets,
+          regex,
+          context.top_line,
+          context.col_offset,
+          context.win_width,
+          context.cursor_pos,
+          nil,
+          lines
+        )
+      end
+
+      create_jump_targets_for_line(
+        #lines,
+        jump_targets,
+        indirect_jump_targets,
+        regex,
+        context.top_line,
+        context.col_offset,
+        context.win_width,
+        context.cursor_pos,
+        { cursor_col = context.cursor_pos[2], direction = opts.direction },
+        lines
+      )
+    else
+      for i = 1, #lines do
+        create_jump_targets_for_line(
+          i,
+          jump_targets,
+          indirect_jump_targets,
+          regex,
+          context.top_line,
+          context.col_offset,
+          context.win_width,
+          context.cursor_pos,
+          nil,
+          lines
+        )
+      end
+    end
+
+    M.score_jump_targets(indirect_jump_targets, opts)
+
+    return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }
+  end
+end
+
+-- Jump target generator for regex applied only on the cursor line.
+function M.jump_targets_for_current_line(regex)
+  return function(opts)
+    local context = window.get_window_context()
+    local line_n = context.cursor_pos[1]
+    local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
+    local jump_targets = {}
+    local indirect_jump_targets = {}
+
     create_jump_targets_for_line(
       1,
       jump_targets,
       indirect_jump_targets,
       regex,
-      context.top_line,
+      line_n - 1,
       context.col_offset,
       context.win_width,
       context.cursor_pos,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
-      lines
+      line
     )
 
-    for i = 2, #lines do
-      create_jump_targets_for_line(
-        i,
-        jump_targets,
-        indirect_jump_targets,
-        regex,
-        context.top_line,
-        context.col_offset,
-        context.win_width,
-        context.cursor_pos,
-        nil,
-        lines
-      )
-    end
-  elseif opts.direction == hint.HintDirection.BEFORE_CURSOR then
-    -- the last line is to be checked last
-    for i = 1, #lines - 1 do
-      create_jump_targets_for_line(
-        i,
-        jump_targets,
-        indirect_jump_targets,
-        regex,
-        context.top_line,
-        context.col_offset,
-        context.win_width,
-        context.cursor_pos,
-        nil,
-        lines
-      )
-    end
+    M.score_jump_targets(indirect_jump_targets, opts)
 
-    create_jump_targets_for_line(
-      #lines,
-      jump_targets,
-      indirect_jump_targets,
-      regex,
-      context.top_line,
-      context.col_offset,
-      context.win_width,
-      context.cursor_pos,
-      { cursor_col = context.cursor_pos[2], direction = opts.direction },
-      lines
-    )
-  else
-    for i = 1, #lines do
-      create_jump_targets_for_line(
-        i,
-        jump_targets,
-        indirect_jump_targets,
-        regex,
-        context.top_line,
-        context.col_offset,
-        context.win_width,
-        context.cursor_pos,
-        nil,
-        lines
-      )
-    end
+    return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }
   end
-
-  M.score_jump_targets(indirect_jump_targets, opts)
-
-  return jump_targets, indirect_jump_targets
-end
-
-local function create_jump_targets_for_current_line(regex, opts)
-  local context = window.get_window_context()
-  local line_n = context.cursor_pos[1]
-  local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
-  local jump_targets = {}
-  local indirect_jump_targets = {}
-
-  create_jump_targets_for_line(
-    1,
-    jump_targets,
-    indirect_jump_targets,
-    regex,
-    line_n - 1,
-    context.col_offset,
-    context.win_width,
-    context.cursor_pos,
-    { cursor_col = context.cursor_pos[2], direction = opts.direction },
-    line
-  )
-
-  M.score_jump_targets(indirect_jump_targets, opts)
-
-  return jump_targets, indirect_jump_targets
 end
 
 -- Apply a score function based on the Manhattan distance to indirect jump targets.
@@ -277,24 +282,6 @@ function M.score_jump_targets(indirect_jump_targets, opts)
   end
 
   table.sort(indirect_jump_targets, score_comparison)
-end
-
--- Jump target generator for buffer-based line regexes.
-function M.jump_target_generator_by_scanning_lines(regex)
-  return {
-    get_jump_targets = function(opts)
-      return create_jump_targets_by_scanning_lines(regex, opts)
-    end
-  }
-end
-
--- Jump target generator for regex applied only on the cursor line.
-function M.jump_target_generator_for_current_line(regex)
-  return {
-    get_jump_targets = function(opts)
-      return create_jump_targets_for_current_line(regex, opts)
-    end
-  }
 end
 
 -- Regex modes for the buffer-driven generator.

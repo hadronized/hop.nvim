@@ -103,37 +103,41 @@ local function hint_with(jump_target_gtr, opts)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  local dim_ns = vim.api.nvim_create_namespace('')
 
   -- create jump targets
-  local jump_targets, indirect_jump_targets = jump_target_gtr.get_jump_targets(opts)
-  local jump_target_count = #jump_targets
+  local generated = jump_target_gtr(opts)
+  local jump_target_count = #generated.jump_targets
 
   local h = nil
   if jump_target_count == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
     clear_namespace(0, hl_ns)
+    clear_namespace(0, dim_ns)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
-    local jt = jump_targets[1]
+    local jt = generated.jump_targets[1]
     vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
 
     clear_namespace(0, hl_ns)
+    clear_namespace(0, dim_ns)
     return
   end
 
   -- we have at least two targets, so generate hints to display
   -- print(vim.inspect(indirect_jump_targets))
-  local hints = hint.create_hints(jump_targets, indirect_jump_targets, opts)
+  local hints = hint.create_hints(generated.jump_targets, generated.indirect_jump_targets, opts)
 
   local hint_state = {
-    hints = hints;
-    hl_ns = hl_ns;
-    top_line = context.top_line;
-    bot_line = context.bot_line
+    hints = hints,
+    hl_ns = hl_ns,
+    dim_ns = dim_ns,
+    top_line = context.top_line,
+    bot_line = context.bot_line,
   }
 
   -- grey everything out and add the virtual cursor
-  grey_things_out(0, hl_ns, context.top_line, context.bot_line, context.direction_mode)
+  grey_things_out(0, dim_ns, context.top_line, context.bot_line, context.direction_mode)
   add_virt_cur(hl_ns)
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
@@ -209,6 +213,7 @@ end
 -- This works only if the current buffer is Hop one.
 function M.quit(buf_handle, hint_state)
   clear_namespace(buf_handle, hint_state.hl_ns)
+  clear_namespace(buf_handle, hint_state.dim_ns)
 end
 
 function M.hint_words(opts)
@@ -216,16 +221,13 @@ function M.hint_words(opts)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_word_start(),
-      opts
-    ),
+    generator(jump_target.regex_by_word_start()),
     opts
   )
 end
@@ -249,16 +251,13 @@ function M.hint_patterns(opts, pattern)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_case_searching(pattern, false, opts),
-      opts
-    ),
+    generator(jump_target.regex_by_case_searching(pattern, false, opts)),
     opts
   )
 end
@@ -273,20 +272,13 @@ function M.hint_char1(opts)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_case_searching(
-        vim.fn.nr2char(c),
-        true,
-        opts
-      ),
-      opts
-    ),
+    generator(jump_target.regex_by_case_searching(vim.fn.nr2char(c), true, opts)),
     opts
   )
 end
@@ -308,20 +300,13 @@ function M.hint_char2(opts)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_case_searching(
-        pattern,
-        true,
-        opts
-      ),
-      opts
-    ),
+    generator(jump_target.regex_by_case_searching(pattern, true, opts)),
     opts
   )
 end
@@ -331,16 +316,13 @@ function M.hint_lines(opts)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_line_start(),
-      opts
-    ),
+    generator(jump_target.regex_by_line_start()),
     opts
   )
 end
@@ -350,16 +332,13 @@ function M.hint_lines_skip_whitespace(opts)
 
   local generator
   if opts.current_line_only then
-    generator = jump_target.jump_target_generator_for_current_line
+    generator = jump_target.jump_targets_for_current_line
   else
-    generator = jump_target.jump_target_generator_by_scanning_lines
+    generator = jump_target.jump_targets_by_scanning_lines
   end
 
   hint_with(
-    generator(
-      jump_target.regex_by_line_start_skip_whitespace(),
-      opts
-    ),
+    generator(jump_target.regex_by_line_start_skip_whitespace()),
     opts
   )
 end
