@@ -2,29 +2,13 @@ local hint = require'hop.hint'
 
 local M = {}
 
-function M.get_window_context(direction, curr_line_only)
+function M.get_window_context()
   -- get a bunch of information about the window and the cursor
   local win_info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
   local win_view = vim.fn.winsaveview()
   local top_line = win_info.topline - 1
   local bot_line = win_info.botline - 1
   local cursor_pos = vim.api.nvim_win_get_cursor(0)
-
-  -- adjust the visible part of the buffer to hint based on the direction
-  local direction_mode = nil
-  if direction == hint.HintDirection.BEFORE_CURSOR then
-    bot_line = cursor_pos[1] - 1
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
-  elseif direction == hint.HintDirection.AFTER_CURSOR then
-    top_line = cursor_pos[1] - 1
-    direction_mode = { cursor_col = cursor_pos[2], direction = direction }
-  end
-
-  -- Constrain range of lines if we are in current-line-only mode
-  if curr_line_only then
-    top_line = cursor_pos[1] - 1
-    bot_line = cursor_pos[1] - 1
-  end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -44,10 +28,21 @@ function M.get_window_context(direction, curr_line_only)
     cursor_pos=cursor_pos,
     top_line=top_line,
     bot_line=bot_line,
-    direction_mode=direction_mode,
     win_width=win_width,
     col_offset=win_view.leftcol
   }
+end
+
+-- Clip the window context based on the direction.
+--
+-- If the direction is HintDirection.BEFORE_CURSOR, then everything after the cursor will be clipped.
+-- If the direction is HintDirection.AFTER_CURSOR, then everything before the cursor will be clipped.
+function M.clip_window_context(context, direction)
+  if direction == hint.HintDirection.BEFORE_CURSOR then
+    context.bot_line = context.cursor_pos[1] - 1
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
+    context.top_line = context.cursor_pos[1] - 1
+  end
 end
 
 return M

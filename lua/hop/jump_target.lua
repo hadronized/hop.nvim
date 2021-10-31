@@ -153,7 +153,10 @@ end
 -- ith line, j, for the rank of the jump target, and dist, the score distance of the associated jump target. This list
 -- is sorted according to that last dist parameter in order to know how to distribute the jump targets over the buffer.
 local function create_jump_targets_by_scanning_lines(regex, opts)
-  local context = window.get_window_context(opts.direction)
+  -- get the window context; this is used to know which part of the visible buffer is to hint
+  local context = window.get_window_context()
+  window.clip_window_context(context, opts.direction)
+
   local lines = vim.api.nvim_buf_get_lines(0, context.top_line, context.bot_line + 1, false)
   local jump_targets = {}
   local indirect_jump_targets = {}

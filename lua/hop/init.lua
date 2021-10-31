@@ -98,7 +98,8 @@ end
 --
 -- The 'hint_mode' argument is the mode to use to hint the buffer.
 local function hint_with(jump_target_gtr, opts)
-  local context = window.get_window_context(opts.direction)
+  local context = window.get_window_context()
+  window.clip_window_context(context, opts.direction)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
