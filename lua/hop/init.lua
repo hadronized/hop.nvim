@@ -100,6 +100,11 @@ local function add_virt_cur(ns)
 end
 
 function M.hint_with(jump_target_gtr, opts)
+  if not M.initialized then
+    vim.notify('Hop is not initialized; please call the setup function', 4)
+    return
+  end
+
   local context = window.get_window_context()
   window.clip_window_context(context, opts.direction)
 
@@ -349,6 +354,7 @@ end
 function M.setup(opts)
   -- Look up keys in user-defined table with fallback to defaults.
   M.opts = setmetatable(opts or {}, {__index = defaults})
+  M.initialized = true
 
   -- Insert the highlights and register the autocommand if asked to.
   local highlight = require'hop.highlight'
