@@ -124,7 +124,7 @@ function M.hint_with(jump_target_gtr, opts)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
-    vim.api.nvim_win_set_cursor(jt.buffer, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
+    vim.api.nvim_win_set_cursor(jt.window, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
 
     clear_namespace(0, hl_ns)
     clear_namespace(0, dim_ns)

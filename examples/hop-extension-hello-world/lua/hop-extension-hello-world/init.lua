@@ -19,12 +19,12 @@ function M.hint_around_cursor(opts)
 
     -- left
     if col > 0 then
-      jump_targets[#jump_targets + 1] = { line = line, column = col - 1 }
+      jump_targets[#jump_targets + 1] = { line = line, column = col - 1, window = 0 }
       indirect_jump_targets[#indirect_jump_targets + 1] = { index = #jump_targets, score = 0 }
     end
 
     -- right
-    jump_targets[#jump_targets + 1] = { line = line, column = col + 1 }
+    jump_targets[#jump_targets + 1] = { line = line, column = col + 1, window = 0 }
     indirect_jump_targets[#indirect_jump_targets + 1] = { index = #jump_targets, score = 0 }
 
     return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }

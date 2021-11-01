@@ -96,7 +96,7 @@ local function mark_jump_targets_line(regex, line_nr, line, col_offset, win_widt
     jump_targets[#jump_targets + 1] = {
       line = line_nr,
       column = math.max(1, colb + col_offset + col_bias),
-      buffer = 0,
+      window = 0,
     }
 
     if regex.oneshot then
