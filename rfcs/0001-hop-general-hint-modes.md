@@ -3,6 +3,7 @@
 This document is a design document presenting a redesign of Hop’s « hint modes » to allow for a better customization
 experience for people using Hop.
 
+
 <!-- vim-markdown-toc GFM -->
 
 * [Context](#context)
@@ -17,7 +18,6 @@ experience for people using Hop.
 * [Future work](#future-work)
 
 <!-- vim-markdown-toc -->
-
 # Context
 
 The current code uses the concept of _hint modes_ to work. Hop goes through all the visible lines and applies the hint
@@ -216,6 +216,9 @@ Given all the work described here, here is a break down view of the PR:
   sure, probably will pick**.
 - [82117eab](https://github.com/phaazon/hop.nvim/pull/123/commits/82117eab12f6f3278927667623ed4c267608a22e):
   documentation enhancement. **Will pick**.
+
+The actual commits that were picked were not the ones described just above because decisions to refactor / renames
+things in a different way that matches more the overall design.
 
 # Alternatives
 
