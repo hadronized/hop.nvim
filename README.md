@@ -15,28 +15,9 @@ represents a key to type to jump to the annotated text. Most of the time,
 those sequences’ lengths will be between 1 to 3 characters, making every jump
 target in your document reachable in a few keystrokes.
 
-**Hop** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
-enhance the native motions of Vim. Even though [EasyMotion] is usable in
-Neovim, it suffers from a few drawbacks making it not comfortable to use with
-Neovim version >0.5 – at least at the time of writing these lines:
-
-- [EasyMotion] uses an old trick to annotate jump targets by saving the
-  contents of the buffer, replacing it with the highlighted annotations and
-  then restoring the initial buffer after jump. This trick is dangerous as it
-  will change the contents of your buffer. A UI plugin should never do anything
-  to existing buffers’ contents.
-- Because the contents of buffers will temporarily change, other parts of the
-  editor and/or plugins relying on buffer change events will react and will go
-  mad. An example is the internal LSP client implementation of Neovim >0.5 or
-  its treesitter native implementation. For LSP, it means that the connected
-  LSP server will receive a buffer with the jump target annotations… not
-  ideal.
-
-**Hop** is a modern take implementing this concept for the latest versions of
-Neovim.
-
 <!-- vim-markdown-toc GFM -->
 
+* [Motivation](#motivation)
 * [Features](#features)
   * [Word mode (`:HopWord`)](#word-mode-hopword)
   * [Line mode (`:HopLine`)](#line-mode-hopline)
@@ -57,6 +38,28 @@ Neovim.
 * [Chat](#chat)
 
 <!-- vim-markdown-toc -->
+
+# Motivation
+
+**Hop** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
+enhance the native motions of Vim. Even though [EasyMotion] is usable in
+Neovim, it suffers from a few drawbacks making it not comfortable to use with
+Neovim version >0.5 – at least at the time of writing these lines:
+
+- [EasyMotion] uses an old trick to annotate jump targets by saving the
+  contents of the buffer, replacing it with the highlighted annotations and
+  then restoring the initial buffer after jump. This trick is dangerous as it
+  will change the contents of your buffer. A UI plugin should never do anything
+  to existing buffers’ contents.
+- Because the contents of buffers will temporarily change, other parts of the
+  editor and/or plugins relying on buffer change events will react and will go
+  mad. An example is the internal LSP client implementation of Neovim >0.5 or
+  its treesitter native implementation. For LSP, it means that the connected
+  LSP server will receive a buffer with the jump target annotations… not
+  ideal.
+
+**Hop** is a modern take implementing this concept for the latest versions of
+Neovim.
 
 # Features
 
