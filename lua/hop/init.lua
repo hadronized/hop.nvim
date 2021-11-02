@@ -365,7 +365,7 @@ function M.setup(opts)
   end
 
   -- register Hop extensions, if any
-  if opts.extensions ~= nil then
+  if M.opts.extensions ~= nil then
     for _, ext_name in pairs(opts.extensions) do
       local ok, extension = pcall(require, ext_name)
       if not ok then
