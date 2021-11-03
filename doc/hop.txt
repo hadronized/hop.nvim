@@ -1,4 +1,4 @@
-*hop.txt*    For Neovim version 0.5                  Last change: 2021 Aug 19
+*hop.txt*    For Neovim version 0.5                  Last change: 2021 Nov 02
 
                                  __
                                 / /_  ____  ____
