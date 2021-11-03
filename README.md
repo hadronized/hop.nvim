@@ -30,8 +30,8 @@ target in your document reachable in a few keystrokes.
 * [Getting started](#getting-started)
   * [Installation](#installation)
     * [Important note about versioning](#important-note-about-versioning)
-    * [Using [vim-plug]](#using-vim-plug)
-    * [Using [packer]](#using-packer)
+    * [Using vim-plug](#using-vim-plug)
+    * [Using packer](#using-packer)
 * [Usage](#usage)
 * [Keybindings](#keybindings)
 * [Configuration](#configuration)
@@ -156,13 +156,13 @@ This plugin implements [SemVer] via git branches and tags. Versions are prefixed
 are git tags. Major and minor versions are git branches. You are **very strongly advised** to use a major version
 dependency to be sure your config will not break when Hop gets updated.
 
-### Using [vim-plug]
+### Using vim-plug
 
 ```vim
 Plug 'phaazon/hop.nvim'
 ```
 
-### Using [packer]
+### Using packer
 
 ```lua
 use {
@@ -254,6 +254,5 @@ It is possible to extend Hop by creating *Hop extension plugins*. For more info:
 Join the discussion on the official [Matrix room](https://matrix.to/#/#hop.nvim:matrix.org)!
 
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
-[vim-plug]: https://github.com/junegunn/vim-plug
 [packer]: https://github.com/wbthomason/packer.nvim
 [SemVer]: https://semver.org
