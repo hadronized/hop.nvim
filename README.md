@@ -29,6 +29,7 @@ target in your document reachable in a few keystrokes.
   * [Use as operator motion](#use-as-operator-motion)
 * [Getting started](#getting-started)
   * [Installation](#installation)
+    * [Important note about versioning](#important-note-about-versioning)
     * [Using [vim-plug]](#using-vim-plug)
     * [Using [packer]](#using-packer)
 * [Usage](#usage)
@@ -149,6 +150,12 @@ require'hop'.setup()
 
 To get a default experience. Feel free to customize later the `setup` invocation (`:h hop.setup`).
 
+### Important note about versioning
+
+This plugin implements [SemVer] via git branches and tags. Versions are prefixed with a `v`, and only patch versions
+are git tags. Major and minor versions are git branches. You are **very strongly advised** to use a major version
+dependency to be sure your config will not break when Hop gets updated.
+
 ### Using [vim-plug]
 
 ```vim
@@ -160,7 +167,7 @@ Plug 'phaazon/hop.nvim'
 ```lua
 use {
   'phaazon/hop.nvim',
-  as = 'hop',
+  branch = 'v1', -- optional but strongly recommended
   config = function()
     -- you can configure Hop the way you like here; see :h hop-config
     require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
@@ -249,4 +256,4 @@ Join the discussion on the official [Matrix room](https://matrix.to/#/#hop.nvim:
 [EasyMotion]: https://github.com/easymotion/vim-easymotion
 [vim-plug]: https://github.com/junegunn/vim-plug
 [packer]: https://github.com/wbthomason/packer.nvim
-
+[SemVer]: https://semver.org
