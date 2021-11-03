@@ -25,7 +25,7 @@ command! HopPatternCurrentLineAC lua require'hop'.hint_patterns({ direction = re
 command! HopChar1              lua require'hop'.hint_char1()
 command! HopChar1BC            lua require'hop'.hint_char1({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
 command! HopChar1AC            lua require'hop'.hint_char1({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
-command! HopCharCurrentLine1   lua require'hop'.hint_char1({ current_line_only = true })
+command! HopChar1CurrentLine   lua require'hop'.hint_char1({ current_line_only = true })
 command! HopChar1CurrentLineBC lua require'hop'.hint_char1({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = true })
 command! HopChar1CurrentLineAC lua require'hop'.hint_char1({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
 
