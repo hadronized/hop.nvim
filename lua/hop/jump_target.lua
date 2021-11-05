@@ -302,6 +302,12 @@ local function starts_with_uppercase(s)
   end
 
   local f = s:sub(1, vim.fn.byteidx(s, 1))
+  -- if it’s a space, we assume it’s not uppercase, even though Lua doesn’t agree with us; I mean, Lua is horrible, who
+  -- would like to argue with that creature, right?
+  if f == ' ' then
+    return false
+  end
+
   return f:upper() == f
 end
 
