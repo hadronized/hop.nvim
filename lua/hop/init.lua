@@ -99,6 +99,14 @@ local function add_virt_cur(ns)
   end
 end
 
+-- Move the cursor at a given location.
+--
+-- This function will update the jump list.
+function M.move_cursor_to(w, line, column)
+  vim.cmd("normal! m'")
+  vim.api.nvim_win_set_cursor(w, { line, column})
+end
+
 function M.hint_with(jump_target_gtr, opts)
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
@@ -124,7 +132,7 @@ function M.hint_with(jump_target_gtr, opts)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
-    vim.api.nvim_win_set_cursor(jt.window, { jt.line + 1, jt.column - 1}) -- FIXME: ditto
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1)
 
     clear_namespace(0, hl_ns)
     clear_namespace(0, dim_ns)
@@ -210,7 +218,7 @@ function M.refine_hints(buf_handle, key, teasing, hint_state)
     vim.cmd("normal! m'")
 
     -- JUMP!
-    vim.api.nvim_win_set_cursor(h.jump_target.buffer, { h.jump_target.line + 1, h.jump_target.column - 1}) -- FIXME: ditto
+    M.move_cursor_to(h.jump_target.window, h.jump_target.line + 1, h.jump_target.column - 1)
     return h
   end
 end
