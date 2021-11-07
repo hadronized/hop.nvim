@@ -32,6 +32,7 @@ target in your document reachable in a few keystrokes.
     * [Important note about versioning](#important-note-about-versioning)
     * [Using vim-plug](#using-vim-plug)
     * [Using packer](#using-packer)
+    * [Nightly users](#nightly-users)
 * [Usage](#usage)
 * [Keybindings](#keybindings)
 * [Configuration](#configuration)
@@ -174,6 +175,11 @@ use {
   end
 }
 ```
+
+### Nightly users
+
+Hop supports nightly releases of Neovim. However, keep in mind that if you are on a nightly version, you must be **on
+the last one**. If you are not, then you are exposed to compatibility issues / breakage.
 
 # Usage
 
