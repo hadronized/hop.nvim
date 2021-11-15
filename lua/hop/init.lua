@@ -122,6 +122,12 @@ function M.move_cursor_to(w, line, column, inclusive)
 end
 
 function M.hint_with(jump_target_gtr, opts)
+  M.hint_with_callback(jump_target_gtr, opts, function(jt)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
+  end)
+end
+
+function M.hint_with_callback(jump_target_gtr, opts, callback)
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
     return
@@ -146,7 +152,7 @@ function M.hint_with(jump_target_gtr, opts)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
+    callback(jt)
 
     clear_namespace(0, hl_ns)
     clear_namespace(0, dim_ns)
@@ -195,11 +201,11 @@ function M.hint_with(jump_target_gtr, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in Hop (via opts.keys), deal with it in Hop
-      h = M.refine_hints(0, key, hint_state, opts)
-      vim.cmd('redraw')
+      h = M.refine_hints(0, key, hint_state, callback, opts)
     else
       -- If it's not, quit Hop
       M.quit(0, hint_state)
+
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -214,7 +220,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, hint_state, opts)
+function M.refine_hints(buf_handle, key, hint_state, callback, opts)
   local h, hints = hint.reduce_hints(hint_state.hints, key)
 
   if h == nil then
@@ -234,8 +240,7 @@ function M.refine_hints(buf_handle, key, hint_state, opts)
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
 
-    -- JUMP!
-    M.move_cursor_to(h.jump_target.window, h.jump_target.line + 1, h.jump_target.column - 1, opts.inclusive_jump)
+    callback(h.jump_target)
     return h
   end
 end

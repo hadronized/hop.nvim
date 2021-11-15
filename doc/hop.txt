@@ -208,6 +208,26 @@ Most of the functions and values you need to know about are in `hop`.
     take care of reducing the hints for you automatically and will perform the
     actual jumps.
 
+    If you would like to use a more general version to implement different
+    kind of actions instead of jumping, have a look at
+    |hop.hint_with_callback|.
+
+    Arguments:~
+        {jump_target_gtr} Jump target generator. See |hop-jump-target-api| for
+                          further information.
+        {opts}            User options.
+
+`hop.hint_with_callback(`                                 *hop.hint_with_callback*
+  {jump_target_gtr}`,`
+  {opts}`,`
+  {callback}
+`)`
+    Main entry-point of Hop, this function expects a jump target generator and
+    will call it with {opts} to get a list of jump targets. This function will
+    take care of reducing the hints for you automatically. Once a jump target
+    is reduced completely, this function will call the {callback} with the
+    selected jump target.
+
     Arguments:~
         {jump_target_gtr} Jump target generator. See |hop-jump-target-api| for
                           further information.
