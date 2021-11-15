@@ -642,6 +642,9 @@ below.
     extensions for which the name is in that list must have a `register(opts)`
     function in their public API for Hop to correctly initialized them.
 
+    Defaults:~
+        `extensions = nil`
+
 ==============================================================================
 EXTENSION                                                        *hop-extension*
 

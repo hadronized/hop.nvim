@@ -140,7 +140,6 @@ function M.hint_with(jump_target_gtr, opts)
   end
 
   -- we have at least two targets, so generate hints to display
-  -- print(vim.inspect(indirect_jump_targets))
   local hints = hint.create_hints(generated.jump_targets, generated.indirect_jump_targets, opts)
 
   local hint_state = {
