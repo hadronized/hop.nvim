@@ -101,8 +101,22 @@ end
 
 -- Move the cursor at a given location.
 --
+-- If inclusive is `true`, the jump target will be incremented visually by 1, so that operator-pending motions can
+-- correctly take into account the right offset. This is the main difference between motions such as `f` (inclusive)
+-- and `t` (exclusive).
+--
 -- This function will update the jump list.
-function M.move_cursor_to(w, line, column)
+function M.move_cursor_to(w, line, column, inclusive)
+  -- If we do not ask for inclusive jump, we don’t have to retreive any additional lines because we will jump to the
+  -- actual jump target. If we do want an inclusive jump, we need to retreive the line the jump target lies in so that
+  -- we can compute the offset correctly. This is linked to the fact that currently, Neovim doesn’s have an API to «
+  -- offset something by 1 visual column. »
+  if inclusive then
+    local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
+    column = vim.fn.byteidx(buf_line, column + 1)
+  end
+
+  -- update the jump list
   vim.cmd("normal! m'")
   vim.api.nvim_win_set_cursor(w, { line, column})
 end
@@ -132,7 +146,7 @@ function M.hint_with(jump_target_gtr, opts)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
 
     clear_namespace(0, hl_ns)
     clear_namespace(0, dim_ns)
@@ -181,7 +195,7 @@ function M.hint_with(jump_target_gtr, opts)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in Hop (via opts.keys), deal with it in Hop
-      h = M.refine_hints(0, key, opts.teasing, hint_state)
+      h = M.refine_hints(0, key, hint_state, opts)
       vim.cmd('redraw')
     else
       -- If it's not, quit Hop
@@ -200,12 +214,12 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, teasing, hint_state)
+function M.refine_hints(buf_handle, key, hint_state, opts)
   local h, hints = hint.reduce_hints(hint_state.hints, key)
 
   if h == nil then
     if #hints == 0 then
-      eprintln('no remaining sequence starts with ' .. key, teasing)
+      eprintln('no remaining sequence starts with ' .. key, opts.teasing)
       return
     end
 
@@ -221,7 +235,7 @@ function M.refine_hints(buf_handle, key, teasing, hint_state)
     vim.cmd("normal! m'")
 
     -- JUMP!
-    M.move_cursor_to(h.jump_target.window, h.jump_target.line + 1, h.jump_target.column - 1)
+    M.move_cursor_to(h.jump_target.window, h.jump_target.line + 1, h.jump_target.column - 1, opts.inclusive_jump)
     return h
   end
 end

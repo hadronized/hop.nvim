@@ -27,6 +27,7 @@ target in your document reachable in a few keystrokes.
   * [Visual extend](#visual-extend)
   * [Jump on sole occurrence](#jump-on-sole-occurrence)
   * [Use as operator motion](#use-as-operator-motion)
+  * [Inclusive / exclusive motion](#inclusive--exclusive-motion)
 * [Getting started](#getting-started)
   * [Installation](#installation)
     * [Important note about versioning](#important-note-about-versioning)
@@ -129,6 +130,15 @@ extra key.
 
 You can use Hop with any command that expects a motion, such as `d`, `y`, `c`, and it does what you would expect:
 Delete/yank/change the document up to the new cursor position.
+
+## Inclusive / exclusive motion
+
+By default, Hop will operate in exclusive mode, which is similar to what you get with `t`: deleting from the cursor
+position up to the next `)` (without deleting the `)`), which is normally done with `dt)`. However, if you want to be
+inclusive (i.e. delete the `)`, which is `df)` in vanilla), you can set the `inclusive_jump` option to `true`.
+
+Some limitations currently exist, requiring `virtualedit` special settings. `:h hop-config-inclusive_jump` for more
+information.
 
 # Getting started
 
