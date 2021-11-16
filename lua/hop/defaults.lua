@@ -10,5 +10,6 @@ M.case_insensitive = true
 M.create_hl_autocmd = true
 M.current_line_only = false
 M.inclusive_jump = false
+M.uppercase_labels = false
 
 return M
