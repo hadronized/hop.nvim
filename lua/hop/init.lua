@@ -175,7 +175,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   add_virt_cur(hl_ns)
   if vim.fn.has("nvim-0.6") == 1 then
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
-    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.hide(ns) end
+    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, 0, nil, { virtual_text = false }) end
   end
   hint.set_hint_extmarks(hl_ns, hints)
   vim.cmd('redraw')
@@ -246,11 +246,10 @@ function M.refine_hints(buf_handle, key, hint_state, callback, opts)
 end
 
 -- Quit Hop and delete its resources.
---
--- This works only if the current buffer is Hop one.
 function M.quit(buf_handle, hint_state)
   clear_namespace(buf_handle, hint_state.hl_ns)
   clear_namespace(buf_handle, hint_state.dim_ns)
+
   if vim.fn.has("nvim-0.6") == 1 then
     for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, buf_handle) end
   end
