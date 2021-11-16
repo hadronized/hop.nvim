@@ -215,7 +215,7 @@ If you would rather use the Lua API, you can test it via the command prompt:
 
 Hop doesn’t set any keybindings; you will have to define them by yourself.
 
-If you want to create a key binding (<kbd>$</kbd> in this example) from within Lua:
+If you want to create a key binding from within Lua:
 
 ```lua
 -- place this in one of your configuration file(s)
@@ -244,7 +244,7 @@ You can configure Hop via several different mechanisms:
   "
   " Use better keys for the bépo keyboard layout and set
   " a balanced distribution of terminal / sequence keys
-  lua require'hop'.setup { keys = 'etovxqpdygfblzhckisuran', term_seq_bias = 0.5 }
+  lua require'hop'.setup { keys = 'etovxqpdygfblzhckisuran', jump_on_sole_occurrence = false }
   ```
 - _Local configuration overrides_ are available only on the Lua API and are `{opts}` Lua tables passed to the various
   Lua functions. Those options have precedence over global options, so they allow to locally override options. Useful if
