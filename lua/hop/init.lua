@@ -177,7 +177,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
     for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, 0, nil, { virtual_text = false }) end
   end
-  hint.set_hint_extmarks(hl_ns, hints)
+  hint.set_hint_extmarks(hl_ns, hints, opts)
   vim.cmd('redraw')
 
   while h == nil do
@@ -232,7 +232,7 @@ function M.refine_hints(buf_handle, key, hint_state, callback, opts)
     hint_state.hints = hints
 
     clear_namespace(buf_handle, hint_state.hl_ns)
-    hint.set_hint_extmarks(hint_state.hl_ns, hints)
+    hint.set_hint_extmarks(hint_state.hl_ns, hints, opts)
     vim.cmd('redraw')
   else
     M.quit(buf_handle, hint_state)

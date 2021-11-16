@@ -673,6 +673,13 @@ below.
     Defaults:~
         `inclusive_jump = false`
 
+`uppercase_labels`                                   *hop-config-uppercase_labels*
+    Display labels as uppercase. This option only affects the displayed
+    labels; you still select them by typing the keys on your keyboard.
+
+    Defaults:~
+        `uppercase_labels = false`
+
 `extensions`                                               *hop-config-extensions*
     List-table of extensions to enable (names). As described in |hop-extension|,
     extensions for which the name is in that list must have a `register(opts)`
