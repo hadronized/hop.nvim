@@ -335,7 +335,13 @@ function M.hint_char2(opts)
     return
   end
 
-  local pattern = vim.fn.nr2char(a) .. vim.fn.nr2char(b)
+  local pattern = vim.fn.nr2char(a)
+
+  -- if we have a fallback key defined in the opts, if the second character is that key, we then fallback to the same
+  -- behavior as hint_char1()
+  if opts.char2_fallback_key == nil or b ~= vim.fn.char2nr(vim.api.nvim_replace_termcodes(opts.char2_fallback_key, true, false, true)) then
+    pattern = pattern .. vim.fn.nr2char(b)
+  end
 
   local generator
   if opts.current_line_only then

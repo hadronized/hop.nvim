@@ -262,6 +262,9 @@ Most of the functions and values you need to know about are in `hop`.
     Let the user type a bigram (two concatenated keys) and immediately hint
     all of its occurrences.
 
+    This function can behave like |hop.hint_char1| in some cases. See
+    |hop-config-char2_fallback_key|.
+
     Arguments:~
         {opts}  Hop options.
 
@@ -679,6 +682,17 @@ below.
 
     Defaults:~
         `uppercase_labels = false`
+
+`char2_fallback_key`                               *hop-config-char2_fallback_key*
+    Enable a special key that breaks |hop.hint_char2| if only one key is
+    pressed, falling back to the same behavior as |hop.hint_char1|. It is
+    recommended that, if you set this option, you not use a key that is in
+    your |hop-config-keys| (because it would make those keys unreachable), and
+    not a character that you might jump to. A good fallback key could be
+    `<esc>` or `<cr>`, for instance.
+
+    Defaults:~
+        `char2_fallback_key = nil`
 
 `extensions`                                               *hop-config-extensions*
     List-table of extensions to enable (names). As described in |hop-extension|,
