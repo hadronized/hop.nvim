@@ -106,6 +106,9 @@ to any.
 
 ![](https://phaazon.net/media/uploads/hop_char2_mode.gif)
 
+Note that it’s possible to _fallback to 1-char mode_ if you hit a special key as second key. This key can be controlled
+via the user configuration. `:h hop-config-char2_fallback_key`.
+
 ## Pattern mode (`:HopPattern`)
 
 Akin to `/`, this mode prompts you for a pattern (regex) to search. Occurrences will be highlighted, allowing you to
