@@ -310,7 +310,7 @@ implementing your own.
 
 Jump targets are locations in buffers where users might jump to. They are
 wrapped in a table and provide the required information so that Hop can
-associate label and display the hints. Such a table must have the following
+associate labels and display the hints. Such a table must have the following
 form:
 >
     {
@@ -319,8 +319,9 @@ form:
     }
 >
 The `jump_targets` field is a list-table of jump targets. A single jump target
-is simply a location in a given window. So you can picture a jump target as
-a triple (line, column, window).
+is simply a location in a given window. Actually, the location will be set on
+the buffer that is being displayed by that window. So you can picture a jump
+target as a triple (line, column, window).
 >
     {
       line = 0,
@@ -328,7 +329,14 @@ a triple (line, column, window).
       window = 0,
     }
 <
-`indirect_jump_targets` are encoded as a flat list-table of pairs
+`indirect_jump_targets` is an optional yet highly recommended table. They
+provide an indirect access to `jump_targets` to re-order them. They are for
+instance used to be able to distribute hints according to their distance to
+the current location of the cursor. Not providing that table (`nil`) will
+result in the jump targets being considered fully ordered and will be assigned
+sequences based on their index in `jump_targets`.
+
+Indirect jump targets are encoded as a flat list-table of pairs
 (index, score). This table allows to quickly score and sort jump targets.
 >
     {
@@ -355,9 +363,22 @@ such a table:
       },
     }
 <
+
+If you don’t need to change the score, or if the scores are always ascending
+with the indices ascending, you can completely omit the
+`indirect_jump_targets` table:
+>
+    {
+      jump_targets = {
+        { line = 1, column = 14, window = 0 },
+        { line = 2, column = 1, window = 0 },
+      },
+    }
+<
 This module provides several functions, named `jump_targets_*`, which are
-called jump target generator. Such functions are to be passed to
-|hop.hint_with|. Most of the Vim commands are doing this for you.
+called jump target generators. Such functions are to be passed to
+|hop.hint_with| or |hop.hint_with_callback|. Most of the Vim commands are already
+doing that for you.
 
 `hop.jump_target.jump_targets_by_scanning_line(` *hop.jump_target.jump_targets_by_scanning_line*
   {regex}
@@ -372,10 +393,11 @@ called jump target generator. Such functions are to be passed to
 
                 If you want to create your own regex-like table, you need to
                 provide a table with two fields: `oneshot`, a boolean value,
-                that is to be set to `true` if the regex should be applied to
-                each line only once, and `match`, which is the actual matcher
-                that returns the beginning / end (inclusive / exclusive) byte
-                indices of the match. You are advised to use |vim.regex|.
+                that is to be set to `true` if the regex should be applied
+                only once to each line, and `match`, which is the actual
+                matcher that returns the beginning / end
+                (inclusive / exclusive) byte indices of the match. You are
+                advised to use |vim.regex|.
 
 `hop.jump_target.jump_targets_for_current_line(` *hop.jump_target.jump_targets_for_current_line*
   {regex}
@@ -447,8 +469,8 @@ called jump target generator. Such functions are to be passed to
   {b}`,`
   {x_bias}
 `)`
-    Manhattan distance between two buffer position. Both {a} and {b} must be
-    table containing two values: the first one for the line and the second one
+    Manhattan distance between two buffer positions. Both {a} and {b} must be
+    tables containing two values: the first one for the line and the second one
     for the column.
 
     {x_bias} is to be used to skew the Manhattan distance in terms of lines.
@@ -696,7 +718,7 @@ below.
 
 `extensions`                                               *hop-config-extensions*
     List-table of extensions to enable (names). As described in |hop-extension|,
-    extensions for which the name is in that list must have a `register(opts)`
+    extensions for which the name in that list must have a `register(opts)`
     function in their public API for Hop to correctly initialized them.
 
     Defaults:~
