@@ -57,9 +57,21 @@ end
 --
 -- This function associates jump targets with permutations, creating hints. A hint is then a jump target along with a
 -- label.
+--
+-- If `indirect_jump_targets` is `nil`, `jump_targets` is assumed already ordered with all jump target with the same
+-- score (0)
 function M.create_hints(jump_targets, indirect_jump_targets, opts)
   local hints = {}
   local perms = perm.permutations(opts.keys, #jump_targets, opts)
+
+  -- get or generate indirect_jump_targets
+  if indirect_jump_targets == nil then
+    indirect_jump_targets = {}
+
+    for i = 1, #jump_targets do
+      indirect_jump_targets[i] = { index = i, score = 0 }
+    end
+  end
 
   for i, indirect in pairs(indirect_jump_targets) do
     hints[indirect.index] = {

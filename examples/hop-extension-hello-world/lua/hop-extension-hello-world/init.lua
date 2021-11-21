@@ -9,19 +9,16 @@ function M.hint_around_cursor(opts)
     local col = cursor_pos[2] + 1
 
     local jump_targets = {}
-    local indirect_jump_targets = {}
 
     -- left
     if col > 0 then
       jump_targets[#jump_targets + 1] = { line = line, column = col - 1, window = 0 }
-      indirect_jump_targets[#indirect_jump_targets + 1] = { index = #jump_targets, score = 0 }
     end
 
     -- right
     jump_targets[#jump_targets + 1] = { line = line, column = col + 1, window = 0 }
-    indirect_jump_targets[#indirect_jump_targets + 1] = { index = #jump_targets, score = 0 }
 
-    return { jump_targets = jump_targets, indirect_jump_targets = indirect_jump_targets }
+    return { jump_targets = jump_targets }
   end
 
   require'hop'.hint_with(jump_targets, opts)
