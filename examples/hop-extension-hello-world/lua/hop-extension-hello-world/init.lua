@@ -1,13 +1,7 @@
 local M = {}
 M.opts = {}
 
-local function override_opts(opts)
-  return setmetatable(opts or {}, {__index = M.opts})
-end
-
 function M.hint_around_cursor(opts)
-  opts = override_opts(opts)
-
   -- the jump target generator; we are simply going to retreive the cursor position and hint around it as an example
   local jump_targets = function() -- opts ignored
     local cursor_pos = require'hop.window'.get_window_context().cursor_pos
