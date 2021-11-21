@@ -122,12 +122,20 @@ function M.move_cursor_to(w, line, column, inclusive)
 end
 
 function M.hint_with(jump_target_gtr, opts)
+  if opts == nil then
+    opts = override_opts(opts)
+  end
+
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
     M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
   end)
 end
 
 function M.hint_with_callback(jump_target_gtr, opts, callback)
+  if opts == nil then
+    opts = override_opts(opts)
+  end
+
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
     return
