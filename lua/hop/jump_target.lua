@@ -173,6 +173,10 @@ function M.jump_targets_by_scanning_lines(regex)
     local jump_targets = {}
     local indirect_jump_targets = {}
 
+    local cursor_col_offset = 0
+    if not opts.inclusive_cur_char then
+      cursor_col_offset = 1
+    end
     -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
     if opts.direction == hint.HintDirection.AFTER_CURSOR then
       -- the first line is to be checked first
@@ -185,7 +189,7 @@ function M.jump_targets_by_scanning_lines(regex)
         context.col_offset,
         context.win_width,
         context.cursor_pos,
-        { cursor_col = context.cursor_pos[2], direction = opts.direction },
+        { cursor_col = context.cursor_pos[2] + cursor_col_offset, direction = opts.direction },
         lines
       )
 
@@ -264,6 +268,10 @@ function M.jump_targets_for_current_line(regex)
     local jump_targets = {}
     local indirect_jump_targets = {}
 
+    local cursor_col_offset = 0
+    if not opts.inclusive_cur_char then
+      cursor_col_offset = 1
+    end
     create_jump_targets_for_line(
       1,
       jump_targets,
@@ -273,7 +281,7 @@ function M.jump_targets_for_current_line(regex)
       context.col_offset,
       context.win_width,
       context.cursor_pos,
-      { cursor_col = context.cursor_pos[2], direction = opts.direction },
+      { cursor_col = context.cursor_pos[2] + cursor_col_offset, direction = opts.direction },
       line
     )
 
