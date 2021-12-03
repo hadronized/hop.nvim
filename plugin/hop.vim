@@ -33,9 +33,9 @@ command! HopChar1CurrentLineAC lua require'hop'.hint_char1({ direction = require
 command! HopChar2              lua require'hop'.hint_char2()
 command! HopChar2BC            lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
 command! HopChar2AC            lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
-command! HopChar2CurrentLine   lua require'hop'.hint_char2({ current_line = true })
-command! HopChar2CurrentLineBC lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line = true })
-command! HopChar2CurrentLineAC lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line = true })
+command! HopChar2CurrentLine   lua require'hop'.hint_char2({ current_line_only = true })
+command! HopChar2CurrentLineBC lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = true })
+command! HopChar2CurrentLineAC lua require'hop'.hint_char2({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
 
 " The jump-to-line command.
 command! HopLine   lua require'hop'.hint_lines()
