@@ -676,6 +676,15 @@ below.
     Defaults:~
         `direction = nil`
 
+`jump_offset`                                            *hop-config-jump_offset*
+    If nonzero, once the jump is completed, the cursor will be offset
+    from the selected jump position by `jump_offset` characters.  This
+    is useful for emulating the normal motion commands |t| and |T| where
+    the cursor is positioned before/after the target position.
+
+    Defaults:~
+        `jump_offset = 0`
+
 `current_line_only`                                 *hop-config-current_line_only*
     Apply Hop commands only to the current line.
 

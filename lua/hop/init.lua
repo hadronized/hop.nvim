@@ -127,7 +127,7 @@ function M.hint_with(jump_target_gtr, opts)
   end
 
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1 + opts.jump_offset, opts.inclusive_jump)
   end)
 end
 
