@@ -93,11 +93,11 @@ as many features as possible via the Vim commands but ultimately, you will
 have access to more features by using the Lua API directly. Have a look at
 |hop-lua-api| for more documentation.
 
-Some of the commands have a suffix, such as `BC` and `AC`. Those are
+Some of the commands have a suffix, such as `BC` ,`AC` and `MW`. Those are
 variations of the commands without the suffix, applying to the visible part of
-the buffer before and after the cursor, respectively. Another kind of suffix
-(that can be mixed with `BC` and `AC`) is `CurrentLine`. This creates a
-variant of the command that will only run for the current line.
+the buffer before and after the cursor and and multiple windows, respectively.
+Another kind of suffix (that can be mixed with `BC` and `AC`) is `CurrentLine`. This
+creates a variant of the command that will only run for the current line.
 
 `:HopWord`                                                              *:HopWord*
 `:HopWordBC`                                                          *:HopWordBC*
@@ -105,6 +105,7 @@ variant of the command that will only run for the current line.
 `:HopWordCurrentLine`                                        *:HopWordCurrentLine*
 `:HopWordCurrentLineBC`                                    *:HopWordCurrentLineBC*
 `:HopWordCurrentLineAC`                                    *:HopWordCurrentLineAC*
+`:HopWordMW`                                                          *:HopWordMW*
     Annotate all |word|s in the current window with key sequences. Typing a
     first key will visually filter the sequences and reduce them. Continue
     typing key sequences until you reduce a sequence completely, which will
@@ -118,6 +119,7 @@ variant of the command that will only run for the current line.
 `:HopPatternCurrentLine`                                  *:HopPatternCurrentLine*
 `:HopPatternCurrentLineBC`                              *:HopPatternCurrentLineBC*
 `:HopPatternCurrentLineAC`                              *:HopPatternCurrentLineAC*
+`:HopPatternMW`                                                    *:HopPatternMW*
     Ask the user for a pattern and hint the document with it.
 
     This is akin to calling the |hop.hint_patterns| Lua function
@@ -129,6 +131,7 @@ variant of the command that will only run for the current line.
 `:HopChar1CurrentLine`                                      *:HopChar1CurrentLine*
 `:HopChar1CurrentLineBC`                                  *:HopChar1CurrentLineBC*
 `:HopChar1CurrentLineAC`                                  *:HopChar1CurrentLineAC*
+`:HopChar1MW`                                                        *:HopChar1MW*
     Type a key and immediately hint the document for this key.
 
     This is akin to calling the |hop.hint_char1| Lua Function
@@ -139,6 +142,7 @@ variant of the command that will only run for the current line.
 `:HopChar2CurrentLine`                                      *:HopChar2CurrentLine*
 `:HopChar2CurrentLineBC`                                  *:HopChar2CurrentLineBC*
 `:HopChar2CurrentLineAC`                                  *:HopChar2CurrentLineAC*
+`:HopChar2MW`                                                        *:HopChar2MW*
     Type two keys and immediately hint the document for this bigram.
 
     This is akin to calling the |hop.hint_char2| Lua Function
@@ -149,6 +153,7 @@ variant of the command that will only run for the current line.
 `:HopLineCurrentLine`                                        *:HopLineCurrentLine*
 `:HopLineCurrentLineBC`                                    *:HopLineCurrentLineBC*
 `:HopLineCurrentLineAC`                                    *:HopLineCurrentLineAC*
+`:HopLineMW`                                                          *:HopLineMW*
     Jump to the beginning of the line of your choice inside your buffer.
 
     This is akin to calling the |hop.hint_lines| Lua function.
@@ -159,6 +164,7 @@ variant of the command that will only run for the current line.
 `:HopLineStartCurrentLine`                              *:HopLineStartCurrentLine*
 `:HopLineStartCurrentLineBC`                          *:HopLineStartCurrentLineBC*
 `:HopLineStartCurrentLineAC`                          *:HopLineStartCurrentLineAC*
+`:HopLineStartMW`                                                *:HopLineStartMW*
     Like `HopLine` but skips leading whitespace on every line.
     Blank lines are skipped over.
 

@@ -118,6 +118,7 @@ function M.move_cursor_to(w, line, column, inclusive)
 
   -- update the jump list
   vim.cmd("normal! m'")
+  vim.api.nvim_set_current_win(w)
   vim.api.nvim_win_set_cursor(w, { line, column})
 end
 
@@ -141,8 +142,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     return
   end
 
-  local context = window.get_window_context()
-  window.clip_window_context(context, opts.direction)
+  local all_ctxs = window.get_window_context(opts.multi_windows)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   local hl_ns = vim.api.nvim_create_namespace('hop_hl')
@@ -174,12 +174,18 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     hints = hints,
     hl_ns = hl_ns,
     dim_ns = dim_ns,
-    top_line = context.top_line,
-    bot_line = context.bot_line,
   }
 
-  -- dim everything out, add the virtual cursor and hide diagnostics
-  apply_dimming(0, dim_ns, context.top_line, context.bot_line, context.cursor_pos, opts.direction, opts.current_line_only)
+  local buf_list = {}
+  for _, bctx in ipairs(all_ctxs) do
+    buf_list[#buf_list + 1] = bctx.hbuf
+    for _, wctx in ipairs(bctx) do
+      window.clip_window_context(wctx, opts.direction)
+      -- dim everything out, add the virtual cursor and hide diagnostics
+      apply_dimming(bctx.hbuf, dim_ns, wctx.top_line, wctx.bot_line, wctx.cursor_pos, opts.direction, opts.current_line_only)
+    end
+  end
+
   add_virt_cur(hl_ns)
   if vim.fn.has("nvim-0.6") == 1 then
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
@@ -191,7 +197,9 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      M.quit(0, hint_state)
+      for _, buf in ipairs(buf_list) do
+        M.quit(buf, hint_state)
+      end
       break
     end
     local not_special_key = true
@@ -209,11 +217,13 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in Hop (via opts.keys), deal with it in Hop
-      h = M.refine_hints(0, key, hint_state, callback, opts)
+      h = M.refine_hints(buf_list, key, hint_state, callback, opts)
+      vim.cmd('redraw')
     else
       -- If it's not, quit Hop
-      M.quit(0, hint_state)
-
+      for _, buf in ipairs(buf_list) do
+        M.quit(buf, hint_state)
+      end
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -228,7 +238,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_handle, key, hint_state, callback, opts)
+function M.refine_hints(buf_list, key, hint_state, callback, opts)
   local h, hints = hint.reduce_hints(hint_state.hints, key)
 
   if h == nil then
@@ -239,11 +249,15 @@ function M.refine_hints(buf_handle, key, hint_state, callback, opts)
 
     hint_state.hints = hints
 
-    clear_namespace(buf_handle, hint_state.hl_ns)
+    for _, buf in ipairs(buf_list) do
+      clear_namespace(buf, hint_state.hl_ns)
+    end
     hint.set_hint_extmarks(hint_state.hl_ns, hints, opts)
     vim.cmd('redraw')
   else
-    M.quit(buf_handle, hint_state)
+    for _, buf in ipairs(buf_list) do
+      M.quit(buf, hint_state)
+    end
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
