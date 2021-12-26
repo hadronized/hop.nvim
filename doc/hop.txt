@@ -82,6 +82,13 @@ For a minimal setup:
 You can pass an optional argument to `setup(opts)` in order to pass {opts}.
 Have a look at |hop.setup| for further details.
 
+                                                                    *hop-health*
+Healthcheck~
+
+Hop has support for |:checkhealth|. If you find yourself in a situation where
+something looks odd or incorrect, do not forget to run this command before
+opening an issue.
+
                                                                   *hop-commands*
 Commands~
 
