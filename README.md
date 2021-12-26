@@ -162,7 +162,9 @@ you can call it manually after your plugin is installed:
 require'hop'.setup()
 ```
 
-To get a default experience. Feel free to customize later the `setup` invocation (`:h hop.setup`).
+To get a default experience. Feel free to customize later the `setup` invocation (`:h hop.setup`). If you do, then you
+will probably want to ensure the configuration is okay by running `:checkhealth`. Various checks will be performed by
+Hop to ensure everything is all good.
 
 ### Important note about versioning
 
