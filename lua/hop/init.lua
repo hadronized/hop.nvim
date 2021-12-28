@@ -119,20 +119,19 @@ end
 
 -- Move the cursor at a given location.
 --
--- If inclusive is `true`, the jump target will be incremented visually by 1, so that operator-pending motions can
--- correctly take into account the right offset. This is the main difference between motions such as `f` (inclusive)
--- and `t` (exclusive).
+-- Add option to shift cursor by column offset
 --
 -- This function will update the jump list.
-function M.move_cursor_to(w, line, column, inclusive)
-  -- If we do not ask for inclusive jump, we don’t have to retreive any additional lines because we will jump to the
-  -- actual jump target. If we do want an inclusive jump, we need to retreive the line the jump target lies in so that
-  -- we can compute the offset correctly. This is linked to the fact that currently, Neovim doesn’s have an API to «
-  -- offset something by 1 visual column. »
-  if inclusive then
-    local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
-    column = vim.fn.byteidx(buf_line, column + 1)
+function M.move_cursor_to(w, line, column, offsets)
+  column = column + offsets.column
+  local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
+
+  -- If it is pending for operator shift column to the right by 1
+  if vim.api.nvim_get_mode().mode == 'no' then
+    column = column + 1
   end
+
+  column = vim.fn.byteidx(buf_line, column)
 
   -- update the jump list
   vim.cmd("normal! m'")
@@ -146,7 +145,7 @@ function M.hint_with(jump_target_gtr, opts)
   end
 
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.inclusive_jump)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.offsets)
   end)
 end
 

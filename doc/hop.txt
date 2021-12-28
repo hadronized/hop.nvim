@@ -728,6 +728,18 @@ below.
     Defaults:~
         `hint_position = require'hop.hint'.HintPosition.BEGIN`
 
+`hint_offset`                                             *hop-config-hint_offset*
+    Offset to apply to a jump location.
+
+    If it is non-zero, the jump target will be offset horizontally from the
+    selected jump position by `hint_offset` character(s).
+
+    This optino can be used for emulating the motion commands |t| and |T|  where
+    the cursor is positioned on/before the target position.
+
+    Defaults:~
+        `hint_offset = 0`
+
 `current_line_only`                                 *hop-config-current_line_only*
     Apply Hop commands only to the current line.
 
