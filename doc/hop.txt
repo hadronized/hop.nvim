@@ -93,9 +93,9 @@ as many features as possible via the Vim commands but ultimately, you will
 have access to more features by using the Lua API directly. Have a look at
 |hop-lua-api| for more documentation.
 
-Some of the commands have a suffix, such as `BC` ,`AC` and `MW`. Those are
+Some of the commands have a suffix, such as `BC`, `AC` and `MW`. Those are
 variations of the commands without the suffix, applying to the visible part of
-the buffer before and after the cursor and and multiple windows, respectively.
+the buffer before and after the cursor, and multiple windows, respectively.
 Another kind of suffix (that can be mixed with `BC` and `AC`) is `CurrentLine`. This
 creates a variant of the command that will only run for the current line.
 
@@ -106,10 +106,10 @@ creates a variant of the command that will only run for the current line.
 `:HopWordCurrentLineBC`                                    *:HopWordCurrentLineBC*
 `:HopWordCurrentLineAC`                                    *:HopWordCurrentLineAC*
 `:HopWordMW`                                                          *:HopWordMW*
-    Annotate all |word|s in the current window with key sequences. Typing a
-    first key will visually filter the sequences and reduce them. Continue
-    typing key sequences until you reduce a sequence completely, which will
-    bring your cursor at that position.
+    Annotate all |word|s with key sequences. Typing a first key will visually
+    filter the sequences and reduce them. Continue typing key sequences until
+    you reduce a sequence completely, which will bring your cursor at that
+    position.
 
     This is akin to calling the |hop.hint_words| Lua function.
 
@@ -165,8 +165,8 @@ creates a variant of the command that will only run for the current line.
 `:HopLineStartCurrentLineBC`                          *:HopLineStartCurrentLineBC*
 `:HopLineStartCurrentLineAC`                          *:HopLineStartCurrentLineAC*
 `:HopLineStartMW`                                                *:HopLineStartMW*
-    Like `HopLine` but skips leading whitespace on every line.
-    Blank lines are skipped over.
+    Like `HopLine` but skips leading whitespace on every line. Blank lines are
+    skipped over.
 
     This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
 
@@ -561,11 +561,11 @@ below.
     that key into Neovim to be treated as a normal key press.
 
     It is possible to quit hopping by pressing any key that is not present in
-    |hop-config-keys|; however, when you do this, the keys normal function is
+    |hop-config-keys|; however, when you do this, the key normal function is
     also performed. For example if, hopping in |visual-mode|, pressing <Esc>
     will quit hopping and also exit |visual-mode|.
 
-    If the user presses `quit_key`, Hop will be quit without the keys normal
+    If the user presses `quit_key`, Hop will be quit without the key normal
     function being performed. For example if hopping in |visual-mode| with
     `quit_key` set to '<Esc>', pressing <Esc> will quit hopping without
     quitting |visual-mode|.
@@ -574,6 +574,7 @@ below.
 
     Note:~
         `quit_key` should only contain a single key or be an empty string.
+
     Note:~
         `quit_key` should not contain a key that is also present in
         |hop-config-keys|.
@@ -730,6 +731,17 @@ below.
     Defaults:~
         `extensions = nil`
 
+`multi_windows`                                         *hop-config-multi_windows*
+    Enable cross-windows support and hint all the currently visible windows.
+    This behavior allows you to jump around any position in any buffer
+    currently visible in a window. Although a powerful a feature, remember
+    that enabling this will also generate many more sequence combinations, so
+    you could get deeper sequences to type (most of the time it should be good
+    if you have enough keys in |hop-config-keys|).
+
+    Defaults:~
+        `multi_windows = false`
+
 ==============================================================================
 EXTENSION                                                        *hop-extension*
 
@@ -791,7 +803,7 @@ is automatically set when initializing the plugin, unless you set
 ==============================================================================
 LICENSE                                                            *hop-license*
 
-Copyright (c) 2021, Dimitri Sabadie <dimitri.sabadie@gmail.com>
+Copyright (c) 2021-2022, Dimitri Sabadie <dimitri.sabadie@gmail.com>
 
 All rights reserved.
 
