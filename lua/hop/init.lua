@@ -6,8 +6,23 @@ local window = require'hop.window'
 
 local M = {}
 
+-- Ensure options are sound.
+--
+-- Some options cannot be used together. For instance, multi_windows and current_line_only don’t really make sense used
+-- together. This function will notify the user of such ill-formed configurations.
+local function check_opts(opts)
+  if not opts then
+    return
+  end
+
+  if opts.multi_windows and opts.current_line_only then
+    vim.notify('Cannot use current_line_only across multiple windows', 3)
+  end
+end
+
 -- Allows to override global options with user local overrides.
 local function override_opts(opts)
+  check_opts(opts)
   return setmetatable(opts or {}, {__index = M.opts})
 end
 
@@ -179,7 +194,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   local buf_list = {}
   for _, bctx in ipairs(all_ctxs) do
     buf_list[#buf_list + 1] = bctx.hbuf
-    for _, wctx in ipairs(bctx) do
+    for _, wctx in ipairs(bctx.contexts) do
       window.clip_window_context(wctx, opts.direction)
       -- dim everything out, add the virtual cursor and hide diagnostics
       apply_dimming(bctx.hbuf, dim_ns, wctx.top_line, wctx.bot_line, wctx.cursor_pos, opts.direction, opts.current_line_only)
