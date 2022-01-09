@@ -179,7 +179,7 @@ function M.jump_targets_by_scanning_lines(regex)
     -- Iterate all buffers
     for _, bctx in ipairs(all_ctxs) do
       -- Iterate all windows of a same buffer
-      for _, wctx in ipairs(bctx) do
+      for _, wctx in ipairs(bctx.contexts) do
         window.clip_window_context(wctx, opts.direction)
         local lines = vim.api.nvim_buf_get_lines(bctx.hbuf, wctx.top_line, wctx.bot_line + 1, false)
 
@@ -281,7 +281,7 @@ end
 -- Jump target generator for regex applied only on the cursor line.
 function M.jump_targets_for_current_line(regex)
   return function(opts)
-    local context = window.get_window_context()
+    local context = window.get_window_context(false)[1].contexts[1]
     local line_n = context.cursor_pos[1]
     local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
     local jump_targets = {}

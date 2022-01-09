@@ -693,6 +693,10 @@ below.
 `current_line_only`                                 *hop-config-current_line_only*
     Apply Hop commands only to the current line.
 
+    Note:
+        Trying to use this option along with |hop-config-multi_windows| is
+        unsound.
+
     Defaults:~
         `current_line_only = false`
 

@@ -24,12 +24,12 @@ local function window_context(win_handle, cursor_pos)
   end
 
   return {
-    hwin=win_handle,
-    cursor_pos=cursor_pos,
-    top_line=top_line,
-    bot_line=bot_line,
-    win_width=win_width,
-    col_offset=win_view.leftcol
+    hwin = win_handle,
+    cursor_pos = cursor_pos,
+    top_line = top_line,
+    bot_line = bot_line,
+    win_width = win_width,
+    col_offset = win_view.leftcol
   }
 end
 
@@ -54,7 +54,7 @@ function M.get_window_context(multi_windows)
   local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
   all_ctxs[#all_ctxs + 1] = {
     hbuf = cur_hbuf,
-    window_context(cur_hwin, vim.api.nvim_win_get_cursor(cur_hwin)),
+    contexts = { window_context(cur_hwin, vim.api.nvim_win_get_cursor(cur_hwin)) },
   }
 
   if not multi_windows then
@@ -65,11 +65,12 @@ function M.get_window_context(multi_windows)
     local b = vim.api.nvim_win_get_buf(w)
     if w ~= cur_hwin then
 
-      -- Check duplicated buffers
+      -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
+      -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
       local bctx = nil
-      for _, _bctx in ipairs(all_ctxs) do
-        if b == _bctx.hbuf then
-          bctx = _bctx
+      for _, buffer_ctx in ipairs(all_ctxs) do
+        if b == buffer_ctx.hbuf then
+          bctx = buffer_ctx.contexts
           break
         end
       end
@@ -79,7 +80,7 @@ function M.get_window_context(multi_windows)
       else
         all_ctxs[#all_ctxs + 1] = {
           hbuf = b,
-          window_context(w, vim.api.nvim_win_get_cursor(w))
+          contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
         }
       end
 
