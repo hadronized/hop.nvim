@@ -425,6 +425,22 @@ function M.hint_lines_skip_whitespace(opts)
   )
 end
 
+function M.hint_anywhere(opts)
+  opts = override_opts(opts)
+
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_targets_for_current_line
+  else
+    generator = jump_target.jump_targets_by_scanning_lines
+  end
+
+  M.hint_with(
+    generator(jump_target.regex_by_anywhere()),
+    opts
+  )
+end
+
 -- Setup user settings.
 function M.setup(opts)
   -- Look up keys in user-defined table with fallback to defaults.

@@ -397,4 +397,9 @@ function M.regex_by_line_start_skip_whitespace()
   }
 end
 
+-- Anywhere regex.
+function M.regex_by_anywhere()
+  return M.regex_by_searching('\\v(<.|^$)|(.>|^$)|(\\l)\\zs(\\u)|(_\\zs.)|(#\\zs.)')
+end
+
 return M

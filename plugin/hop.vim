@@ -52,3 +52,12 @@ command! HopLineStart   lua require'hop'.hint_lines_skip_whitespace()
 command! HopLineStartBC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
 command! HopLineStartAC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
 command! HopLineStartMW lua require'hop'.hint_lines_skip_whitespace({ multi_windows = true })
+
+" The jump-to-anywhere command.
+command! HopAnywhere              lua require'hop'.hint_anywhere()
+command! HopAnywhereBC            lua require'hop'.hint_anywhere({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
+command! HopAnywhereAC            lua require'hop'.hint_anywhere({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
+command! HopAnywhereCurrentLine   lua require'hop'.hint_anywhere({ current_line_only = true })
+command! HopAnywhereCurrentLineBC lua require'hop'.hint_anywhere({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = true })
+command! HopAnywhereCurrentLineAC lua require'hop'.hint_anywhere({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
+command! HopAnywhereMW            lua require'hop'.hint_anywhere({ multi_windows = true })
