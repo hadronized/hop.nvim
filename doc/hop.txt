@@ -791,6 +791,22 @@ below.
     Defaults:~
         `multi_windows = false`
 
+`match_mappings`
+    What match mappings to use when hint. If `match_mappings` is not empty, the
+    hint char or pattern will act as key of dict of mappings, and get the dict
+    pattern to search.
+
+    Currently supported mappings:~
+        'zh' : Basic characters for Chinese
+        'zh_sc' : Simplified Chinese
+        'zh_tc' : Traditional Chinese
+
+    For example, if `match_mappings` is set to `{'zh', 'zh_sc'}`, the characters
+    in 'zh' and 'zh_sc' can be mixed match together.
+
+    Defaults:~
+        `match_mappings = { }`
+
 ==============================================================================
 EXTENSION                                                        *hop-extension*
 

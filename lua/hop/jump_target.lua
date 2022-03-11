@@ -44,6 +44,7 @@
 
 local hint = require'hop.hint'
 local window = require'hop.window'
+local mappings = require'hop.mappings'
 
 local M = {}
 
@@ -51,6 +52,40 @@ local M = {}
 function M.manh_dist(a, b, x_bias)
   local bias = x_bias or 10
   return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
+end
+
+-- Return the character index of col position in line
+-- col index is 1-based in cell, char index returned is 0-based
+local function str_col2char(line, col)
+  if col <= 0 then
+    return 0
+  end
+
+  local lw = vim.fn.strdisplaywidth(line)
+  local lc = vim.fn.strchars(line)
+  -- No multi-byte character
+  if lw == lc then
+    return col
+  end
+  -- Line is shorter than col, all line should include
+  if lw <= col then
+    return lc
+  end
+
+  local lst
+  if lc >= col then
+    -- Line is very long
+    lst = vim.fn.split(vim.fn.strcharpart(line, 0, col), '\\zs')
+  else
+    lst = vim.fn.split(line, '\\zs')
+  end
+  local i = 0
+  local w = 0
+  repeat
+    i = i + 1
+    w = w + vim.fn.strdisplaywidth(lst[i])
+  until (w >= col)
+  return i
 end
 
 -- Mark the current line with jump targets.
@@ -66,20 +101,22 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     end_index = vim.fn.strdisplaywidth(line_context.line)
   end
 
-  local shifted_line = line_context.line:sub(1 + col_offset, vim.fn.byteidx(line_context.line, end_index))
+  -- Handle shifted_line with str_col2char for multiple-bytes chars
+  local left_idx = str_col2char(line_context.line, col_offset)
+  local right_idx = str_col2char(line_context.line, end_index)
+  local shifted_line = vim.fn.strcharpart(line_context.line, left_idx, right_idx - left_idx)
+  local col_bias = vim.fn.byteidx(line_context.line, left_idx)
 
   -- modify the shifted line to take the direction mode into account, if any
   -- FIXME: we also need to do that for the cursor
-  local col_bias = 0
   if direction_mode ~= nil then
-    local col = vim.fn.byteidx(line_context.line, direction_mode.cursor_col + 1)
     if direction_mode.direction == hint.HintDirection.AFTER_CURSOR then
       -- we want to change the start offset so that we ignore everything before the cursor
-      shifted_line = shifted_line:sub(col - col_offset)
-      col_bias = col - 1
+      shifted_line = shifted_line:sub(direction_mode.cursor_col - col_bias + 1)
+      col_bias = direction_mode.cursor_col
     elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
       -- we want to change the end
-      shifted_line = shifted_line:sub(1, col - col_offset)
+      shifted_line = shifted_line:sub(1, direction_mode.cursor_col - col_bias + 1)
     end
   end
   if shifted_line == "" and col_offset > 0 then
@@ -108,10 +145,8 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       colp = col + e - 1
     end
     jump_targets[#jump_targets + 1] = {
-      line = line_nr,
-      column = math.max(1, colp + col_offset + col_bias),
       line = line_context.line_nr,
-      column = math.max(1, colp + col_offset + col_bias),
+      column = math.max(1, colp + col_bias),
       buffer = buf_handle,
       window = win_handle,
     }
@@ -355,32 +390,41 @@ function M.regex_by_searching(pat, plain_search)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
+  local re = vim.regex(pat)
   return {
     oneshot = false,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return re:match_str(s)
     end
   }
 end
 
 -- Wrapper over M.regex_by_searching to add support for case sensitivity.
 function M.regex_by_case_searching(pat, plain_search, opts)
+  local pat_special = ''
+  if vim.o.smartcase then
+    if not starts_with_uppercase(pat) then
+      pat_special = '\\c'
+    end
+  elseif opts.case_insensitive then
+    pat_special = '\\c'
+  end
+
+  local pat_mappings = mappings.checkout(pat, opts)
+
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
-
-  if vim.o.smartcase then
-    if not starts_with_uppercase(pat) then
-      pat = '\\c' .. pat
-    end
-  elseif opts.case_insensitive then
-    pat = '\\c' .. pat
+  if pat_mappings ~= '' then
+    pat = string.format([[\(%s\)\|\(%s\)]], pat, pat_mappings)
   end
+  pat = pat .. pat_special
 
+  local re = vim.regex(pat)
   return {
     oneshot = false,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return re:match_str(s)
     end
   }
 end

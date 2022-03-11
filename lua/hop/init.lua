@@ -447,6 +447,14 @@ function M.setup(opts)
   M.opts = setmetatable(opts or {}, {__index = defaults})
   M.initialized = true
 
+  -- Load dict of match mappings
+  for _, d in ipairs(M.opts.match_mappings) do
+    local val = require('hop.mappings.' .. d)
+    if val ~= nil then
+      M.opts.match_mappings[d] = val
+    end
+  end
+
   -- Insert the highlights and register the autocommand if asked to.
   local highlight = require'hop.highlight'
   highlight.insert_highlights()
