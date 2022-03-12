@@ -58,7 +58,7 @@ local function create_hint_state(opts)
 
   -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
   hint_state.hl_ns = vim.api.nvim_create_namespace('hop_hl')
-  hint_state.dim_ns = vim.api.nvim_create_namespace('')
+  hint_state.dim_ns = vim.api.nvim_create_namespace('hop_dim')
 
   -- backup namespaces of diagnostic
   if vim.fn.has("nvim-0.6") == 1 then
@@ -180,6 +180,75 @@ local function add_virt_cur(ns)
       priority = prio.CURSOR_PRIO
     })
   end
+end
+
+-- Get pattern from input for hint and preview
+local function get_input_pattern(prompt, maxchar, opts)
+  local hs = {}
+  if opts then
+    hs = create_hint_state(opts)
+    hs.preview_ns = vim.api.nvim_create_namespace('hop_preview')
+    apply_dimming(hs, opts)
+    add_virt_cur(hs.hl_ns)
+  end
+
+  local K_Esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+  local K_BS = vim.api.nvim_replace_termcodes('<BS>', true, false, true)
+  local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
+  local pat_keys = {}
+  local pat = ''
+
+  while (true) do
+    pat = vim.fn.join(pat_keys, '')
+    if opts then
+      clear_namespace(hs.buf_list, hs.preview_ns)
+      if #pat > 0 then
+        local ok, re = pcall(jump_target.regex_by_case_searching, pat, false, opts)
+        if ok then
+            local jump_target_gtr = jump_target.jump_targets_by_scanning_lines(re)
+            local generated = jump_target_gtr(opts)
+            hint.set_hint_preview(hs.preview_ns, generated.jump_targets)
+        end
+      end
+    end
+    vim.api.nvim_echo({}, false, {})
+    vim.cmd('redraw')
+    vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
+
+    local ok, key = pcall(vim.fn.getchar)
+    if not ok then break end -- Interrupted by <C-c>
+
+    if type(key) == 'number' then
+      key = vim.fn.nr2char(key)
+    elseif key:byte() == 128 then
+      -- It's a special key in string
+    end
+
+    if key == K_Esc then
+      pat = nil
+      break
+    elseif key == K_CR then
+      break
+    elseif key == K_BS then
+      pat_keys[#pat_keys] = nil
+    else
+      pat_keys[#pat_keys + 1] = key
+    end
+
+    if maxchar and #pat_keys >= maxchar then
+      pat = vim.fn.join(pat_keys, '')
+      break
+    end
+  end
+
+  if opts then
+    clear_namespace(hs.buf_list, hs.preview_ns)
+    -- quit only when got nothin for pattern to avoid blink of highlight
+    if not pat then M.quit(hs) end
+  end
+  vim.api.nvim_echo({}, false, {})
+  vim.cmd('redraw')
+  return pat
 end
 
 -- Move the cursor at a given location.
@@ -358,16 +427,20 @@ function M.hint_patterns(opts, pattern)
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
-  if pattern == nil then
+  local pat
+  if pattern then
+    pat = pattern
+  else
+    vim.cmd('redraw')
     vim.fn.inputsave()
-
-    local ok
-    ok, pattern = pcall(vim.fn.input, 'Search: ')
+    pat = get_input_pattern('Hop pattern: ', nil, opts)
     vim.fn.inputrestore()
+    if not pat then return end
+  end
 
-    if not ok then
-      return
-    end
+  if #pat == 0 then
+    eprintln('-> empty pattern', opts.teasing)
+    return
   end
 
   local generator
@@ -378,7 +451,7 @@ function M.hint_patterns(opts, pattern)
   end
 
   M.hint_with(
-    generator(jump_target.regex_by_case_searching(pattern, false, opts)),
+    generator(jump_target.regex_by_case_searching(pat, false, opts)),
     opts
   )
 end
@@ -386,8 +459,8 @@ end
 function M.hint_char1(opts)
   opts = override_opts(opts)
 
-  local ok, c = pcall(vim.fn.getchar)
-  if not ok then
+  local c = get_input_pattern('Hop 1 char: ', 1)
+  if not c then
     return
   end
 
@@ -399,7 +472,7 @@ function M.hint_char1(opts)
   end
 
   M.hint_with(
-    generator(jump_target.regex_by_case_searching(vim.fn.nr2char(c), true, opts)),
+    generator(jump_target.regex_by_case_searching(c, true, opts)),
     opts
   )
 end
@@ -407,22 +480,9 @@ end
 function M.hint_char2(opts)
   opts = override_opts(opts)
 
-  local ok, a = pcall(vim.fn.getchar)
-  if not ok then
+  local c = get_input_pattern('Hop 2 char: ', 2)
+  if not c then
     return
-  end
-
-  local ok2, b = pcall(vim.fn.getchar)
-  if not ok2 then
-    return
-  end
-
-  local pattern = vim.fn.nr2char(a)
-
-  -- if we have a fallback key defined in the opts, if the second character is that key, we then fallback to the same
-  -- behavior as hint_char1()
-  if opts.char2_fallback_key == nil or b ~= vim.fn.char2nr(vim.api.nvim_replace_termcodes(opts.char2_fallback_key, true, false, true)) then
-    pattern = pattern .. vim.fn.nr2char(b)
   end
 
   local generator
@@ -433,7 +493,7 @@ function M.hint_char2(opts)
   end
 
   M.hint_with(
-    generator(jump_target.regex_by_case_searching(pattern, true, opts)),
+    generator(jump_target.regex_by_case_searching(c, true, opts)),
     opts
   )
 end

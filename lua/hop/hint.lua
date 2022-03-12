@@ -119,4 +119,16 @@ function M.set_hint_extmarks(hl_ns, hints, opts)
   end
 end
 
+function M.set_hint_preview(hl_ns, jump_targets)
+  for _, jt in ipairs(jump_targets) do
+    vim.api.nvim_buf_set_extmark(jt.buffer, hl_ns, jt.line, jt.column - 1, {
+      end_row = jt.line,
+      end_col = jt.column - 1 + jt.length,
+      hl_group = 'HopPreview',
+      hl_eol = true,
+      priority = prio.HINT_PRIO
+    })
+  end
+end
+
 return M

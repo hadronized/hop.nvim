@@ -91,6 +91,13 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     if b == nil or (b == 0 and e == 0) then
       break
     end
+    -- Preview need a length to highlight the matched string. Zero means nothingh to highlight.
+    local matched_length = e - b
+    -- As the make for jump target must be placed at a cell (but some pattern like '^' is
+    -- placed between cells), we should make sure e > b
+    if b == e then
+      e = e + 1
+    end
 
     local colp = col + b
     if hint_position == hint.HintPosition.MIDDLE then
@@ -101,6 +108,7 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     jump_targets[#jump_targets + 1] = {
       line = line_context.line_nr,
       column = math.max(1, colp + col_offset + col_bias),
+      length = math.max(0, matched_length),
       buffer = buf_handle,
       window = win_handle,
     }
