@@ -36,18 +36,54 @@ local function eprintln(msg, teasing)
   end
 end
 
--- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
-local function clear_namespace(buf_handle, hl_ns)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
-  vim.api.nvim_buf_clear_namespace(buf_handle, hl_ns, 0, -1)
+-- Create hint state
+--
+-- {
+--  all_ctxs: All all windows's context
+--  buf_list: All buffers displayed in all windows
+--  <xxx>_ns: Required namespaces
+-- }
+local function create_hint_state(opts)
+  local hint_state = {}
+
+  -- get all window's context and buffer list
+  hint_state.all_ctxs = window.get_window_context(opts.multi_windows)
+  hint_state.buf_list = {}
+  for _, bctx in ipairs(hint_state.all_ctxs) do
+    hint_state.buf_list[#hint_state.buf_list + 1] = bctx.hbuf
+    for _, wctx in ipairs(bctx.contexts) do
+      window.clip_window_context(wctx, opts.direction)
+    end
+  end
+
+  -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
+  hint_state.hl_ns = vim.api.nvim_create_namespace('hop_hl')
+  hint_state.dim_ns = vim.api.nvim_create_namespace('')
+
+  -- backup namespaces of diagnostic
+  if vim.fn.has("nvim-0.6") == 1 then
+    hint_state.diag_ns = vim.diagnostic.get_namespaces()
+  end
+
+  return hint_state
 end
 
--- Dim everything out to prepare the Hop session.
+-- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
+local function clear_namespace(buf_list, hl_ns)
+  for _, buf in ipairs(buf_list) do
+    if vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+    end
+  end
+end
+
+-- Set the highlight of unmatched lines of the buffer.
 --
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
+local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
   local start_line = top_line
   local end_line = bottom_line
   local start_col = 0
@@ -90,6 +126,23 @@ local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_po
 
   vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
                                extmark_options)
+end
+
+-- Dim everything out to prepare the Hop session for all windows.
+local function apply_dimming(hint_state, opts)
+  for _, bctx in ipairs(hint_state.all_ctxs) do
+    for _, wctx in ipairs(bctx.contexts) do
+      window.clip_window_context(wctx, opts.direction)
+      -- dim everything out, add the virtual cursor and hide diagnostics
+      set_unmatched_lines(bctx.hbuf, hint_state.dim_ns, wctx.top_line, wctx.bot_line, wctx.cursor_pos, opts.direction, opts.current_line_only)
+    end
+
+    if vim.fn.has("nvim-0.6") == 1 then
+      for ns in pairs(hint_state.diag_ns) do
+        vim.diagnostic.show(ns, bctx.hbuf, nil, { virtual_text = false })
+      end
+    end
+  end
 end
 
 -- Add the virtual cursor, taking care to handle the cases where:
@@ -177,11 +230,8 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     return
   end
 
-  local all_ctxs = window.get_window_context(opts.multi_windows)
-
-  -- create the highlight groups; the highlight groups will allow us to clean everything at once when Hop quits
-  local hl_ns = vim.api.nvim_create_namespace('hop_hl')
-  local dim_ns = vim.api.nvim_create_namespace('')
+  -- create hint state
+  local hs = create_hint_state(opts)
 
   -- create jump targets
   local generated = jump_target_gtr(opts)
@@ -190,51 +240,31 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   local h = nil
   if jump_target_count == 0 then
     eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    clear_namespace(0, hl_ns)
-    clear_namespace(0, dim_ns)
+    clear_namespace(hs.buf_list, hs.hl_ns)
+    clear_namespace(hs.buf_list, hs.dim_ns)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
     callback(jt)
 
-    clear_namespace(0, hl_ns)
-    clear_namespace(0, dim_ns)
+    clear_namespace(hs.buf_list, hs.hl_ns)
+    clear_namespace(hs.buf_list, hs.dim_ns)
     return
   end
 
   -- we have at least two targets, so generate hints to display
-  local hints = hint.create_hints(generated.jump_targets, generated.indirect_jump_targets, opts)
+  hs.hints = hint.create_hints(generated.jump_targets, generated.indirect_jump_targets, opts)
 
-  local hint_state = {
-    hints = hints,
-    hl_ns = hl_ns,
-    dim_ns = dim_ns,
-  }
-
-  local buf_list = {}
-  for _, bctx in ipairs(all_ctxs) do
-    buf_list[#buf_list + 1] = bctx.hbuf
-    for _, wctx in ipairs(bctx.contexts) do
-      window.clip_window_context(wctx, opts.direction)
-      -- dim everything out, add the virtual cursor and hide diagnostics
-      apply_dimming(bctx.hbuf, dim_ns, wctx.top_line, wctx.bot_line, wctx.cursor_pos, opts.direction, opts.current_line_only)
-    end
-  end
-
-  add_virt_cur(hl_ns)
-  if vim.fn.has("nvim-0.6") == 1 then
-    hint_state.diag_ns = vim.diagnostic.get_namespaces()
-    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, 0, nil, { virtual_text = false }) end
-  end
-  hint.set_hint_extmarks(hl_ns, hints, opts)
+  -- dim everything out, add the virtual cursor and hide diagnostics
+  apply_dimming(hs, opts)
+  add_virt_cur(hs.hl_ns)
+  hint.set_hint_extmarks(hs.hl_ns, hs.hints, opts)
   vim.cmd('redraw')
 
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
-      for _, buf in ipairs(buf_list) do
-        M.quit(buf, hint_state)
-      end
+      M.quit(hs)
       break
     end
     local not_special_key = true
@@ -252,13 +282,11 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
 
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in Hop (via opts.keys), deal with it in Hop
-      h = M.refine_hints(buf_list, key, hint_state, callback, opts)
+      h = M.refine_hints(key, hs, callback, opts)
       vim.cmd('redraw')
     else
       -- If it's not, quit Hop
-      for _, buf in ipairs(buf_list) do
-        M.quit(buf, hint_state)
-      end
+      M.quit(hs)
       -- If the key captured via getchar() is not the quit_key, pass it through
       -- to nvim to be handled normally (including mappings)
       if key ~= vim.api.nvim_replace_termcodes(opts.quit_key, true, false, true) then
@@ -273,7 +301,7 @@ end
 --
 -- Refining hints allows to advance the state machine by one step. If a terminal step is reached, this function jumps to
 -- the location. Otherwise, it stores the new state machine.
-function M.refine_hints(buf_list, key, hint_state, callback, opts)
+function M.refine_hints(key, hint_state, callback, opts)
   local h, hints = hint.reduce_hints(hint_state.hints, key)
 
   if h == nil then
@@ -284,15 +312,10 @@ function M.refine_hints(buf_list, key, hint_state, callback, opts)
 
     hint_state.hints = hints
 
-    for _, buf in ipairs(buf_list) do
-      clear_namespace(buf, hint_state.hl_ns)
-    end
+    clear_namespace(hint_state.buf_list, hint_state.hl_ns)
     hint.set_hint_extmarks(hint_state.hl_ns, hints, opts)
-    vim.cmd('redraw')
   else
-    for _, buf in ipairs(buf_list) do
-      M.quit(buf, hint_state)
-    end
+    M.quit(hint_state)
 
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
@@ -303,12 +326,14 @@ function M.refine_hints(buf_list, key, hint_state, callback, opts)
 end
 
 -- Quit Hop and delete its resources.
-function M.quit(buf_handle, hint_state)
-  clear_namespace(buf_handle, hint_state.hl_ns)
-  clear_namespace(buf_handle, hint_state.dim_ns)
+function M.quit(hint_state)
+  clear_namespace(hint_state.buf_list, hint_state.hl_ns)
+  clear_namespace(hint_state.buf_list, hint_state.dim_ns)
 
-  if vim.fn.has("nvim-0.6") == 1 then
-    for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, buf_handle) end
+  for _, buf in ipairs(hint_state.buf_list) do
+    if vim.fn.has("nvim-0.6") == 1 then
+      for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, buf) end
+    end
   end
 end
 
