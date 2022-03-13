@@ -102,7 +102,8 @@ function M.get_lines_context(buf_handle, context)
   local lines = {}
 
   local lnr = context.top_line
-  while lnr < context.bot_line do -- top_line is inclusive and bot_line is exclusive
+  local last_line = vim.api.nvim_buf_line_count(buf_handle) - 1
+  while lnr <= math.min(context.bot_line, last_line) do
     local fold_end = vim.api.nvim_win_call(context.hwin,
       function()
         return vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
