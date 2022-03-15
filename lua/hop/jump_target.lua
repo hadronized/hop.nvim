@@ -82,14 +82,23 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       shifted_line = shifted_line:sub(1, col - col_offset)
     end
   end
+  if shifted_line == "" and col_offset > 0 then
+    -- No possible position to place target
+    return jump_targets
+  end
 
   local col = 1
   while true do
     local s = shifted_line:sub(col)
     local b, e = regex.match(s)
 
-    if b == nil or (b == 0 and e == 0) then
+    if b == nil then
       break
+    end
+    -- As the make for jump target must be placed at a cell (but some pattern like '^' is
+    -- placed between cells), we should make sure e > b
+    if b == e then
+      e = e + 1
     end
 
     local colp = col + b
@@ -111,6 +120,10 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       break
     else
       col = col + e
+    end
+
+    if col > #shifted_line then
+      break
     end
   end
 
@@ -379,10 +392,11 @@ end
 
 -- Line regex.
 function M.regex_by_line_start()
+  local pat = vim.regex("^")
   return {
     oneshot = true,
-    match = function(_)
-      return 0, 1, false
+    match = function(s)
+      return pat:match_str(s)
     end
   }
 end
