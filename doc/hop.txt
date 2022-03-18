@@ -177,6 +177,17 @@ creates a variant of the command that will only run for the current line.
 
     This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
 
+`:HopAnywhere`                                                      *:HopAnywhere*
+`:HopAnywhereBC`                                                  *:HopAnywhereBC*
+`:HopAnywhereAC`                                                  *:HopAnywhereAC*
+`:HopAnywhereCurrentLine`                                *:HopAnywhereCurrentLine*
+`:HopAnywhereCurrentLineBC`                            *:HopAnywhereCurrentLineBC*
+`:HopAnywhereCurrentLineAC`                            *:HopAnywhereCurrentLineAC*
+`:HopAnywhereMW`                                                  *:HopAnywhereMW*
+    Annotate anywhere with key sequences.
+
+    This is akin to calling the |hop.hint_anywhere| Lua function.
+
                                                                    *hop-lua-api*
 Lua API~
 
@@ -295,6 +306,12 @@ Most of the functions and values you need to know about are in `hop`.
     the buffer view and allow to jump to them.
 
     This works with empty lines as well.
+
+    Arguments:~
+        {opts}  Hop options.
+
+`hop.hint_anywhere(`{opts}`)`                                          *hop.hint_words*
+    Annotate anywhere in the current window with key sequences.
 
     Arguments:~
         {opts}  Hop options.
@@ -476,6 +493,9 @@ doing that for you.
 
 `hop.jump_target.regex_by_line_start_skip_whitespace()` *hop.jump_target.regex_by_line_start_skip_whitespace*
     Highlight the non-whitespace character of each line in the current window.
+
+`hop.jump_target.regex_by_anywhere()`          *hop.jump_target.regex_by_anywhere*
+    Highlight the anywhere in the current window.
 
 `hop.jump_target.manh_dist(`                           *hop.jump_target.manh_dist*
   {a}`,`
