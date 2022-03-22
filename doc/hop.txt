@@ -310,7 +310,7 @@ Most of the functions and values you need to know about are in `hop`.
     Arguments:~
         {opts}  Hop options.
 
-`hop.$hint_anywhere(`{opts}`)`                                   *hop.hint_anywhere*
+`hop.hint_anywhere(`{opts}`)`                                   *hop.hint_anywhere*
     Annotate anywhere in the current window with key sequences.
 
     Arguments:~
