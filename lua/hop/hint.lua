@@ -8,6 +8,12 @@ M.HintDirection = {
   AFTER_CURSOR = 2,
 }
 
+M.HintPosition = {
+  BEGIN = 1,
+  MIDDLE = 2,
+  END = 3,
+}
+
 local function tbl_to_str(label)
   local s = ''
 

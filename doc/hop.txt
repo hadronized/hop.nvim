@@ -318,7 +318,7 @@ Most of the functions and values you need to know about are in `hop`.
 
 Hint API~
 
-The hint API provide the `HintDirection`
+The hint API provide the `HintDirection` and `HintPosition`
 
 `hop.hint.HintDirection`                                  *hop.hint.HintDirection*
     Enumeration for hinting direction.
@@ -329,6 +329,17 @@ The hint API provide the `HintDirection`
     Enumeration variants:~
         {BEFORE_CURSOR} Create and apply hints before the cursor.
         {AFTER_CURSOR}  Create and apply hints after the cursor.
+
+`hop.hint.HintPosition`                                    *hop.hint.HintPosition*
+    Enumeration for hinting position in match.
+
+    Use this table as a value for |hop-config-hint_posititon|.
+
+    Enumeration variants:~
+        {BEGIN}  Create and apply hints at the beginning of the match.
+        {MIDDLE} Create and apply hints at the middle of the match.
+        {END}    Create and apply hints at the end of the match.
+
                                                            *hop-jump-target-api*
 Jump target API~
 
@@ -709,6 +720,13 @@ below.
 
     Defaults:~
         `direction = nil`
+
+`hint_position`                                         *hop-config-hint_position*
+    Position of hint in match. See |hop.hint.HintPosition| for further
+    details.
+
+    Defaults:~
+        `hint_position = require'hop.hint'.HintPosition.BEGIN`
 
 `current_line_only`                                 *hop-config-current_line_only*
     Apply Hop commands only to the current line.
