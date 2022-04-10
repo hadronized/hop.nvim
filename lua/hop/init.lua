@@ -18,6 +18,9 @@ local function check_opts(opts)
   if opts.multi_windows and opts.current_line_only then
     vim.notify('Cannot use current_line_only across multiple windows', 3)
   end
+  if vim.api.nvim_get_mode().mode ~= 'n' then
+    opts.multi_windows = false
+  end
 end
 
 -- Allows to override global options with user local overrides.
