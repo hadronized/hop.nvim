@@ -56,7 +56,7 @@ end
 -- Mark the current line with jump targets.
 --
 -- Returns the jump targets as described above.
-local function mark_jump_targets_line(buf_handle, win_handle, regex, line_nr, line, col_offset, win_width, direction_mode)
+local function mark_jump_targets_line(buf_handle, win_handle, regex, line_nr, line, col_offset, win_width, direction_mode, hint_position)
   local jump_targets = {}
   local end_index = nil
 
@@ -92,10 +92,15 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_nr, li
       break
     end
 
-    local colb = col + b
+    local colp = col + b
+    if hint_position == hint.HintPosition.MIDDLE then
+      colp = col + math.floor((b + e) / 2)
+    elseif hint_position == hint.HintPosition.END then
+      colp = col + e - 1
+    end
     jump_targets[#jump_targets + 1] = {
       line = line_nr,
-      column = math.max(1, colb + col_offset + col_bias),
+      column = math.max(1, colp + col_offset + col_bias),
       buffer = buf_handle,
       window = win_handle,
     }
@@ -128,6 +133,7 @@ local function create_jump_targets_for_line(
   win_width,
   cursor_pos,
   direction_mode,
+  hint_position,
   lines
 )
   -- first, create the jump targets for the ith line
@@ -139,7 +145,8 @@ local function create_jump_targets_for_line(
     lines[i],
     col_offset,
     win_width,
-    direction_mode
+    direction_mode,
+    hint_position
   )
 
   -- then, append those to the input jump target list and create the indexed jump targets
@@ -198,6 +205,7 @@ function M.jump_targets_by_scanning_lines(regex)
             wctx.win_width,
             wctx.cursor_pos,
             { cursor_col = wctx.cursor_pos[2], direction = opts.direction },
+            opts.hint_position,
             lines
           )
 
@@ -214,6 +222,7 @@ function M.jump_targets_by_scanning_lines(regex)
               wctx.win_width,
               wctx.cursor_pos,
               nil,
+              opts.hint_position,
               lines
             )
           end
@@ -232,6 +241,7 @@ function M.jump_targets_by_scanning_lines(regex)
               wctx.win_width,
               wctx.cursor_pos,
               nil,
+              opts.hint_position,
               lines
             )
           end
@@ -248,6 +258,7 @@ function M.jump_targets_by_scanning_lines(regex)
             wctx.win_width,
             wctx.cursor_pos,
             { cursor_col = wctx.cursor_pos[2], direction = opts.direction },
+            opts.hint_position,
             lines
           )
         else
@@ -264,6 +275,7 @@ function M.jump_targets_by_scanning_lines(regex)
               wctx.win_width,
               wctx.cursor_pos,
               nil,
+              opts.hint_position,
               lines
             )
           end
@@ -299,6 +311,7 @@ function M.jump_targets_for_current_line(regex)
       context.win_width,
       context.cursor_pos,
       { cursor_col = context.cursor_pos[2], direction = opts.direction },
+      opts.hint_position,
       line
     )
 
