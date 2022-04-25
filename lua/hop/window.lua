@@ -93,6 +93,38 @@ function M.get_window_context(multi_windows)
   return all_ctxs
 end
 
+-- Collect visible and unfold lines of window context
+--
+-- {
+--   { line_nr = 0, line = "" }
+-- }
+function M.get_lines_context(buf_handle, context)
+  local lines = {}
+
+  local lnr = context.top_line
+  while lnr < context.bot_line do -- top_line is inclusive and bot_line is exclusive
+    local fold_end = vim.api.nvim_win_call(context.hwin,
+      function()
+        return vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
+      end)
+    if fold_end == -1 then
+      lines[#lines + 1] = {
+        line_nr = lnr,
+        line = vim.api.nvim_buf_get_lines(buf_handle, lnr, lnr + 1, false)[1], -- `nvim_buf_get_lines()` use 0-based line index
+      }
+      lnr = lnr + 1
+    else
+      lines[#lines + 1] = {
+        line_nr = lnr,
+        line = "",
+      }
+      lnr = fold_end
+    end
+  end
+
+  return lines
+end
+
 -- Clip the window context based on the direction.
 --
 -- If the direction is HintDirection.BEFORE_CURSOR, then everything after the cursor will be clipped.
