@@ -99,8 +99,6 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       colp = col + e - 1
     end
     jump_targets[#jump_targets + 1] = {
-      line = line_nr,
-      column = math.max(1, colp + col_offset + col_bias),
       line = line_context.line_nr,
       column = math.max(1, colp + col_offset + col_bias),
       buffer = buf_handle,
