@@ -53,9 +53,8 @@ local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_po
   if direction == hint.HintDirection.AFTER_CURSOR then
     start_col = cursor_pos[2]
   elseif direction == hint.HintDirection.BEFORE_CURSOR then
-    if cursor_pos[2] ~= 0 then
-      end_col = cursor_pos[2] + 1
-    end
+    end_line = bottom_line - 1
+    if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] + 1 end
   end
 
   if current_line_only then
@@ -67,14 +66,15 @@ local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_po
       end_line = cursor_pos[1]
     end
   end
-
-  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col, {
+  local extmark_options = {
     end_line = end_line,
-    end_col = end_col,
     hl_group = 'HopUnmatched',
     hl_eol = true,
     priority = prio.DIM_PRIO
-  })
+  }
+  if end_col then extmark_options.end_col = end_col end
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
+                               extmark_options)
 end
 
 -- Add the virtual cursor, taking care to handle the cases where:
