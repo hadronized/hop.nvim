@@ -131,7 +131,7 @@ end
 -- If the direction is HintDirection.AFTER_CURSOR, then everything before the cursor will be clipped.
 function M.clip_window_context(context, direction)
   if direction == hint.HintDirection.BEFORE_CURSOR then
-    context.bot_line = context.cursor_pos[1] - 1
+    context.bot_line = context.cursor_pos[1]
   elseif direction == hint.HintDirection.AFTER_CURSOR then
     context.top_line = context.cursor_pos[1] - 1
   end
