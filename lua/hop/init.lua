@@ -139,7 +139,7 @@ function M.move_cursor_to(w, line, column, hint_offset)
   -- actual jump target. If we do want a jump with an offset, we need to retrieve the line the jump target lies in so
   -- that we can compute the offset correctly. This is linked to the fact that currently, Neovim doesn’s have an API to
   -- « offset something by N visual columns. »
-  if hint_offset ~= nil and not hint_offset == 0 then
+  if hint_offset ~= nil and not (hint_offset == 0) then
     column = column + hint_offset
     local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
 
