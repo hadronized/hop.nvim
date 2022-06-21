@@ -39,7 +39,7 @@ end
 -- Create hint state
 --
 -- {
---  all_ctxs: All all windows's context
+--  all_ctxs: All windows's context
 --  buf_list: All buffers displayed in all windows
 --  <xxx>_ns: Required namespaces
 -- }
