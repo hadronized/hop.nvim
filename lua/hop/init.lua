@@ -69,13 +69,25 @@ local function apply_dimming(buf_handle, hl_ns, top_line, bottom_line, cursor_po
       end_line = cursor_pos[1]
     end
   end
+
   local extmark_options = {
     end_line = end_line,
     hl_group = 'HopUnmatched',
     hl_eol = true,
     priority = prio.DIM_PRIO
   }
-  if end_col then extmark_options.end_col = end_col end
+
+  if end_col then
+    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
+    local current_width = vim.fn.strdisplaywidth(current_line)
+
+    if end_col > current_width then
+      end_col = current_width - 1
+    end
+
+    extmark_options.end_col = end_col
+  end
+
   vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
                                extmark_options)
 end
