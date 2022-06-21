@@ -19,6 +19,9 @@ function M.insert_highlights()
 
   -- Highlight used for the fake cursor visible when hopping.
   vim.api.nvim_command('highlight default link HopCursor Cursor')
+
+  -- Highlight used for preview pattern
+  vim.api.nvim_command('highlight default HopPreview  guifg=#b8bb26 gui=bold ctermfg=142 cterm=bold')
 end
 
 function M.create_autocmd()
