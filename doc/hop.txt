@@ -734,7 +734,7 @@ below.
     If it is non-zero, the jump target will be offset horizontally from the
     selected jump position by `hint_offset` character(s).
 
-    This optino can be used for emulating the motion commands |t| and |T|  where
+    This option can be used for emulating the motion commands |t| and |T| where
     the cursor is positioned on/before the target position.
 
     Defaults:~
