@@ -48,6 +48,12 @@ command! HopLineAC lua require'hop'.hint_lines({ direction = require'hop.hint'.H
 command! HopLineMW lua require'hop'.hint_lines({ multi_windows = true })
 
 " The jump-to-line command.
+command! HopLinePosition   lua require'hop'.hint_lines_position()
+command! HopLinePositionBC lua require'hop'.hint_lines_position({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
+command! HopLinePositionAC lua require'hop'.hint_lines_position({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
+command! HopLinePositionMW lua require'hop'.hint_lines_position({ multi_windows = true })
+
+" The jump-to-line command.
 command! HopLineStart   lua require'hop'.hint_lines_skip_whitespace()
 command! HopLineStartBC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
 command! HopLineStartAC lua require'hop'.hint_lines_skip_whitespace({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
