@@ -55,7 +55,7 @@ function M.get_window_context(multi_windows)
   local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
   all_ctxs[#all_ctxs + 1] = {
     hbuf = cur_hbuf,
-    contexts = { window_context(cur_hwin, {vim.fn.getcurpos()[2], vim.fn.getcurpos()[5]} ) },
+    contexts = { window_context(cur_hwin, vim.api.nvim_win_get_cursor(cur_hwin)) },
   }
 
   if not multi_windows then
