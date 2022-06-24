@@ -266,9 +266,9 @@ function M.move_cursor_to(w, line, column, hint_offset)
     local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
 
     -- If it is pending for operator shift column to the right by 1
-    if vim.api.nvim_get_mode().mode == 'no' then
-      column = column + 1
-    end
+    -- if vim.api.nvim_get_mode().mode == 'no' then
+    --   column = column + 1
+    -- end
 
     column = vim.fn.byteidx(buf_line, column)
   end
