@@ -83,17 +83,46 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
-local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
+--
+-- will handle empty lines and such (will start the mark before/after the current
+-- empty line)
+local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line,
+                                   cursor_pos, direction, current_line_only)
   local start_line = top_line
   local end_line = bottom_line
   local start_col = 0
   local end_col = nil
 
+  local function _get_line(line_number)
+    return vim.api.nvim_buf_get_lines(buf_handle, line_number - 1, line_number,
+                                      true)[1]
+  end
   if direction == hint.HintDirection.AFTER_CURSOR then
-    start_col = cursor_pos[2]
+    local reported_col = cursor_pos[2]
+    local current_line = _get_line(cursor_pos[1])
+    if #current_line == 0 then
+      -- reported line is empty (max column is 0), and reported column is 1
+      -- we'll start the extmark at the next line, first column
+      start_line = math.min(top_line + 1, end_line)
+      start_col = 0
+    else
+      start_col = reported_col
+    end
   elseif direction == hint.HintDirection.BEFORE_CURSOR then
     end_line = bottom_line - 1
     if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] + 1 end
+
+    local la_linea_antes = end_line
+    local la_col_antes = end_col
+
+    local current_line = _get_line(cursor_pos[1])
+    if #current_line == 0 then
+      -- reported line is empty (max column is 0), and reported column is 1
+      -- we'll end the extmark at the previouss line, last column
+      local previous_line = _get_line(bottom_line)
+      local previous_line_width = vim.fn.strdisplaywidth(previous_line)
+      end_col = previous_line_width
+    end
   end
 
   if current_line_only then
@@ -114,7 +143,7 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
   }
 
   if end_col then
-    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
+    local current_line = _get_line(cursor_pos[1])
     local current_width = vim.fn.strdisplaywidth(current_line)
 
     if end_col > current_width then
