@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="#using-vim-plug">Install</a> · <a href="wiki">Wiki</a> · <a href="https://matrix.to/#/#hop.nvim:matrix.org">Discuss</a>
+  <a href="#using-vim-plug">Install</a> · <a href="https://github.com/phaazon/hop.nvim/wiki">Wiki</a> · <a href="https://matrix.to/#/#hop.nvim:matrix.org">Discuss</a>
 </p>
 
 **Hop** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
