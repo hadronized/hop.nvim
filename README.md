@@ -7,14 +7,14 @@
                                       · Neovim motions on speed! ·
 
 <p align="center">
-  <a href="#using-vim-plug">Install</a> · <a href="wiki">Wiki</a> · <a href="https://matrix.to/#/#hop.nvim:matrix.org">Discuss</a>
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/github/issues/phaazon/hop.nvim?color=cyan&style=for-the-badge"/>
   <img src="https://img.shields.io/github/issues-pr/phaazon/hop.nvim?color=green&style=for-the-badge"/>
   <img src="https://img.shields.io/github/contributors-anon/phaazon/hop.nvim?color=blue&style=for-the-badge"/>
   <img src="https://img.shields.io/github/last-commit/phaazon/hop.nvim?style=for-the-badge"/>
+</p>
+
+<p align="center">
+  <a href="#using-vim-plug">Install</a> · <a href="wiki">Wiki</a> · <a href="https://matrix.to/#/#hop.nvim:matrix.org">Discuss</a>
 </p>
 
 **Hop** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
