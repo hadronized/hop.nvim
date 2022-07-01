@@ -136,7 +136,7 @@ the last one**. If you are not, then you are exposed to compatibility issues / b
 
 # Usage
 
-See the [wiki](wiki).
+See the [wiki](https://github.com/phaazon/hop.nvim/wiki).
 
 # Keybindings
 
