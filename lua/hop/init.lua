@@ -112,9 +112,6 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line,
     end_line = bottom_line - 1
     if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] + 1 end
 
-    local la_linea_antes = end_line
-    local la_col_antes = end_col
-
     local current_line = _get_line(cursor_pos[1])
     if #current_line == 0 then
       -- reported line is empty (max column is 0), and reported column is 1
