@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/github/issues-pr/phaazon/hop.nvim?color=green&style=for-the-badge"/>
   <img src="https://img.shields.io/github/contributors-anon/phaazon/hop.nvim?color=blue&style=for-the-badge"/>
   <img src="https://img.shields.io/github/last-commit/phaazon/hop.nvim?style=for-the-badge"/>
+  <img src="https://img.shields.io/github/v/tag/phaazon/hop.nvim?color=pink&style=for-the-badge"/>
 </p>
 
 <p align="center">
