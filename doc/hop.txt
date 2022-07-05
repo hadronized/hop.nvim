@@ -177,6 +177,14 @@ creates a variant of the command that will only run for the current line.
 
     This is akin to calling the |hop.hint_lines_skip_whitespace| Lua function.
 
+`:HopVertical`                                                      *:HopVertical*
+`:HopVerticalBC`                                                  *:HopVerticalBC*
+`:HopVerticalAC`                                                  *:HopVerticalAC*
+`:HopVerticalMW`                                                  *:HopVerticalMW*
+    Like `HopLine` but keeps the column position of the cursor.
+
+    This is akin to calling the |hop.hint_vertical| Lua function.
+
 `:HopAnywhere`                                                      *:HopAnywhere*
 `:HopAnywhereBC`                                                  *:HopAnywhereBC*
 `:HopAnywhereAC`                                                  *:HopAnywhereAC*
@@ -304,6 +312,16 @@ Most of the functions and values you need to know about are in `hop`.
 `hop.hint_lines_skip_whitespace(`{opts}`)`          *hop.hint_lines_skip_whitespace*
     Hint the first non-whitespace character of each lines currently visible in
     the buffer view and allow to jump to them.
+
+    This works with empty lines as well.
+
+    Arguments:~
+        {opts}  Hop options.
+
+`hop.hint_vertical(`{opts}`)`                                    *hop.hint_vertical*
+    Hint the cursor position of each lines currently visible in the buffer
+    view and allow to jump to them. If the line is shorter than the current
+    cursor column position, it will default to the end of the line.
 
     This works with empty lines as well.
 
