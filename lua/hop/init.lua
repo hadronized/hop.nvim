@@ -514,10 +514,10 @@ function M.hint_lines(opts)
   )
 end
 
-function M.hint_lines_position(opts)
+function M.hint_vertical(opts)
   opts = override_opts(opts)
   -- only makes sense as end position given movement goal.
-  opts.hint_position = require'hop.hint'.HintPosition.END 
+  opts.hint_position = require'hop.hint'.HintPosition.END
 
   local generator
   if opts.current_line_only then
@@ -528,7 +528,7 @@ function M.hint_lines_position(opts)
 
   -- FIXME: need to exclude current and include empty lines.
   M.hint_with(
-    generator(jump_target.regex_by_line_position()),
+    generator(jump_target.regex_by_vertical()),
     opts
   )
 end

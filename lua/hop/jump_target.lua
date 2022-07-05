@@ -394,7 +394,7 @@ function M.regex_by_line_start()
 end
 
 -- Line regex at cursor position.
-function M.regex_by_line_position()
+function M.regex_by_vertical()
   local position = vim.api.nvim_win_get_cursor(0)[2]
   local pattern = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
   return {
