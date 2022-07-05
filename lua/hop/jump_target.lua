@@ -393,6 +393,18 @@ function M.regex_by_line_start()
   }
 end
 
+-- Line regex at cursor position.
+function M.regex_by_vertical()
+  local position = vim.api.nvim_win_get_cursor(0)[2]
+  local pattern = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
+  return {
+    oneshot = true,
+    match = function(s)
+      return pattern:match_str(s)
+    end
+  }
+end
+
 -- Line regex skipping finding the first non-whitespace character on each line.
 function M.regex_by_line_start_skip_whitespace()
   local pat = vim.regex("\\S")
