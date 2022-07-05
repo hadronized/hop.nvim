@@ -12,12 +12,20 @@ local function override_getchar(override, closure)
 end
 
 describe("Hop movement is correct", function()
+
+  before_each(function()
+    vim.cmd  [[
+    bdelete!
+    enew!
+  ]]
+    hop.setup()
+  end)
+
   it("HopChar1AC", function()
-    -- create temp buffer
-    local b = vim.api.nvim_create_buf(false, true)
 
     -- create new window, put cursor at the beginning
-    local w = vim.api.nvim_open_win(b, true, {
+    -- TODO try erasing this / make it work with fewer lines
+    local w = vim.api.nvim_open_win(0, true, {
       width = 60,
       height = 2,
       relative = "editor",
@@ -26,30 +34,31 @@ describe("Hop movement is correct", function()
     })
     vim.api.nvim_win_set_cursor(w, {1, 1})
 
-    -- add line
-    vim.api.nvim_buf_set_lines(b, 0, -1, false, {
+    -- add line, keep start position
+    local start_pos = vim.fn.getcurpos()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, {
       "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
     })
+    vim.fn.setpos(".", start_pos)
 
-    -- put cursor at the beginning, just before hopping
-    vim.api.nvim_win_set_cursor(w, {1, 1})
+    -- do HopChar1AC, simulate user input
     local key_counter = 0
-
-    -- do HopChar1AC, insert letter
     override_getchar(function(...)
       key_counter = key_counter + 1
       if key_counter == 1 then
-        return "c" -- hop to any of the two «c»
+        return vim.fn.char2nr("c") -- hop to any of the two «c»
       end
       if key_counter == 2 then
-        return "a" -- choose the first option
+        return vim.fn.char2nr("a") -- choose the first option
       end
       error  "this line is never reached"
     end, function()
       hop.hint_char1  {direction = hop_hint.HintDirection.AFTER_CURSOR}
     end)
+
     -- check that some letter is the first key
-    local _, _, c, _ = vim.fn.getcurpos()
-    eq(c, 3)
+    local end_pos = vim.fn.getcurpos()
+    local end_col = end_pos[3]
+    eq(end_col, 3)
   end)
 end)
