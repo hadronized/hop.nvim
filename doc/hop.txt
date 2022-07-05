@@ -769,22 +769,6 @@ below.
     Defaults:~
         `current_line_only = false`
 
-`inclusive_jump`                                       *hop-config-inclusive_jump*
-    Make all motions inclusive; i.e. jumping to a jump target will actually
-    jump one display cell right to the jump target. Set this option to `true`
-    if you would like to have the same behavior as with the |f| motion. Set it
-    to `false` if you would like to have the same behavior as with the |t|
-    motion.
-
-    There is one important limitation if you use `inclusive_jump = true`: if
-    the jump target you would like to jump to is the last character on a
-    line, it will not do what you expect; for instance, deleting or yanking
-    with `d` / `y` will not include the last character by default, unless you
-    set |virtualedit| to `onemore`.
-
-    Defaults:~
-        `inclusive_jump = false`
-
 `uppercase_labels`                                   *hop-config-uppercase_labels*
     Display labels as uppercase. This option only affects the displayed
     labels; you still select them by typing the keys on your keyboard.
