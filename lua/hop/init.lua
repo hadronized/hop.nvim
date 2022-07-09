@@ -216,7 +216,10 @@ local function get_input_pattern(prompt, maxchar, opts)
     vim.api.nvim_echo({{prompt, 'Question'}, {pat}}, false, {})
 
     local ok, key = pcall(vim.fn.getchar)
-    if not ok then break end -- Interrupted by <C-c>
+    if not ok then -- Interrupted by <C-c>
+      pat = nil
+      break
+    end
 
     if type(key) == 'number' then
       key = vim.fn.nr2char(key)
