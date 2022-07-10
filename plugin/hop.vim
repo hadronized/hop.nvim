@@ -14,6 +14,15 @@ command! HopWordCurrentLineBC lua require'hop'.hint_words({ direction = require'
 command! HopWordCurrentLineAC lua require'hop'.hint_words({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
 command! HopWordMW            lua require'hop'.hint_words({ multi_windows = true })
 
+" The jump-to-word-end command.
+command! HopWordEnd              lua require'hop'.hint_word_ends()
+command! HopWordEndBC            lua require'hop'.hint_word_ends({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
+command! HopWordEndAC            lua require'hop'.hint_word_ends({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
+command! HopWordEndCurrentLine   lua require'hop'.hint_word_ends({ current_line_only = true })
+command! HopWordEndCurrentLineBC lua require'hop'.hint_word_ends({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = true })
+command! HopWordEndCurrentLineAC lua require'hop'.hint_word_ends({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
+command! HopWordEndMW            lua require'hop'.hint_word_ends({ multi_windows = true })
+
 " The jump-to-pattern command.
 command! HopPattern              lua require'hop'.hint_patterns()
 command! HopPatternBC            lua require'hop'.hint_patterns({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })

@@ -383,6 +383,11 @@ function M.regex_by_word_start()
   return M.regex_by_searching('\\k\\+')
 end
 
+-- Word end regex.
+function M.regex_by_word_end()
+  return M.regex_by_searching('\\k\\(\\W\\|$\\)')
+end
+
 -- Line regex.
 function M.regex_by_line_start()
   return {
