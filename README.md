@@ -117,6 +117,22 @@ dependency to be sure your config will not break when Hop gets updated.
 Plug 'phaazon/hop.nvim'
 ```
 
+For people using init.lua, in your `init.lua`, add:
+        
+```
+require'hop'.setup()
+```
+
+For people using init.vim, in your `init.vim`, add:
+
+```vim
+lua << EOF
+require'hop'.setup()
+EOF
+```
+
+(refer to `:h hop.setup` for more details)
+
 ### Using packer
 
 ```lua
