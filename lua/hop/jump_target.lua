@@ -91,7 +91,7 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     if b == nil or (b == 0 and e == 0) then
       break
     end
-    -- Preview need a length to highlight the matched string. Zero means nothingh to highlight.
+    -- Preview need a length to highlight the matched string. Zero means nothing to highlight.
     local matched_length = e - b
     -- As the make for jump target must be placed at a cell (but some pattern like '^' is
     -- placed between cells), we should make sure e > b
