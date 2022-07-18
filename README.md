@@ -147,20 +147,20 @@ If you want to create a key binding from within Lua:
 
 ```lua
 -- place this in one of your configuration file(s)
-local hop = require("hop")
-local directions = require("hop.hint").HintDirection
-vim.api.nvim_set_keymap("", "f", function()
+local hop = require('hop')
+local directions = require('hop.hint').HintDirection
+vim.keymap.set('', 'f', function()
   hop.hint_char1({ direction = directions.AFTER_CURSOR, current_line_only = true })
-end, {})
-vim.api.nvim_set_keymap("", "F", function()
+end, {remap=true})
+vim.keymap.set('', 'F', function()
   hop.hint_char1({ direction = directions.BEFORE_CURSOR, current_line_only = true })
-end, {})
-vim.api.nvim_set_keymap("", "t", function()
+end, {remap=true})
+vim.keymap.set('', 't', function()
   hop.hint_char1({ direction = directions.AFTER_CURSOR, current_line_only = true, hint_offset = -1 })
-end, {})
-vim.api.nvim_set_keymap("", "T", function()
+end, {remap=true})
+vim.keymap.set('', 'T', function()
   hop.hint_char1({ direction = directions.BEFORE_CURSOR, current_line_only = true, hint_offset = 1 })
-end, {})
+end, {remap=true})
 ```
 
 # Chat
