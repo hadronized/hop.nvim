@@ -314,7 +314,7 @@ function M.cmd_with(jump_target_gtr, cmd, opts)
     M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset)
     vim.cmd(cmd)
     print('jumping back to', vim.inspect(pos))
-    M.move_cursor_to(win, pos[1] + 1, pos[2], opts.hint_offset)
+    M.move_cursor_to(win, pos[1] + 1, pos[2], 0)
   end)
 end
 
