@@ -93,7 +93,7 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
     start_col = cursor_pos[2]
   elseif direction == hint.HintDirection.BEFORE_CURSOR then
     end_line = bottom_line - 1
-    if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] + 1 end
+    if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] end
   end
 
   if current_line_only then
