@@ -469,6 +469,13 @@ function M.hint_char1(opts)
     return
   end
 
+  local additional_column_offset
+  if vim.api.nvim_get_mode().mode == 'no' and (opts.hint_offset == nil or opts.hint_offset == 0) then
+    additional_column_offset = 0
+  else
+    additional_column_offset = -1
+  end
+
   local generator
   if opts.current_line_only then
     generator = jump_target.jump_targets_for_current_line
@@ -476,9 +483,12 @@ function M.hint_char1(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  M.hint_with_callback(
     generator(jump_target.regex_by_case_searching(c, true, opts)),
-    opts
+    opts,
+    function(jt)
+      M.move_cursor_to(jt.window, jt.line + 1, jt.column + additional_column_offset, opts.hint_offset)
+    end
   )
 end
 
