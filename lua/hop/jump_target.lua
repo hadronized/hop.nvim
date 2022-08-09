@@ -42,6 +42,21 @@
 --
 -- This is everything you need to know to extend Hop with your own jump targets.
 
+---@class HopJumpTarget @A text-position-based target that can be jumped to.
+---@field line integer @0-indexed line number of this jump target.
+---@field column integer @1-byte-indexed column number of this jump target.
+---@field length integer @Byte length of this jump target.
+---@field buffer integer @Buffer handle of this jump target.
+---@field window integer @Window handle of this jump target.
+
+---@class HopIndirectJumpTarget @A reference to a `HopJumpTarget` that can be used for indirect sorting.
+---@field index integer @Jump target index to be used at this position.
+---@field score integer @Numeric score used for sorting; higher scoring positions come first.
+
+---@class HopJumpDict @A table for providing an ordered list of jump targets from which hints can be constructed.
+---@field jump_targets HopJumpTarget[] @List of jump targets to hint; order can be overriden by `indirect_jump_targets`.
+---@field indirect_jump_targets? HopIndirectJumpTarget[] @List of references into `jump_targets` encoding their hint order.
+
 local hint = require'hop.hint'
 local window = require'hop.window'
 
@@ -56,7 +71,9 @@ end
 -- Mark the current line with jump targets.
 --
 -- Returns the jump targets as described above.
+---@return HopJumpTarget[]
 local function mark_jump_targets_line(buf_handle, win_handle, regex, line_context, col_offset, win_width, direction_mode, hint_position)
+  ---@type HopJumpTarget[]
   local jump_targets = {}
   local end_index = nil
 
@@ -129,6 +146,8 @@ end
 -- targets `jump_targets`.
 --
 -- Indirect jump targets are used later to sort jump targets by score and create hints.
+---@param jump_targets HopJumpTarget[]
+---@param indirect_jump_targets HopIndirectJumpTarget[]
 local function create_jump_targets_for_line(
   buf_handle,
   win_handle,
@@ -287,6 +306,8 @@ function M.jump_targets_by_scanning_lines(regex)
 end
 
 -- Jump target generator for regex applied only on the cursor line.
+---@param regex string
+---@return fun(opts:any):HopJumpDict
 function M.jump_targets_for_current_line(regex)
   return function(opts)
     local context = window.get_window_context(false)[1].contexts[1]
@@ -315,7 +336,7 @@ function M.jump_targets_for_current_line(regex)
   end
 end
 
--- Apply a score function based on the Manhattan distance to indirect jump targets.
+-- Sort the indirect jump targets by score.
 function M.sort_indirect_jump_targets(indirect_jump_targets, opts)
   local score_comparison = nil
   if opts.reverse_distribution then

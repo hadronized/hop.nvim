@@ -256,11 +256,20 @@ local function get_input_pattern(prompt, maxchar, opts)
   return pat
 end
 
+M.go_to_jump_target_cb = function(jt, jt_opts)
+  M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, jt_opts.hint_offset, jt_opts.direction)
+end
+
 -- Move the cursor at a given location.
 --
 -- Add option to shift cursor by column offset
 --
 -- This function will update the jump list.
+---@param w integer window handle
+---@param line integer 1-indexed line number
+---@param column integer 0-byte-indexed column index
+---@param hint_offset integer 0-display-indexed column offset
+---@param direction integer hint direction
 function M.move_cursor_to(w, line, column, hint_offset, direction)
   -- If we do not ask for an offset jump, we don’t have to retrieve any additional lines because we will jump to the
   -- actual jump target. If we do want a jump with an offset, we need to retrieve the line the jump target lies in so
@@ -273,31 +282,30 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
   end
 
   if hint_offset ~= nil and not (hint_offset == 0) then
-    column = column + hint_offset
+    -- TEST
     local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
+    column = vim.fn.strdisplaywidth(buf_line:sub(1, column + 1)) + hint_offset
     column = vim.fn.byteidx(buf_line, column)
   end
-
   -- update the jump list
   vim.cmd("normal! m'")
   vim.api.nvim_set_current_win(w)
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
+---@param jump_target_gtr fun(opts:integer):HopJumpDict
 function M.hint_with(jump_target_gtr, opts)
-  if opts == nil then
-    opts = override_opts(opts)
-  end
+  opts = override_opts(opts)
 
-  M.hint_with_callback(jump_target_gtr, opts, function(jt)
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset, opts.direction)
-  end)
+  ---@param jt HopJumpTarget
+  M.hint_with_callback(jump_target_gtr, opts, M.go_to_jump_target_cb)
 end
 
+---@param jump_target_gtr fun(opts:table):HopJumpDict
+---@param opts table
+---@param callback fun(jt:HopJumpTarget)
 function M.hint_with_callback(jump_target_gtr, opts, callback)
-  if opts == nil then
-    opts = override_opts(opts)
-  end
+  opts = override_opts(opts)
 
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
@@ -319,7 +327,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     return
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
     local jt = generated.jump_targets[1]
-    callback(jt)
+    callback(jt, opts)
 
     clear_namespace(hs.buf_list, hs.hl_ns)
     clear_namespace(hs.buf_list, hs.dim_ns)
@@ -394,7 +402,7 @@ function M.refine_hints(key, hint_state, callback, opts)
     -- prior to jump, register the current position into the jump list
     vim.cmd("normal! m'")
 
-    callback(h.jump_target)
+    callback(h.jump_target, opts)
     return h
   end
 end
