@@ -47,7 +47,7 @@ local function create_hint_state(opts)
   local hint_state = {}
 
   -- get all window's context and buffer list
-  hint_state.all_ctxs = window.get_window_context(opts.multi_windows)
+  hint_state.all_ctxs = window.get_window_context(opts.multi_windows, opts.excluded_filetypes)
   hint_state.buf_list = {}
   for _, bctx in ipairs(hint_state.all_ctxs) do
     hint_state.buf_list[#hint_state.buf_list + 1] = bctx.hbuf
