@@ -311,15 +311,22 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   local generated = jump_target_gtr(opts)
   local jump_target_count = #generated.jump_targets
 
-  local h = nil
+  local target_idx = nil
   if jump_target_count == 0 then
-    eprintln(' -> there’s no such thing we can see…', opts.teasing)
-    clear_namespace(hs.buf_list, hs.hl_ns)
-    clear_namespace(hs.buf_list, hs.dim_ns)
-    return
+    target_idx = 0
+  elseif vim.v.count > 0 then
+    target_idx = vim.v.count
   elseif jump_target_count == 1 and opts.jump_on_sole_occurrence then
-    local jt = generated.jump_targets[1]
-    callback(jt)
+    target_idx = 1
+  end
+
+  if target_idx ~= nil then
+    local jt = generated.jump_targets[target_idx]
+    if jt then
+      callback(jt)
+    else
+      eprintln(' -> there’s no such thing we can see…', opts.teasing)
+    end
 
     clear_namespace(hs.buf_list, hs.hl_ns)
     clear_namespace(hs.buf_list, hs.dim_ns)
@@ -335,6 +342,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   hint.set_hint_extmarks(hs.hl_ns, hs.hints, opts)
   vim.cmd('redraw')
 
+  local h = nil
   while h == nil do
     local ok, key = pcall(vim.fn.getchar)
     if not ok then
