@@ -273,9 +273,12 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
   end
 
   if hint_offset ~= nil and not (hint_offset == 0) then
-    column = column + hint_offset
+    -- Add `hint_offset` based on `charidx`.
     local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
-    column = vim.fn.byteidx(buf_line, column)
+    -- Since `charidx` returns -1 when `column` is the tail, subtract 1 and add 1 to the return value to get
+    -- the correct value.
+    local char_idx = vim.fn.charidx(buf_line, column - 1) + 1 + hint_offset
+    column = vim.fn.byteidx(buf_line, char_idx)
   end
 
   -- update the jump list
