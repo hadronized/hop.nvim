@@ -64,9 +64,9 @@ function M.get_window_context(multi_windows)
   end
 
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    local b = vim.api.nvim_win_get_buf(w)
-    if w ~= cur_hwin then
-
+    -- suppress error "Invalid buffer id: N" when this is a floating window
+    local b = vim.F.npcall(vim.api.nvim_win_get_buf, w)
+    if w ~= cur_hwin and b then
       -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
       -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
       local bctx = nil
