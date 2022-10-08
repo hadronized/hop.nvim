@@ -348,6 +348,8 @@ The hint API provide the `HintDirection` and `HintPosition`
     Enumeration variants:~
         {BEFORE_CURSOR} Create and apply hints before the cursor.
         {AFTER_CURSOR}  Create and apply hints after the cursor.
+        {BEFORE_CURSOR_LINE} Create and apply hints before the cursor line.
+        {AFTER_CURSOR_LINE}  Create and apply hints after the cursor line.
 
 `hop.hint.HintPosition`                                    *hop.hint.HintPosition*
     Enumeration for hinting position in match.

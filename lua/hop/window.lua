@@ -136,6 +136,10 @@ function M.clip_window_context(context, direction)
     context.bot_line = context.cursor_pos[1]
   elseif direction == hint.HintDirection.AFTER_CURSOR then
     context.top_line = context.cursor_pos[1] - 1
+  elseif direction == hint.HintDirection.BEFORE_CURSOR_LINE then
+    context.bot_line = context.cursor_pos[1]
+  elseif direction == hint.HintDirection.AFTER_CURSOR_LINE then
+    context.top_line = context.cursor_pos[1] - 1
   end
 end
 

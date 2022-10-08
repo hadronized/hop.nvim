@@ -80,6 +80,10 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR then
       -- we want to change the end
       shifted_line = shifted_line:sub(1, col - col_offset)
+    elseif direction_mode.direction == hint.HintDirection.AFTER_CURSOR_LINE then
+      return
+    elseif direction_mode.direction == hint.HintDirection.BEFORE_CURSOR_LINE then
+      return
     end
   end
 
@@ -259,6 +263,38 @@ function M.jump_targets_by_scanning_lines(regex)
             opts.hint_position,
             lines[#lines]
           )
+        elseif opts.direction == hint.HintDirection.AFTER_CURSOR_LINE then
+          for i = 2, #lines do
+            create_jump_targets_for_line(
+              bctx.hbuf,
+              wctx.hwin,
+              jump_targets,
+              indirect_jump_targets,
+              regex,
+              wctx.col_offset,
+              wctx.win_width,
+              wctx.cursor_pos,
+              nil,
+              opts.hint_position,
+              lines[i]
+            )
+          end
+        elseif opts.direction == hint.HintDirection.BEFORE_CURSOR_LINE then
+          for i = 1, #lines - 1 do
+            create_jump_targets_for_line(
+              bctx.hbuf,
+              wctx.hwin,
+              jump_targets,
+              indirect_jump_targets,
+              regex,
+              wctx.col_offset,
+              wctx.win_width,
+              wctx.cursor_pos,
+              nil,
+              opts.hint_position,
+              lines[i]
+            )
+          end
         else
           for i = 1, #lines do
             create_jump_targets_for_line(

@@ -6,6 +6,8 @@ local M = {}
 M.HintDirection = {
   BEFORE_CURSOR = 1,
   AFTER_CURSOR = 2,
+  BEFORE_CURSOR_LINE = 3,
+  AFTER_CURSOR_LINE = 4,
 }
 
 M.HintPosition = {

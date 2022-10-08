@@ -87,25 +87,50 @@ end
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
 local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
-  local start_line = top_line
-  local end_line = bottom_line
-  local start_col = 0
-  local end_col = nil
-
-  if direction == hint.HintDirection.AFTER_CURSOR then
-    start_col = cursor_pos[2]
-  elseif direction == hint.HintDirection.BEFORE_CURSOR then
-    end_line = bottom_line - 1
-    if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] end
-  end
+  local start_line
+  local end_line
+  local start_col
+  local end_col
 
   if current_line_only then
     if direction == hint.HintDirection.BEFORE_CURSOR then
       start_line = cursor_pos[1] - 1
       end_line = cursor_pos[1] - 1
-    else
+      start_col = cursor_pos[2]
+      end_col = nil
+      if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] end
+    elseif direction == hint.HintDirection.AFTER_CURSOR then
       start_line = cursor_pos[1] - 1
       end_line = cursor_pos[1]
+      start_col = 0
+      end_col = nil
+    else
+      error('unreachable')
+    end
+  else
+    if direction == hint.HintDirection.BEFORE_CURSOR then
+      start_line = top_line
+      end_line = bottom_line - 1
+      start_col = 0
+      end_col = nil
+      if cursor_pos[2] ~= 0 then end_col = cursor_pos[2] end
+    elseif direction == hint.HintDirection.AFTER_CURSOR then
+      start_line = top_line
+      end_line = bottom_line
+      start_col = cursor_pos[2]
+      end_col = nil
+    elseif direction == hint.HintDirection.BEFORE_CURSOR_LINE then
+      start_line = top_line
+      end_line = cursor_pos[1] - 1
+      start_col = 0
+      end_col = nil
+    elseif direction == hint.HintDirection.AFTER_CURSOR_LINE then
+      start_line = cursor_pos[1]
+      end_line = bottom_line
+      start_col = 0
+      end_col = nil
+    else
+      error('unreachable')
     end
   end
 
