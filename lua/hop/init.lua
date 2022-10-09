@@ -539,7 +539,7 @@ function M.hint_lines(opts)
   end
 
   M.hint_with(
-    generator(jump_target.regex_by_line_start()),
+    generator(jump_target.by_line_start()),
     opts
   )
 end
