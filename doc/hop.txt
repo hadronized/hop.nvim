@@ -1,4 +1,4 @@
-*hop.txt*    For Neovim version 0.5                  Last change: 2022 Jul 05
+*hop.txt*    For Neovim version 0.5                  Last change: 2022 Oct 09
 
                                  __
                                 / /_  ____  ____
@@ -7,7 +7,7 @@
                              /_/ /_/\____/ .___/
                                         /_/
                          · Neovim motions on speed! ·
-                                     v2.0.0
+                                     v2.0.2
 
 ==============================================================================
 CONTENTS                                                          *hop-contents*
