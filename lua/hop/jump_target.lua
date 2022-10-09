@@ -385,10 +385,17 @@ end
 
 -- Line regex.
 function M.regex_by_line_start()
+  local c = vim.fn.winsaveview().leftcol
+
   return {
     oneshot = true,
-    match = function(_)
-      return 0, 1, false
+    match = function(s)
+      local l = vim.fn.strdisplaywidth(s)
+      if c > 0 and l == 0 then
+        return nil
+      end
+
+      return 0, 1
     end
   }
 end
