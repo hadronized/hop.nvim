@@ -183,7 +183,7 @@ local function add_virt_cur(ns)
 end
 
 -- Get pattern from input for hint and preview
-local function get_input_pattern(prompt, maxchar, opts)
+function M.get_input_pattern(prompt, maxchar, opts)
   local hs = {}
   if opts then
     hs = create_hint_state(opts)
@@ -438,7 +438,7 @@ function M.hint_patterns(opts, pattern)
   else
     vim.cmd('redraw')
     vim.fn.inputsave()
-    pat = get_input_pattern('Hop pattern: ', nil, opts)
+    pat = M.get_input_pattern('Hop pattern: ', nil, opts)
     vim.fn.inputrestore()
     if not pat then return end
   end
@@ -464,7 +464,7 @@ end
 function M.hint_char1(opts)
   opts = override_opts(opts)
 
-  local c = get_input_pattern('Hop 1 char: ', 1)
+  local c = M.get_input_pattern('Hop 1 char: ', 1)
   if not c then
     return
   end
@@ -485,7 +485,7 @@ end
 function M.hint_char2(opts)
   opts = override_opts(opts)
 
-  local c = get_input_pattern('Hop 2 char: ', 2)
+  local c = M.get_input_pattern('Hop 2 char: ', 2)
   if not c then
     return
   end
