@@ -518,7 +518,7 @@ doing that for you.
     of all the words in the window and will make the cursor jump to the one
     fully reduced.
 
-`hop.jump_target.regex_by_line_start()`      *hop.jump_target.regex_by_line_start*
+`hop.jump_target.by_line_start()`                  *hop.jump_target.by_line_start*
     Highlight the beginning of each line in the current window.
 
 `hop.jump_target.regex_by_line_start_skip_whitespace()` *hop.jump_target.regex_by_line_start_skip_whitespace*

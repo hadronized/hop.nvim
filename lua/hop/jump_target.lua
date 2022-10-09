@@ -348,10 +348,13 @@ function M.regex_by_searching(pat, plain_search)
   if plain_search then
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
+
+  local regex = vim.regex(pat)
+
   return {
     oneshot = false,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return regex:match_str(s)
     end
   }
 end
@@ -370,10 +373,12 @@ function M.regex_by_case_searching(pat, plain_search, opts)
     pat = '\\c' .. pat
   end
 
+  local regex = vim.regex(pat)
+
   return {
     oneshot = false,
     match = function(s)
-      return vim.regex(pat):match_str(s)
+      return regex:match_str(s)
     end
   }
 end
@@ -384,7 +389,7 @@ function M.regex_by_word_start()
 end
 
 -- Line regex.
-function M.regex_by_line_start()
+function M.by_line_start()
   local c = vim.fn.winsaveview().leftcol
 
   return {
@@ -403,22 +408,23 @@ end
 -- Line regex at cursor position.
 function M.regex_by_vertical()
   local position = vim.api.nvim_win_get_cursor(0)[2]
-  local pattern = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
+  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
   return {
     oneshot = true,
     match = function(s)
-      return pattern:match_str(s)
+      return regex:match_str(s)
     end
   }
 end
 
 -- Line regex skipping finding the first non-whitespace character on each line.
 function M.regex_by_line_start_skip_whitespace()
-  local pat = vim.regex("\\S")
+  local regex = vim.regex("\\S")
+
   return {
     oneshot = true,
     match = function(s)
-      return pat:match_str(s)
+      return regex:match_str(s)
     end
   }
 end
