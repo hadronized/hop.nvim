@@ -21,7 +21,7 @@ function M.insert_highlights()
   vim.api.nvim_command('highlight default link HopCursor Cursor')
 
   -- Highlight used for preview pattern
-  vim.api.nvim_command('highlight default HopPreview  guifg=#b8bb26 gui=bold ctermfg=142 cterm=bold')
+  vim.api.nvim_command('highlight link HopPreview IncSearch')
 end
 
 function M.create_autocmd()
