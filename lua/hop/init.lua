@@ -430,7 +430,10 @@ function M.quit(hint_state)
   end
 
   for _, buf in ipairs(hint_state.buf_list) do
-    if vim.fn.has("nvim-0.6") == 1 then
+    -- sometimes, buffers might be unloaded; that’s the case with floats for instance (we can invoke Hop from them but
+    -- then they disappear); we need to check whether the buffer is still valid before trying to do anything else with
+    -- it
+    if vim.api.nvim_buf_is_valid(buf) and vim.fn.has("nvim-0.6") == 1 then
       for ns in pairs(hint_state.diag_ns) do vim.diagnostic.show(ns, buf) end
     end
   end
