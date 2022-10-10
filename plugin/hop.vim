@@ -1,3 +1,8 @@
+if exists('g:loaded_hop')
+  finish
+endif
+let g:loaded_hop = 1
+
 if !has('nvim-0.5.0')
   echohl Error
   echom 'This plugin only works with Neovim >= v0.5.0'
