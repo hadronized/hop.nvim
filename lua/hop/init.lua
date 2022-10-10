@@ -104,8 +104,13 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
       end_line = cursor_pos[1]
       start_col = 0
       end_col = nil
+    elseif direction == nil then
+      start_line = cursor_pos[1] - 1
+      end_line = cursor_pos[1]
+      start_col = 0
+      end_col = nil
     else
-      error('unreachable')
+      error(string.format('unreachable: direction=%s', vim.inspect(direction)))
     end
   else
     if direction == hint.HintDirection.BEFORE_CURSOR then
@@ -129,8 +134,13 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
       end_line = bottom_line
       start_col = 0
       end_col = nil
+    elseif direction == nil then
+      start_line = top_line
+      end_line = bottom_line
+      start_col = 0
+      end_col = nil
     else
-      error('unreachable')
+      error(string.format('unreachable: direction=%s', vim.inspect(direction)))
     end
   end
 
