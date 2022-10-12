@@ -86,7 +86,15 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = regex.match(s)
+    local b, e = regex.match(
+      s,
+      {
+        line = line_context.line_nr,
+        column = math.max(1, col + col_offset + col_bias),
+        buffer = buf_handle,
+        window = win_handle,
+      }
+    )
 
     if b == nil then
       break
