@@ -467,6 +467,24 @@ function M.hint_words(opts)
   )
 end
 
+function M.hint_camel_case(opts)
+    local jump_target = require'hop.jump_target'
+
+    opts = override_opts(opts)
+
+    local generator
+    if opts.current_line_only then
+        generator = jump_target.jump_targets_for_current_line
+    else
+        generator = jump_target.jump_targets_by_scanning_lines
+    end
+
+    M.hint_with(
+        generator(jump_target.regex_by_camel_case()),
+        opts
+    )
+end
+
 function M.hint_patterns(opts, pattern)
   local jump_target = require'hop.jump_target'
 
