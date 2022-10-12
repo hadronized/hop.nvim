@@ -88,7 +88,7 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
     local s = shifted_line:sub(col)
     local b, e = regex.match(s)
 
-    if b == nil or (b == 0 and e == 0) then
+    if b == nil then
       break
     end
     -- Preview need a length to highlight the matched string. Zero means nothing to highlight.
@@ -113,7 +113,8 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       window = win_handle,
     }
 
-    if regex.oneshot then
+    -- do not search further if regex is oneshot or if there is nothing more to search
+    if regex.oneshot or s == '' then
       break
     else
       col = col + e
