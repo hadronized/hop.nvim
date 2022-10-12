@@ -416,11 +416,15 @@ end
 
 -- Line regex at cursor position.
 function M.regex_by_vertical()
-  local position = vim.api.nvim_win_get_cursor(0)[2]
-  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
+  local buf = vim.api.nvim_win_get_buf(0)
+  local line, col = table.unpack(vim.api.nvim_win_get_cursor(0))
+  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", col))
   return {
     oneshot = true,
-    match = function(s)
+    match = function(s, ctx)
+      if ctx.buffer == buf and ctx.line == line - 1 then
+        return nil
+      end
       return regex:match_str(s)
     end
   }
