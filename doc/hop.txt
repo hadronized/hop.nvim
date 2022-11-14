@@ -806,6 +806,16 @@ below.
     Defaults:~
         `multi_windows = false`
 
+`prompt`                                         *hop-config-prompt*
+    Customize the prompts used for commands |HopChar1|, |HopChar2| and
+    |HopPattern|, respectively.
+
+    For example, to use `> ` as prompt for |HopChar2|, you can set up
+    `prompt = { char2 = '> ' }` to override the default prompt.
+
+    Defaults:~
+        `prompt = { char1 = 'Hop 1 char: ', char2 = 'Hop 2 char: ', pattern = 'Hop pattern: ' }`
+
 ==============================================================================
 EXTENSION                                                        *hop-extension*
 

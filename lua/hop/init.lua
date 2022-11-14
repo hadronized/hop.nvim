@@ -480,7 +480,7 @@ function M.hint_patterns(opts, pattern)
   else
     vim.cmd('redraw')
     vim.fn.inputsave()
-    pat = M.get_input_pattern('Hop pattern: ', nil, opts)
+    pat = M.get_input_pattern(opts.prompt.pattern, nil, opts)
     vim.fn.inputrestore()
     if not pat then return end
   end
@@ -508,7 +508,7 @@ function M.hint_char1(opts)
 
   opts = override_opts(opts)
 
-  local c = M.get_input_pattern('Hop 1 char: ', 1)
+  local c = M.get_input_pattern(opts.prompt.char1, 1)
   if not c then
     return
   end
@@ -531,7 +531,7 @@ function M.hint_char2(opts)
 
   opts = override_opts(opts)
 
-  local c = M.get_input_pattern('Hop 2 char: ', 2)
+  local c = M.get_input_pattern(opts.prompt.char2, 2)
   if not c then
     return
   end
@@ -628,8 +628,11 @@ end
 
 -- Setup user settings.
 function M.setup(opts)
-  -- Look up keys in user-defined table with fallback to defaults.
-  M.opts = setmetatable(opts or {}, {__index = require'hop.defaults'})
+  local default_opts = require'hop.defaults'
+
+  -- Use deep_extend here because now options are table of tables.
+  M.opts = vim.tbl_deep_extend('keep', opts, default_opts)
+
   M.initialized = true
 
   -- Insert the highlights and register the autocommand if asked to.
