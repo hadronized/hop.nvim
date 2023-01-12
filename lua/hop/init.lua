@@ -115,16 +115,23 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
     priority = prio.DIM_PRIO
   }
 
-  if end_col then
-    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
-    local current_width = vim.fn.strdisplaywidth(current_line)
+  local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
+  local current_width = vim.fn.strdisplaywidth(current_line)
 
+  if end_col then
     if end_col > current_width then
       end_col = current_width - 1
     end
 
     extmark_options.end_col = end_col
   end
+
+  -- Handle Empty Line
+  if current_width == 0 and end_col then
+    end_col = 0
+    extmark_options.end_col = end_col
+  end
+  if current_width == 0 then start_col = start_col - 1 end
 
   vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
                                extmark_options)
