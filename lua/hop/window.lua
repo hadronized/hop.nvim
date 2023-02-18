@@ -4,7 +4,9 @@ local M = {}
 
 local function window_context(win_handle, cursor_pos)
   -- get a bunch of information about the window and the cursor
-  vim.api.nvim_set_current_win(win_handle)
+  if vim.fn.bufname() ~= "[Command Line]" then
+      vim.api.nvim_set_current_win(win_handle)
+  end
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
   local top_line = win_info.topline - 1
@@ -90,7 +92,9 @@ function M.get_window_context(multi_windows)
   end
 
   -- Move cursor back to current window
-  vim.api.nvim_set_current_win(cur_hwin)
+  if vim.fn.bufname() ~= "[Command Line]" then
+      vim.api.nvim_set_current_win(cur_hwin)
+  end
 
   return all_ctxs
 end
