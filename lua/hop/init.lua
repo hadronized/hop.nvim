@@ -120,13 +120,13 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
     local current_width = vim.fn.strdisplaywidth(current_line)
 
     if end_col > current_width then
-      end_col = current_width - 1
+      end_col = current_width
     end
 
     extmark_options.end_col = end_col
   end
 
-  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col - 1,
                                extmark_options)
 end
 
