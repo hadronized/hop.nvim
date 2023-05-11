@@ -656,4 +656,44 @@ function M.setup(opts)
   end
 end
 
+M.hop_yank = function(opts)
+  opts = override_opts(opts)
+
+  local jump_target = require('hop.jump_target')
+  local generator = jump_target.jump_targets_by_scanning_lines
+  if opts.current_line_only then
+    generator = jump_target.jump_targets_for_current_line
+  end
+
+  local targets = {}
+  local range = {
+    'Yank start pattern: ',
+    'Yank end pattern: ',
+  }
+
+  for key, prompt in pairs(range) do
+    local c = M.get_input_pattern(prompt, 1)
+    if not c or c == '' then
+      return
+    end
+
+    M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+      targets[key] = jt
+    end)
+  end
+
+  if targets[1] == nil or targets[2] == nil then
+    return
+  end
+
+  local yank = require('hop.yank')
+
+  local text = yank.get_text(targets[1], targets[2])
+  if #text == 0 or text[1] == '' then
+    return
+  end
+
+  yank.yank_to(text, opts.yank_register)
+end
+
 return M

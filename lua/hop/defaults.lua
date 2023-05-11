@@ -19,5 +19,6 @@ M.hint_position = hint.HintPosition.BEGIN
 M.hint_offset = 0
 M.hint_type = hint.HintType.INLINE ---@type HintType
 M.excluded_filetypes = {}
+M.yank_register = '@'
 
 return M
