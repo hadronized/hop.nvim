@@ -696,4 +696,29 @@ M.hop_yank = function(opts)
   yank.yank_to(text, opts.yank_register)
 end
 
+M.hop_paste = function(opts)
+  opts = override_opts(opts)
+
+  local jump_target = require('hop.jump_target')
+  local generator = jump_target.jump_targets_by_scanning_lines
+  if opts.current_line_only then
+    generator = jump_target.jump_targets_for_current_line
+  end
+
+  local c = M.get_input_pattern('Paste 1 char', 1)
+  if not c or c == '' then
+    return
+  end
+
+  M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+    local target = jt
+
+    if target == nil then
+      return
+    end
+
+    require('hop.yank').paste_from(target, opts.yank_register)
+  end)
+end
+
 return M

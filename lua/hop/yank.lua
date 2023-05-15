@@ -7,6 +7,19 @@ M.yank_to = function(text, register)
   vim.fn.setreg(register, text)
 end
 
+--- yanks the text to specified register
+---@param register string
+---@param target table
+M.paste_from = function(target, register)
+  local text = vim.fn.getreg(register)
+  if text == '' then
+    return
+  end
+
+  local replacement = vim.split(text, '\n', { trimempty = true })
+  vim.api.nvim_buf_set_text(0, target.line, target.column, target.line, target.column, replacement)
+end
+
 --- checks the range bounds and when end is before the start swaps theme
 ---@param start_range table
 ---@param end_range table
