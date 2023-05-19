@@ -89,7 +89,7 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
   local start_line = top_line
   local end_line = bottom_line
   local start_col = 0
-  local end_col = nil
+  local end_col = 0
 
   if direction == hint.HintDirection.AFTER_CURSOR then
     start_col = cursor_pos[2]
@@ -108,23 +108,19 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
     end
   end
 
+  local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
+  local current_width = vim.fn.strdisplaywidth(current_line)
+  -- `col` shouldn't be out of bounds
+  start_col = math.min(current_width, start_col)
+  end_col = math.min(current_width, end_col)
+
   local extmark_options = {
     end_line = end_line,
+    end_col = end_col,
     hl_group = 'HopUnmatched',
     hl_eol = true,
     priority = prio.DIM_PRIO
   }
-
-  if end_col then
-    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
-    local current_width = vim.fn.strdisplaywidth(current_line)
-
-    if end_col > current_width then
-      end_col = current_width - 1
-    end
-
-    extmark_options.end_col = end_col
-  end
 
   vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col,
                                extmark_options)
