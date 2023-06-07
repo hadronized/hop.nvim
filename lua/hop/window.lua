@@ -47,7 +47,7 @@ end
 --   },
 --   ...
 -- }
-function M.get_window_context(multi_windows)
+function M.get_window_context(multi_windows, excluded_filetypes)
   local all_ctxs = {}
 
   -- Generate contexts of windows
@@ -64,28 +64,28 @@ function M.get_window_context(multi_windows)
   end
 
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    local b = vim.api.nvim_win_get_buf(w)
-    if w ~= cur_hwin then
+    if w ~= cur_hwin and vim.api.nvim_win_is_valid(w) then
+      local b = vim.api.nvim_win_get_buf(w)
+      if not vim.tbl_contains(excluded_filetypes, vim.api.nvim_buf_get_option(b, 'filetype')) then
+        -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
+        -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
+        local bctx = nil
+        for _, buffer_ctx in ipairs(all_ctxs) do
+          if b == buffer_ctx.hbuf then
+            bctx = buffer_ctx.contexts
+            break
+          end
+        end
 
-      -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
-      -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
-      local bctx = nil
-      for _, buffer_ctx in ipairs(all_ctxs) do
-        if b == buffer_ctx.hbuf then
-          bctx = buffer_ctx.contexts
-          break
+        if bctx then
+          bctx[#bctx + 1] = window_context(w, vim.api.nvim_win_get_cursor(w))
+        else
+          all_ctxs[#all_ctxs + 1] = {
+            hbuf = b,
+            contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
+          }
         end
       end
-
-      if bctx then
-        bctx[#bctx + 1] = window_context(w, vim.api.nvim_win_get_cursor(w))
-      else
-        all_ctxs[#all_ctxs + 1] = {
-          hbuf = b,
-          contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
-        }
-      end
-
     end
   end
 

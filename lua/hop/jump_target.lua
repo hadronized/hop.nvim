@@ -184,7 +184,7 @@ end
 function M.jump_targets_by_scanning_lines(regex)
   return function(opts)
     -- get the window context; this is used to know which part of the visible buffer is to hint
-    local all_ctxs = window.get_window_context(opts.multi_windows)
+    local all_ctxs = window.get_window_context(opts.multi_windows, opts.excluded_filetypes)
     local jump_targets = {}
     local indirect_jump_targets = {}
 
@@ -289,7 +289,7 @@ end
 -- Jump target generator for regex applied only on the cursor line.
 function M.jump_targets_for_current_line(regex)
   return function(opts)
-    local context = window.get_window_context(false)[1].contexts[1]
+    local context = window.get_window_context(false, opts.excluded_filetypes)[1].contexts[1]
     local line_n = context.cursor_pos[1]
     local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
     local jump_targets = {}
