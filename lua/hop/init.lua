@@ -4,13 +4,19 @@ local M = {}
 --
 -- Some options cannot be used together. For instance, multi_windows and current_line_only don’t really make sense used
 -- together. This function will notify the user of such ill-formed configurations.
+---@param opts Options
 local function check_opts(opts)
   if not opts then
     return
   end
 
+  if vim.version.cmp({ 0, 10, 0 }, vim.version()) < 0 then
+    local hint = require('hop.hint')
+    opts.hint_type = hint.HintType.OVERLAY
+  end
+
   if opts.multi_windows and opts.current_line_only then
-    vim.notify('Cannot use current_line_only across multiple windows', 3)
+    vim.notify('Cannot use current_line_only across multiple windows', vim.log.levels.WARN)
   end
   if vim.api.nvim_get_mode().mode ~= 'n' then
     opts.multi_windows = false
@@ -18,6 +24,8 @@ local function check_opts(opts)
 end
 
 -- Allows to override global options with user local overrides.
+---@param opts Options
+---@return Options
 local function override_opts(opts)
   check_opts(opts)
   return setmetatable(opts or {}, { __index = M.opts })

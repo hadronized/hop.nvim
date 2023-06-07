@@ -1,3 +1,4 @@
+---@class Options
 local M = {}
 
 M.keys = 'asdghklqwertyuiopzxcvbnmfj'
@@ -11,8 +12,10 @@ M.create_hl_autocmd = true
 M.current_line_only = false
 M.uppercase_labels = false
 M.multi_windows = false
-M.hint_position = require('hop.hint').HintPosition.BEGIN
+local hint = require('hop.hint')
+M.hint_position = hint.HintPosition.BEGIN
 M.hint_offset = 0
+M.hint_type = hint.HintType.INLINE ---@type HintType
 M.excluded_filetypes = {}
 
 return M

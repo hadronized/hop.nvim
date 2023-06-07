@@ -41,6 +41,16 @@
 -- }
 --
 -- This is everything you need to know to extend Hop with your own jump targets.
+---@class JumpTarget
+---@field buffer number
+---@field line number
+---@field column number
+---@field length number
+---@field window number
+
+---@class IndirectJumpTarget
+---@field index number
+---@field score number
 
 local hint = require('hop.hint')
 local window = require('hop.window')
