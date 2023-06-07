@@ -86,9 +86,17 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = regex.match(s)
+    local b, e = regex.match(
+      s,
+      {
+        line = line_context.line_nr,
+        column = math.max(1, col + col_offset + col_bias),
+        buffer = buf_handle,
+        window = win_handle,
+      }
+    )
 
-    if b == nil or (b == 0 and e == 0) then
+    if b == nil then
       break
     end
     -- Preview need a length to highlight the matched string. Zero means nothing to highlight.
@@ -113,7 +121,8 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
       window = win_handle,
     }
 
-    if regex.oneshot then
+    -- do not search further if regex is oneshot or if there is nothing more to search
+    if regex.oneshot or s == '' then
       break
     else
       col = col + e
@@ -432,11 +441,15 @@ end
 
 -- Line regex at cursor position.
 function M.regex_by_vertical()
-  local position = vim.api.nvim_win_get_cursor(0)[2]
-  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", position))
+  local buf = vim.api.nvim_win_get_buf(0)
+  local line, col = table.unpack(vim.api.nvim_win_get_cursor(0))
+  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", col))
   return {
     oneshot = true,
-    match = function(s)
+    match = function(s, ctx)
+      if ctx.buffer == buf and ctx.line == line - 1 then
+        return nil
+      end
       return regex:match_str(s)
     end
   }

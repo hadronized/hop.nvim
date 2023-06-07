@@ -600,7 +600,6 @@ function M.hint_vertical(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  -- FIXME: need to exclude current and include empty lines.
   M.hint_with(
     generator(jump_target.regex_by_vertical()),
     opts
