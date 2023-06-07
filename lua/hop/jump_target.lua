@@ -388,6 +388,31 @@ function M.regex_by_word_start()
   return M.regex_by_searching('\\k\\+')
 end
 
+-- Camel case regex
+function M.regex_by_camel_case()
+    local camel = "\\u\\l\\+"
+    local acronyms = "\\u\\+\\ze\\u\\l"
+    local upper = "\\u\\+"
+    local lower = "\\l\\+"
+    local rgb = "#\\x\\+\\>"
+    local ox = "\\<0[xX]\\x\\+\\>"
+    local oo = "\\<0[oO][0-7]\\+\\>"
+    local ob = "\\<0[bB][01]\\+\\>"
+    local num = "\\d\\+"
+
+    local tab = { camel, acronyms, upper, lower, rgb, ox, oo, ob, num, "\\~", "!", "@", "#", "$" }
+    -- regex that matches camel or acronyms or upper ... or num ...
+    local patStr = "\\%(\\%(" .. table.concat(tab, "\\)\\|\\%(") .. "\\)\\)"
+
+    local pat = vim.regex(patStr)
+    return {
+        oneshot = false,
+        match = function(s)
+            return pat:match_str(s)
+        end
+    }
+end
+
 -- Line regex.
 function M.by_line_start()
   local c = vim.fn.winsaveview().leftcol
