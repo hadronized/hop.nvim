@@ -4,7 +4,7 @@ M.opts = {}
 function M.hint_around_cursor(opts)
   -- the jump target generator; we are simply going to retreive the cursor position and hint around it as an example
   local jump_targets = function() -- opts ignored
-    local cursor_pos = require'hop.window'.get_window_context().cursor_pos
+    local cursor_pos = require('hop.window').get_window_context().cursor_pos
     local line = cursor_pos[1] - 1
     local col = cursor_pos[2] + 1
 
@@ -21,7 +21,7 @@ function M.hint_around_cursor(opts)
     return { jump_targets = jump_targets }
   end
 
-  require'hop'.hint_with(jump_targets, opts)
+  require('hop').hint_with(jump_targets, opts)
 end
 
 function M.register(opts)

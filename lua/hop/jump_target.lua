@@ -42,8 +42,8 @@
 --
 -- This is everything you need to know to extend Hop with your own jump targets.
 
-local hint = require'hop.hint'
-local window = require'hop.window'
+local hint = require('hop.hint')
+local window = require('hop.window')
 
 local M = {}
 
@@ -56,7 +56,16 @@ end
 -- Mark the current line with jump targets.
 --
 -- Returns the jump targets as described above.
-local function mark_jump_targets_line(buf_handle, win_handle, regex, line_context, col_offset, win_width, direction_mode, hint_position)
+local function mark_jump_targets_line(
+  buf_handle,
+  win_handle,
+  regex,
+  line_context,
+  col_offset,
+  win_width,
+  direction_mode,
+  hint_position
+)
   local jump_targets = {}
   local end_index = nil
 
@@ -86,15 +95,12 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
   local col = 1
   while true do
     local s = shifted_line:sub(col)
-    local b, e = regex.match(
-      s,
-      {
-        line = line_context.line_nr,
-        column = math.max(1, col + col_offset + col_bias),
-        buffer = buf_handle,
-        window = win_handle,
-      }
-    )
+    local b, e = regex.match(s, {
+      line = line_context.line_nr,
+      column = math.max(1, col + col_offset + col_bias),
+      buffer = buf_handle,
+      window = win_handle,
+    })
 
     if b == nil then
       break
@@ -170,7 +176,7 @@ local function create_jump_targets_for_line(
 
     indirect_jump_targets[#indirect_jump_targets + 1] = {
       index = #jump_targets,
-      score = M.manh_dist(cursor_pos, { jump_target.line, jump_target.column }) + win_bias
+      score = M.manh_dist(cursor_pos, { jump_target.line, jump_target.column }) + win_bias,
     }
   end
 end
@@ -285,7 +291,6 @@ function M.jump_targets_by_scanning_lines(regex)
             )
           end
         end
-
       end
     end
 
@@ -328,9 +333,13 @@ end
 function M.sort_indirect_jump_targets(indirect_jump_targets, opts)
   local score_comparison = nil
   if opts.reverse_distribution then
-    score_comparison = function (a, b) return a.score > b.score end
+    score_comparison = function(a, b)
+      return a.score > b.score
+    end
   else
-    score_comparison = function (a, b) return a.score < b.score end
+    score_comparison = function(a, b)
+      return a.score < b.score
+    end
   end
 
   table.sort(indirect_jump_targets, score_comparison)
@@ -364,7 +373,7 @@ function M.regex_by_searching(pat, plain_search)
     oneshot = false,
     match = function(s)
       return regex:match_str(s)
-    end
+    end,
   }
 end
 
@@ -388,7 +397,7 @@ function M.regex_by_case_searching(pat, plain_search, opts)
     oneshot = false,
     match = function(s)
       return regex:match_str(s)
-    end
+    end,
   }
 end
 
@@ -399,27 +408,27 @@ end
 
 -- Camel case regex
 function M.regex_by_camel_case()
-    local camel = "\\u\\l\\+"
-    local acronyms = "\\u\\+\\ze\\u\\l"
-    local upper = "\\u\\+"
-    local lower = "\\l\\+"
-    local rgb = "#\\x\\+\\>"
-    local ox = "\\<0[xX]\\x\\+\\>"
-    local oo = "\\<0[oO][0-7]\\+\\>"
-    local ob = "\\<0[bB][01]\\+\\>"
-    local num = "\\d\\+"
+  local camel = '\\u\\l\\+'
+  local acronyms = '\\u\\+\\ze\\u\\l'
+  local upper = '\\u\\+'
+  local lower = '\\l\\+'
+  local rgb = '#\\x\\+\\>'
+  local ox = '\\<0[xX]\\x\\+\\>'
+  local oo = '\\<0[oO][0-7]\\+\\>'
+  local ob = '\\<0[bB][01]\\+\\>'
+  local num = '\\d\\+'
 
-    local tab = { camel, acronyms, upper, lower, rgb, ox, oo, ob, num, "\\~", "!", "@", "#", "$" }
-    -- regex that matches camel or acronyms or upper ... or num ...
-    local patStr = "\\%(\\%(" .. table.concat(tab, "\\)\\|\\%(") .. "\\)\\)"
+  local tab = { camel, acronyms, upper, lower, rgb, ox, oo, ob, num, '\\~', '!', '@', '#', '$' }
+  -- regex that matches camel or acronyms or upper ... or num ...
+  local patStr = '\\%(\\%(' .. table.concat(tab, '\\)\\|\\%(') .. '\\)\\)'
 
-    local pat = vim.regex(patStr)
-    return {
-        oneshot = false,
-        match = function(s)
-            return pat:match_str(s)
-        end
-    }
+  local pat = vim.regex(patStr)
+  return {
+    oneshot = false,
+    match = function(s)
+      return pat:match_str(s)
+    end,
+  }
 end
 
 -- Line regex.
@@ -435,7 +444,7 @@ function M.by_line_start()
       end
 
       return 0, 1
-    end
+    end,
   }
 end
 
@@ -443,7 +452,7 @@ end
 function M.regex_by_vertical()
   local buf = vim.api.nvim_win_get_buf(0)
   local line, col = table.unpack(vim.api.nvim_win_get_cursor(0))
-  local regex = vim.regex(string.format("^.\\{0,%d\\}\\(.\\|$\\)", col))
+  local regex = vim.regex(string.format('^.\\{0,%d\\}\\(.\\|$\\)', col))
   return {
     oneshot = true,
     match = function(s, ctx)
@@ -451,19 +460,19 @@ function M.regex_by_vertical()
         return nil
       end
       return regex:match_str(s)
-    end
+    end,
   }
 end
 
 -- Line regex skipping finding the first non-whitespace character on each line.
 function M.regex_by_line_start_skip_whitespace()
-  local regex = vim.regex("\\S")
+  local regex = vim.regex('\\S')
 
   return {
     oneshot = true,
     match = function(s)
       return regex:match_str(s)
-    end
+    end,
   }
 end
 

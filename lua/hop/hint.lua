@@ -1,5 +1,5 @@
-local perm = require'hop.perm'
-local prio = require'hop.priority'
+local perm = require('hop.perm')
+local prio = require('hop.priority')
 
 local M = {}
 
@@ -46,14 +46,14 @@ function M.reduce_hints(hints, key)
   local next_hints = {}
 
   for _, h in pairs(hints) do
-      local prev_label = h.label
-      h.label = reduce_label(h.label, key)
+    local prev_label = h.label
+    h.label = reduce_label(h.label, key)
 
-      if h.label == nil then
-        return h
-      elseif h.label ~= prev_label then
-        next_hints[#next_hints + 1] = h
-      end
+    if h.label == nil then
+      return h
+    elseif h.label ~= prev_label then
+      next_hints[#next_hints + 1] = h
+    end
   end
 
   return nil, next_hints
@@ -82,7 +82,7 @@ function M.create_hints(jump_targets, indirect_jump_targets, opts)
   for i, indirect in pairs(indirect_jump_targets) do
     hints[indirect.index] = {
       label = tbl_to_str(perms[i]),
-      jump_target = jump_targets[indirect.index]
+      jump_target = jump_targets[indirect.index],
     }
   end
 
@@ -103,19 +103,19 @@ function M.set_hint_extmarks(hl_ns, hints, opts)
 
     if vim.fn.strdisplaywidth(label) == 1 then
       vim.api.nvim_buf_set_extmark(hint.jump_target.buffer or 0, hl_ns, hint.jump_target.line, col, {
-        virt_text = { { label, "HopNextKey" } },
+        virt_text = { { label, 'HopNextKey' } },
         virt_text_pos = 'overlay',
         hl_mode = 'combine',
-        priority = prio.HINT_PRIO
+        priority = prio.HINT_PRIO,
       })
     else
       -- get the byte index of the second hint so that we can slice it correctly
       local snd_idx = vim.fn.byteidx(label, 1)
       vim.api.nvim_buf_set_extmark(hint.jump_target.buffer or 0, hl_ns, hint.jump_target.line, col, {
-        virt_text = { { label:sub(1, snd_idx), "HopNextKey1" }, { label:sub(snd_idx + 1), "HopNextKey2" } },
+        virt_text = { { label:sub(1, snd_idx), 'HopNextKey1' }, { label:sub(snd_idx + 1), 'HopNextKey2' } },
         virt_text_pos = 'overlay',
         hl_mode = 'combine',
-        priority = prio.HINT_PRIO
+        priority = prio.HINT_PRIO,
       })
     end
   end
@@ -128,7 +128,7 @@ function M.set_hint_preview(hl_ns, jump_targets)
       end_col = jt.column - 1 + jt.length,
       hl_group = 'HopPreview',
       hl_eol = true,
-      priority = prio.HINT_PRIO
+      priority = prio.HINT_PRIO,
     })
   end
 end

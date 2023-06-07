@@ -51,7 +51,7 @@ function M.TrieBacktrackFilling:add_trie_key(trie, p, key)
     t = current_trie.trie
   end
 
-  t[#t + 1] = { key = key; trie = {} }
+  t[#t + 1] = { key = key, trie = {} }
 
   return trie
 end
@@ -80,7 +80,7 @@ end
 -- Returns `perms` added with the next permutation.
 function M.TrieBacktrackFilling:next_perm(keys, trie, p)
   if #trie == 0 then
-    return { { key = first_key(keys); trie = {} } }, p
+    return { { key = first_key(keys), trie = {} } }, p
   end
 
   -- check whether the current sequence can have a next one

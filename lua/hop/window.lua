@@ -1,4 +1,4 @@
-local hint = require'hop.hint'
+local hint = require('hop.hint')
 
 local M = {}
 
@@ -30,7 +30,7 @@ local function window_context(win_handle, cursor_pos)
     top_line = top_line,
     bot_line = bot_line,
     win_width = win_width,
-    col_offset = win_view.leftcol
+    col_offset = win_view.leftcol,
   }
 end
 
@@ -56,7 +56,7 @@ function M.get_window_context(multi_windows, excluded_filetypes)
 
   all_ctxs[#all_ctxs + 1] = {
     hbuf = cur_hbuf,
-    contexts = { window_context(cur_hwin, {vim.fn.line('.'), vim.fn.charcol('.')} ) },
+    contexts = { window_context(cur_hwin, { vim.fn.line('.'), vim.fn.charcol('.') }) },
   }
 
   if not multi_windows then
@@ -68,7 +68,6 @@ function M.get_window_context(multi_windows, excluded_filetypes)
       if vim.api.nvim_win_get_config(w).relative == '' then
         local b = vim.api.nvim_win_get_buf(w)
         if w ~= cur_hwin then
-
           -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
           -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
           local bctx = nil
@@ -84,10 +83,9 @@ function M.get_window_context(multi_windows, excluded_filetypes)
           else
             all_ctxs[#all_ctxs + 1] = {
               hbuf = b,
-              contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
+              contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) },
             }
           end
-
         end
       end
     end
@@ -109,10 +107,9 @@ function M.get_lines_context(buf_handle, context)
 
   local lnr = context.top_line
   while lnr < context.bot_line do -- top_line is inclusive and bot_line is exclusive
-    local fold_end = vim.api.nvim_win_call(context.hwin,
-      function()
-        return vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
-      end)
+    local fold_end = vim.api.nvim_win_call(context.hwin, function()
+      return vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
+    end)
     if fold_end == -1 then
       lines[#lines + 1] = {
         line_nr = lnr,
@@ -122,7 +119,7 @@ function M.get_lines_context(buf_handle, context)
     else
       lines[#lines + 1] = {
         line_nr = lnr,
-        line = "",
+        line = '',
       }
       lnr = fold_end
     end
