@@ -4,13 +4,19 @@ local M = {}
 --
 -- Some options cannot be used together. For instance, multi_windows and current_line_only don’t really make sense used
 -- together. This function will notify the user of such ill-formed configurations.
+---@param opts Options
 local function check_opts(opts)
   if not opts then
     return
   end
 
+  if vim.version.cmp({ 0, 10, 0 }, vim.version()) < 0 then
+    local hint = require('hop.hint')
+    opts.hint_type = hint.HintType.OVERLAY
+  end
+
   if opts.multi_windows and opts.current_line_only then
-    vim.notify('Cannot use current_line_only across multiple windows', 3)
+    vim.notify('Cannot use current_line_only across multiple windows', vim.log.levels.WARN)
   end
   if vim.api.nvim_get_mode().mode ~= 'n' then
     opts.multi_windows = false
@@ -18,6 +24,8 @@ local function check_opts(opts)
 end
 
 -- Allows to override global options with user local overrides.
+---@param opts Options
+---@return Options
 local function override_opts(opts)
   check_opts(opts)
   return setmetatable(opts or {}, { __index = M.opts })
@@ -31,15 +39,19 @@ local function eprintln(msg, teasing)
 end
 
 -- Create hint state
---
--- {
---  all_ctxs: All windows's context
---  buf_list: All buffers displayed in all windows
---  <xxx>_ns: Required namespaces
--- }
+---@param opts Options
+---@return HintState
 local function create_hint_state(opts)
   local window = require('hop.window')
 
+  ---@class HintState
+  ---@field buf_list number[]
+  ---@field all_ctxs Context
+  ---@field hints Hint[]
+  ---@field hl_ns number
+  ---@field dim_ns number
+  ---@field diag_ns table
+  ---@field cursorline number
   local hint_state = {}
 
   -- get all window's context and buffer list
@@ -132,8 +144,14 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
 end
 
 -- Dim everything out to prepare the Hop session for all windows.
+---@param hint_state HintState
+---@param opts Options
 local function apply_dimming(hint_state, opts)
   local window = require('hop.window')
+
+  if not opts.dim_unmatched then
+    return
+  end
 
   for _, bctx in ipairs(hint_state.all_ctxs) do
     for _, wctx in ipairs(bctx.contexts) do
