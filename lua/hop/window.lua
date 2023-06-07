@@ -1,9 +1,28 @@
 local hint = require('hop.hint')
 
+---@class WindowContext
+---@field hwin number
+---@field cursor_pos any[]
+---@field top_line number
+---@field bot_line number
+---@field win_width number
+---@field col_offset number
+
+---@class Context
+---@field hbuf number
+---@field contexts WindowContext
+
+---@class LineContext
+---@field line_nr number
+---@field line string
+
 local M = {}
 
+-- get a bunch of information about the window and the cursor
+---@param win_handle number
+---@param cursor_pos any[]
+---@return WindowContext
 local function window_context(win_handle, cursor_pos)
-  -- get a bunch of information about the window and the cursor
   vim.api.nvim_set_current_win(win_handle)
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
@@ -35,19 +54,11 @@ local function window_context(win_handle, cursor_pos)
 end
 
 -- Collect all multi-windows's context:
---
--- {
---   { -- context list that each contains one buffer
---      hbuf = <buf-handle>,
---      { -- windows list that display the same buffer
---         hwin = <win-handle>,
---         ...
---      },
---      ...
---   },
---   ...
--- }
+---@param multi_windows boolean
+---@param excluded_filetypes string[]
+---@return Context[]
 function M.get_window_context(multi_windows, excluded_filetypes)
+  ---@type Context[]
   local all_ctxs = {}
 
   -- Generate contexts of windows
@@ -98,10 +109,9 @@ function M.get_window_context(multi_windows, excluded_filetypes)
 end
 
 -- Collect visible and unfold lines of window context
---
--- {
---   { line_nr = 0, line = "" }
--- }
+---@param buf_handle number
+---@param context WindowContext
+---@return LineContext[]
 function M.get_lines_context(buf_handle, context)
   local lines = {}
 
@@ -129,15 +139,16 @@ function M.get_lines_context(buf_handle, context)
 end
 
 -- Clip the window context based on the direction.
---
--- If the direction is HintDirection.BEFORE_CURSOR, then everything after the cursor will be clipped.
--- If the direction is HintDirection.AFTER_CURSOR, then everything before the cursor will be clipped.
+---@param context WindowContext
+---@param direction HintDirection
 function M.clip_window_context(context, direction)
+  -- everything after the cursor will be clipped.
   if direction == hint.HintDirection.BEFORE_CURSOR then
     context.bot_line = context.cursor_pos[1]
-  elseif direction == hint.HintDirection.AFTER_CURSOR then
-    context.top_line = context.cursor_pos[1] - 1
+    return
   end
+  -- everything before the cursor will be clipped.
+  context.top_line = context.cursor_pos[1] - 1
 end
 
 return M

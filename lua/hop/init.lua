@@ -39,15 +39,19 @@ local function eprintln(msg, teasing)
 end
 
 -- Create hint state
---
--- {
---  all_ctxs: All windows's context
---  buf_list: All buffers displayed in all windows
---  <xxx>_ns: Required namespaces
--- }
+---@param opts Options
+---@return HintState
 local function create_hint_state(opts)
   local window = require('hop.window')
 
+  ---@class HintState
+  ---@field buf_list number[]
+  ---@field all_ctxs Context
+  ---@field hints Hint[]
+  ---@field hl_ns number
+  ---@field dim_ns number
+  ---@field diag_ns table
+  ---@field cursorline number
   local hint_state = {}
 
   -- get all window's context and buffer list
@@ -140,8 +144,14 @@ local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cur
 end
 
 -- Dim everything out to prepare the Hop session for all windows.
+---@param hint_state HintState
+---@param opts Options
 local function apply_dimming(hint_state, opts)
   local window = require('hop.window')
+
+  if not opts.dim_unmatched then
+    return
+  end
 
   for _, bctx in ipairs(hint_state.all_ctxs) do
     for _, wctx in ipairs(bctx.contexts) do

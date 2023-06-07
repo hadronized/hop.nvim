@@ -1,4 +1,5 @@
 ---@class Options
+---@field direction HintDirection
 local M = {}
 
 M.keys = 'asdghklqwertyuiopzxcvbnmfj'
@@ -10,6 +11,7 @@ M.jump_on_sole_occurrence = true
 M.case_insensitive = true
 M.create_hl_autocmd = true
 M.current_line_only = false
+M.dim_unmatched = true
 M.uppercase_labels = false
 M.multi_windows = false
 local hint = require('hop.hint')
