@@ -730,6 +730,12 @@ below.
     Defaults:~
         `create_hl_autocmd = true`
 
+`dim_unmatched`                                       *hop-config-dim_unmatched*
+    Whether or not dim the unmatched text to emphasize the hint chars.
+
+    Defaults:~
+        `dim_unmatched = true`
+
 `direction`                                                 *hop-config-direction*
     Direction in which to hint. See |hop.hint.HintDirection| for further
     details.
@@ -746,6 +752,17 @@ below.
 
     Defaults:~
         `hint_position = require'hop.hint'.HintPosition.BEGIN`
+
+`hint_type`                                         *hop-config-hint_type*
+    How to show the hint char.
+    Possible values:
+         "overlay": display over the specified column, without
+                      shifting the underlying text.
+         "inline": display at the specified column, and shift the
+                      buffer text to the right as needed.
+
+    Defaults:~
+        `hint_type = require'hop.hint'.HintType.OVERLAY`
 
 `hint_offset`                                             *hop-config-hint_offset*
     Offset to apply to a jump location.
