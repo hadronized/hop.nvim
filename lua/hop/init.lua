@@ -520,7 +520,7 @@ function M.hint_camel_case(opts)
 end
 
 ---@param opts Options
----@param pattern string
+---@param pattern? string
 function M.hint_patterns(opts, pattern)
   local jump_target = require('hop.jump_target')
 
