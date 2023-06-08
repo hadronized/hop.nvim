@@ -1,11 +1,20 @@
+---@class Trie
+---@field key string
+---@field trie Trie[]
+
 local M = {}
 
 -- Get the first key of a key set.
+---@param keys string
+---@return string
 local function first_key(keys)
   return keys:sub(1, vim.fn.byteidx(keys, 1))
 end
 
 -- Get the next key of the input key in the input key set, if any, or return nil.
+---@param keys string
+---@param key string
+---@return string?
 local function next_key(keys, key)
   local _, e = keys:find(key, 1, true)
 
@@ -22,6 +31,9 @@ end
 M.TrieBacktrackFilling = {}
 
 -- Get the sequence encoded in a trie by a pointer.
+---@param trie Trie[]
+---@param p Trie
+---@return string[]
 function M.TrieBacktrackFilling:lookup_seq_trie(trie, p)
   local seq = {}
   local t = trie
@@ -39,6 +51,10 @@ function M.TrieBacktrackFilling:lookup_seq_trie(trie, p)
 end
 
 -- Add a new permutation to the trie at the current pointer by adding a key.
+---@param trie Trie[]
+---@param p Trie
+---@param key string
+---@return Trie[]
 function M.TrieBacktrackFilling:add_trie_key(trie, p, key)
   local seq = {}
   local t = trie
@@ -60,6 +76,10 @@ end
 --
 -- If a pointer has components { 4, 1 } and the dimension is 4, this function will automatically complete the missing
 -- dimensions by adding the last index, i.e. { 4, 1, X, X }.
+---@param depth number
+---@param n Trie
+---@param p Trie
+---@return Trie
 local function maintain_deep_pointer(depth, n, p)
   local q = vim.deepcopy(p)
 
@@ -71,13 +91,13 @@ local function maintain_deep_pointer(depth, n, p)
 end
 
 -- Generate the next permutation with backtrack filling.
---
--- - `keys` is the input key set.
--- - `trie` is a trie representing all the already generated permutations.
--- - `p` is the current pointer in the trie. It is a list of indices representing the parent layer in which the current
---   sequence occurs in.
---
 -- Returns `perms` added with the next permutation.
+---
+---@param keys string input key set.
+---@param trie Trie[] representing all the already generated permutations.
+---@param p  Trie current pointer in the trie. It is a list of indices representing the parent layer in which the current
+---sequence occurs in.
+---@return Trie[],Trie
 function M.TrieBacktrackFilling:next_perm(keys, trie, p)
   if #trie == 0 then
     return { { key = first_key(keys), trie = {} } }, p
@@ -105,7 +125,10 @@ function M.TrieBacktrackFilling:next_perm(keys, trie, p)
 
         -- insert the first key at the new pointer after mutating the one already there
         self:add_trie_key(trie, p, first_key(keys))
-        self:add_trie_key(trie, p, next_key(keys, first_key(keys)))
+        local k = next_key(keys, first_key(keys))
+        if k ~= nil then
+          self:add_trie_key(trie, p, k)
+        end
         return trie, p
       else
         -- we have exhausted all the permutations for the current layer; drop the layer index and try again
@@ -118,12 +141,18 @@ function M.TrieBacktrackFilling:next_perm(keys, trie, p)
 
     p[#p + 1] = #trie -- new layer
     self:add_trie_key(trie, p, first_key(keys))
-    self:add_trie_key(trie, p, next_key(keys, first_key(keys)))
+    local k = next_key(keys, first_key(keys))
+    if k ~= nil then
+      self:add_trie_key(trie, p, k)
+    end
 
     return trie, p
   end
 end
 
+---@param trie Trie
+---@param perm string[]
+---@return string[]
 function M.TrieBacktrackFilling:trie_to_perms(trie, perm)
   local perms = {}
   local p = vim.deepcopy(perm)
@@ -140,6 +169,10 @@ function M.TrieBacktrackFilling:trie_to_perms(trie, perm)
   return perms
 end
 
+---
+---@param keys string
+---@param n number
+---@return string[][]
 function M.TrieBacktrackFilling:permutations(keys, n)
   local perms = {}
   local trie = {}
@@ -156,8 +189,12 @@ function M.TrieBacktrackFilling:permutations(keys, n)
   return perms
 end
 
+---@param keys string
+---@param n number
+---@param opts Options
+---@return string[][]
 function M.permutations(keys, n, opts)
-  return opts.perm_method:permutations(keys, n, opts)
+  return opts.perm_method:permutations(keys, n)
 end
 
 return M

@@ -2,8 +2,17 @@ local perm = require('hop.perm')
 local prio = require('hop.priority')
 
 ---@class Hint
----@field label string
+---@field label? string
 ---@field jump_target JumpTarget
+
+---@class HintState
+---@field buf_list number[]
+---@field all_ctxs Context
+---@field hints Hint[]
+---@field hl_ns number
+---@field dim_ns number
+---@field diag_ns table
+---@field cursorline number
 
 local M = {}
 
@@ -26,6 +35,8 @@ M.HintType = {
   INLINE = 'inline',
 }
 
+---@param label table
+---@return string
 local function tbl_to_str(label)
   local s = ''
 
@@ -37,9 +48,11 @@ local function tbl_to_str(label)
 end
 
 -- Reduce a hint.
---
 -- This function will remove hints not starting with the input key and will reduce the other ones
 -- with one level.
+---@param label string
+---@param key string
+---@return string?
 local function reduce_label(label, key)
   local snd_idx = vim.fn.byteidx(label, 1)
   if label:sub(1, snd_idx) == key then
@@ -47,13 +60,16 @@ local function reduce_label(label, key)
   end
 
   if label == '' then
-    label = nil
+    return nil
   end
 
   return label
 end
 
 -- Reduce all hints and return the one fully reduced, if any.
+---@param hints Hint[]
+---@param key string
+---@return Hint?,Hint[]
 function M.reduce_hints(hints, key)
   local next_hints = {}
 
@@ -62,7 +78,7 @@ function M.reduce_hints(hints, key)
     h.label = reduce_label(h.label, key)
 
     if h.label == nil then
-      return h
+      return h, {}
     elseif h.label ~= prev_label then
       next_hints[#next_hints + 1] = h
     end
@@ -113,7 +129,7 @@ end
 function M.set_hint_extmarks(hl_ns, hints, opts)
   for _, hint in pairs(hints) do
     local label = hint.label
-    if opts.uppercase_labels then
+    if opts.uppercase_labels and label ~= nil then
       label = label:upper()
     end
 
@@ -121,7 +137,7 @@ function M.set_hint_extmarks(hl_ns, hints, opts)
 
     local virt_text = { { label, 'HopNextKey' } }
     -- get the byte index of the second hint so that we can slice it correctly
-    if vim.fn.strdisplaywidth(label) ~= 1 then
+    if vim.fn.strdisplaywidth(label) ~= 1 and label ~= nil then
       local snd_idx = vim.fn.byteidx(label, 1)
       virt_text = { { label:sub(1, snd_idx), 'HopNextKey1' }, { label:sub(snd_idx + 1), 'HopNextKey2' } }
     end

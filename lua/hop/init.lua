@@ -32,10 +32,22 @@ local function override_opts(opts)
 end
 
 -- Display error messages.
+---@param msg string
+---@param teasing boolean
 local function eprintln(msg, teasing)
   if teasing then
     vim.api.nvim_echo({ { msg, 'Error' } }, true, {})
   end
+end
+
+---@param jump_target JumpTargetModule
+---@param opts Options
+---@return function
+local function getGenerator(jump_target, opts)
+  if opts.current_line_only then
+    return jump_target.jump_targets_for_current_line
+  end
+  return jump_target.jump_targets_by_scanning_lines
 end
 
 -- Create hint state
@@ -43,15 +55,7 @@ end
 ---@return HintState
 local function create_hint_state(opts)
   local window = require('hop.window')
-
-  ---@class HintState
-  ---@field buf_list number[]
-  ---@field all_ctxs Context
-  ---@field hints Hint[]
-  ---@field hl_ns number
-  ---@field dim_ns number
-  ---@field diag_ns table
-  ---@field cursorline number
+  ---@type HintState
   local hint_state = {}
 
   -- get all window's context and buffer list
@@ -69,7 +73,7 @@ local function create_hint_state(opts)
   hint_state.dim_ns = vim.api.nvim_create_namespace('hop_dim')
 
   -- backup namespaces of diagnostic
-  if vim.fn.has('nvim-0.6') == 1 then
+  if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
   end
 
@@ -94,6 +98,13 @@ end
 -- - hl_ns is the highlight namespace.
 -- - top_line is the top line in the buffer to start highlighting at
 -- - bottom_line is the bottom line in the buffer to stop highlighting at
+---@param buf_handle number
+---@param hl_ns number
+---@param top_line number
+---@param bottom_line number
+---@param cursor_pos any[]
+---@param direction HintDirection
+---@param current_line_only boolean
 local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
   local hint = require('hop.hint')
   local prio = require('hop.priority')
@@ -168,7 +179,7 @@ local function apply_dimming(hint_state, opts)
       )
     end
 
-    if vim.fn.has('nvim-0.6') == 1 then
+    if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
       for ns in pairs(hint_state.diag_ns) do
         vim.diagnostic.show(ns, bctx.hbuf, nil, { virtual_text = false })
       end
@@ -181,6 +192,7 @@ end
 --   tab character or past the end of the line
 -- - the current line is empty
 -- - there are multibyte characters on the line
+---@param ns number
 local function add_virt_cur(ns)
   local prio = require('hop.priority')
 
@@ -222,6 +234,10 @@ local function add_virt_cur(ns)
 end
 
 -- Get pattern from input for hint and preview
+---@param prompt string
+---@param maxchar? number
+---@param opts? Options
+---@return string?
 function M.get_input_pattern(prompt, maxchar, opts)
   local hint = require('hop.hint')
   local jump_target = require('hop.jump_target')
@@ -240,6 +256,7 @@ function M.get_input_pattern(prompt, maxchar, opts)
   local K_CR = vim.api.nvim_replace_termcodes('<CR>', true, false, true)
   local K_NL = vim.api.nvim_replace_termcodes('<NL>', true, false, true)
   local pat_keys = {}
+  ---@type string?
   local pat = ''
 
   while true do
@@ -459,6 +476,7 @@ function M.refine_hints(key, hint_state, callback, opts)
 end
 
 -- Quit Hop and delete its resources.
+---@param hint_state HintState
 function M.quit(hint_state)
   clear_namespace(hint_state.buf_list, hint_state.hl_ns)
   clear_namespace(hint_state.buf_list, hint_state.dim_ns)
@@ -472,7 +490,7 @@ function M.quit(hint_state)
     -- sometimes, buffers might be unloaded; that’s the case with floats for instance (we can invoke Hop from them but
     -- then they disappear); we need to check whether the buffer is still valid before trying to do anything else with
     -- it
-    if vim.api.nvim_buf_is_valid(buf) and vim.fn.has('nvim-0.6') == 1 then
+    if vim.api.nvim_buf_is_valid(buf) and vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
       for ns in pairs(hint_state.diag_ns) do
         vim.diagnostic.show(ns, buf)
       end
@@ -480,17 +498,13 @@ function M.quit(hint_state)
   end
 end
 
+---@param opts Options
 function M.hint_words(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_word_start()), opts)
 end
@@ -500,16 +514,13 @@ function M.hint_camel_case(opts)
 
   opts = override_opts(opts)
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_camel_case()), opts)
 end
 
+---@param opts Options
+---@param pattern string
 function M.hint_patterns(opts, pattern)
   local jump_target = require('hop.jump_target')
 
@@ -535,12 +546,7 @@ function M.hint_patterns(opts, pattern)
     return
   end
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_case_searching(pat, false, opts)), opts)
 end
@@ -555,12 +561,7 @@ function M.hint_char1(opts)
     return
   end
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), opts)
 end
@@ -575,12 +576,7 @@ function M.hint_char2(opts)
     return
   end
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), opts)
 end
@@ -590,12 +586,7 @@ function M.hint_lines(opts)
 
   opts = override_opts(opts)
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.by_line_start()), opts)
 end
@@ -608,12 +599,7 @@ function M.hint_vertical(opts)
   -- only makes sense as end position given movement goal.
   opts.hint_position = hint.HintPosition.END
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_vertical()), opts)
 end
@@ -623,12 +609,7 @@ function M.hint_lines_skip_whitespace(opts)
 
   opts = override_opts(opts)
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_line_start_skip_whitespace()), opts)
 end
@@ -638,12 +619,7 @@ function M.hint_anywhere(opts)
 
   opts = override_opts(opts)
 
-  local generator
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  else
-    generator = jump_target.jump_targets_by_scanning_lines
-  end
+  local generator = getGenerator(jump_target, opts)
 
   M.hint_with(generator(jump_target.regex_by_anywhere()), opts)
 end

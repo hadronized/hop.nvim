@@ -4,7 +4,6 @@
 -- We want Hop to override everything so we use a very high priority for grey (2^16 - 3 = 65533); hint
 -- priorities are one level above (2^16 - 2) and the virtual cursor one level higher (2^16 - 1), which
 -- is the higher.
-
 local M = {}
 
 M.DIM_PRIO = 65533

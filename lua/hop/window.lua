@@ -75,10 +75,10 @@ function M.get_window_context(multi_windows, excluded_filetypes)
   end
 
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    if vim.api.nvim_win_is_valid(w) then
-      if vim.api.nvim_win_get_config(w).relative == '' then
-        local b = vim.api.nvim_win_get_buf(w)
-        if w ~= cur_hwin then
+    if vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w).relative == '' then
+      local b = vim.api.nvim_win_get_buf(w)
+      if w ~= cur_hwin then
+        if not vim.tbl_contains(excluded_filetypes, vim.api.nvim_buf_get_option(b, 'filetype')) then
           -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
           -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
           local bctx = nil
@@ -145,10 +145,10 @@ function M.clip_window_context(context, direction)
   -- everything after the cursor will be clipped.
   if direction == hint.HintDirection.BEFORE_CURSOR then
     context.bot_line = context.cursor_pos[1]
-    return
+    -- everything before the cursor will be clipped.
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
+    context.top_line = context.cursor_pos[1] - 1
   end
-  -- everything before the cursor will be clipped.
-  context.top_line = context.cursor_pos[1] - 1
 end
 
 return M
