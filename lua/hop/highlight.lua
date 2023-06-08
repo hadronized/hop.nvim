@@ -4,31 +4,35 @@ local M = {}
 -- Insert the highlights that Hop uses.
 function M.insert_highlights()
   -- Highlight used for the mono-sequence keys (i.e. sequence of 1).
-  vim.api.nvim_command('highlight default HopNextKey  guifg=#ff007c gui=bold ctermfg=198 cterm=bold')
+  vim.api.nvim_set_hl(0, 'HopNextKey', { fg = '#ff007c', bold = true, ctermfg = 198, cterm = { bold = true } })
 
   -- Highlight used for the first key in a sequence.
-  vim.api.nvim_command('highlight default HopNextKey1 guifg=#00dfff gui=bold ctermfg=45 cterm=bold')
+  vim.api.nvim_set_hl(0, 'HopNextKey1', { fg = '#00dfff', bold = true, ctermfg = 45, cterm = { bold = true } })
 
   -- Highlight used for the second and remaining keys in a sequence.
-  vim.api.nvim_command('highlight default HopNextKey2 guifg=#2b8db3 ctermfg=33')
+  vim.api.nvim_set_hl(0, 'HopNextKey2', { fg = '#2b8db3', ctermfg = 33 })
 
   -- Highlight used for the unmatched part of the buffer.
-  -- ctermbg=bg is omitted because it errors if Normal does not have ctermbg set
-  -- Luckily guibg=bg does not seem to error even if Normal does not have guibg set so it can be used
-  vim.api.nvim_command('highlight default HopUnmatched guifg=#666666 guibg=bg guisp=#666666 ctermfg=242')
+  vim.api.nvim_set_hl(0, 'HopUnmatched', { fg = '#666666', sp = '#666666', ctermfg = 242 })
 
   -- Highlight used for the fake cursor visible when hopping.
-  vim.api.nvim_command('highlight default link HopCursor Cursor')
+  vim.api.nvim_set_hl(0, 'HopCursor', { link = 'Cursor' })
 
   -- Highlight used for preview pattern
-  vim.api.nvim_command('highlight link HopPreview IncSearch')
+  vim.api.nvim_set_hl(0, 'HopPreview', { link = 'IncSearch' })
 end
 
 function M.create_autocmd()
-  vim.api.nvim_command('augroup HopInitHighlight')
-  vim.api.nvim_command('autocmd!')
-  vim.api.nvim_command("autocmd ColorScheme * lua require'hop.highlight'.insert_highlights()")
-  vim.api.nvim_command('augroup end')
+  vim.api.nvim_create_autocmd('ColorScheme', {
+
+    group = vim.api.nvim_create_augroup('HopInitHighlight', {
+      clear = true,
+    }),
+
+    callback = function()
+      require('hop.highlight').insert_highlights()
+    end,
+  })
 end
 
 return M
