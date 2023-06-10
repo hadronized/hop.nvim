@@ -15,6 +15,7 @@ local commands = {
   HopPattern = hop.hint_patterns,
   HopAnywhere = hop.hint_anywhere,
   HopCamelCase = hop.hint_camel_case,
+  HopPasteChar1 = hop.paste_char1,
 }
 
 for label, hint in pairs(commands) do
@@ -66,3 +67,25 @@ for label, hint in pairs(lineCommands) do
     hint({ multi_windows = true })
   end, opts)
 end
+
+user_command('HopYankChar1', hop.yank_char1, opts)
+
+user_command('HopYankChar1BC', function()
+  hop.yank_char1({ direction = direction.BEFORE_CURSOR })
+end, opts)
+
+user_command('HopYankChar1AC', function()
+  hop.yank_char1({ direction = direction.AFTER_CURSOR })
+end, opts)
+
+user_command('HopYankChar1CurrentLine', function()
+  hop.yank_char1({ current_line_only = true })
+end, opts)
+
+user_command('HopYankChar1CurrentLineBC', function()
+  hop.yank_char1({ direction = direction.BEFORE_CURSOR, current_line_only = true })
+end, opts)
+
+user_command('HopYankChar1CurrentLineAC', function()
+  hop.yank_char1({ direction = direction.AFTER_CURSOR, current_line_only = true })
+end, opts)

@@ -9,7 +9,7 @@ end
 
 --- yanks the text to specified register
 ---@param register string
----@param target table
+---@param target JumpTarget
 M.paste_from = function(target, register)
   local text = vim.fn.getreg(register)
   if text == '' then
@@ -21,9 +21,9 @@ M.paste_from = function(target, register)
 end
 
 --- checks the range bounds and when end is before the start swaps theme
----@param start_range table
----@param end_range table
----@return table,table
+---@param start_range JumpTarget
+---@param end_range JumpTarget
+---@return JumpTarget,JumpTarget
 local function check_bounds(start_range, end_range)
   if start_range.line < end_range.line then
     return start_range, end_range
@@ -34,8 +34,8 @@ local function check_bounds(start_range, end_range)
 end
 
 --- returns the text in the range for current buffer
----@param start_range table
----@param end_range table
+---@param start_range JumpTarget
+---@param end_range JumpTarget
 ---@return string[]
 M.get_text = function(start_range, end_range)
   start_range, end_range = check_bounds(start_range, end_range)

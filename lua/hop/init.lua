@@ -349,10 +349,6 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
 end
 
 function M.hint_with(jump_target_gtr, opts)
-  if opts == nil then
-    opts = override_opts(opts)
-  end
-
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
     M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset, opts.direction)
   end)
@@ -360,10 +356,6 @@ end
 
 function M.hint_with_callback(jump_target_gtr, opts, callback)
   local hint = require('hop.hint')
-
-  if opts == nil then
-    opts = override_opts(opts)
-  end
 
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
@@ -656,22 +648,24 @@ function M.setup(opts)
   end
 end
 
-M.hop_yank = function(opts)
+---@param opts Options
+M.yank_char1 = function(opts)
   opts = override_opts(opts)
-
-  local jump_target = require('hop.jump_target')
-  local generator = jump_target.jump_targets_by_scanning_lines
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
+  if opts.multi_windows then
+    opts.multi_windows = false
+    vim.notify('Cannot use yank across multiple windows', vim.log.levels.WARN)
   end
 
-  local targets = {}
-  local range = {
+  local jump_target = require('hop.jump_target')
+  local generator = getGenerator(jump_target, opts)
+  local prompts = {
     'Yank start pattern: ',
     'Yank end pattern: ',
   }
 
-  for key, prompt in pairs(range) do
+  ---@type JumpTarget[]
+  local targets = {}
+  for key, prompt in pairs(prompts) do
     local c = M.get_input_pattern(prompt, 1)
     if not c or c == '' then
       return
@@ -696,14 +690,11 @@ M.hop_yank = function(opts)
   yank.yank_to(text, opts.yank_register)
 end
 
-M.hop_paste = function(opts)
+M.paste_char1 = function(opts)
   opts = override_opts(opts)
 
   local jump_target = require('hop.jump_target')
-  local generator = jump_target.jump_targets_by_scanning_lines
-  if opts.current_line_only then
-    generator = jump_target.jump_targets_for_current_line
-  end
+  local generator = getGenerator(jump_target, opts)
 
   local c = M.get_input_pattern('Paste 1 char', 1)
   if not c or c == '' then
