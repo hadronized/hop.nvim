@@ -349,10 +349,6 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
 end
 
 function M.hint_with(jump_target_gtr, opts)
-  if opts == nil then
-    opts = override_opts(opts)
-  end
-
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
     M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset, opts.direction)
   end)
@@ -360,10 +356,6 @@ end
 
 function M.hint_with_callback(jump_target_gtr, opts, callback)
   local hint = require('hop.hint')
-
-  if opts == nil then
-    opts = override_opts(opts)
-  end
 
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
@@ -654,6 +646,70 @@ function M.setup(opts)
       end
     end
   end
+end
+
+---@param opts Options
+M.yank_char1 = function(opts)
+  opts = override_opts(opts)
+  if opts.multi_windows then
+    opts.multi_windows = false
+    vim.notify('Cannot use yank across multiple windows', vim.log.levels.WARN)
+  end
+
+  local jump_target = require('hop.jump_target')
+  local generator = getGenerator(jump_target, opts)
+  local prompts = {
+    'Yank start pattern: ',
+    'Yank end pattern: ',
+  }
+
+  ---@type JumpTarget[]
+  local targets = {}
+  for key, prompt in pairs(prompts) do
+    local c = M.get_input_pattern(prompt, 1)
+    if not c or c == '' then
+      return
+    end
+
+    M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+      targets[key] = jt
+    end)
+  end
+
+  if targets[1] == nil or targets[2] == nil then
+    return
+  end
+
+  local yank = require('hop.yank')
+
+  local text = yank.get_text(targets[1], targets[2])
+  if #text == 0 or text[1] == '' then
+    return
+  end
+
+  yank.yank_to(text, opts.yank_register)
+end
+
+M.paste_char1 = function(opts)
+  opts = override_opts(opts)
+
+  local jump_target = require('hop.jump_target')
+  local generator = getGenerator(jump_target, opts)
+
+  local c = M.get_input_pattern('Paste 1 char', 1)
+  if not c or c == '' then
+    return
+  end
+
+  M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+    local target = jt
+
+    if target == nil then
+      return
+    end
+
+    require('hop.yank').paste_from(target, opts.yank_register)
+  end)
 end
 
 return M

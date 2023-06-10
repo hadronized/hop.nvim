@@ -197,6 +197,29 @@ creates a variant of the command that will only run for the current line.
 
     This is akin to calling the |hop.hint_anywhere| Lua function.
 
+`:HopPasteChar1`                                                  *:HopPasteChar1*
+`:HopPasteChar1BC`                                              *:HopPasteChar1BC*
+`:HopPasteChar1AC`                                              *:HopPasteChar1AC*
+`:HopPasteChar1CurrentLine`                            *:HopPasteChar1CurrentLine*
+`:HopPasteChar1CurrentLineBC`                        *:HopPasteChar1CurrentLineBC*
+`:HopPasteChar1CurrentLineAC`                        *:HopPasteChar1CurrentLineAC*
+
+    Pastes the `defaults.yank_register` register contents by hinting the document like
+    `hop.hop_char1` without jumping to the target.
+
+    This is akin to calling the |hop.paste_char1| Lua Function
+`:HopYankChar1`                                                     *:HopYankChar1*
+`:HopYankChar1BC`                                                 *:HopYankChar1BC*
+`:HopYankChar1AC`                                                 *:HopYankChar1AC*
+`:HopYankChar1CurrentLine`                               *:HopYankChar1CurrentLine*
+`:HopYankChar1CurrentLineBC`                           *:HopYankChar1CurrentLineBC*
+`:HopYankChar1CurrentLineAC`                           *:HopYankChar1CurrentLineAC*
+
+    Yanks a range to `defaults.yank_register` register by hinting document like
+    `hop.hop_char1` without jumping to bounds.
+    range is (exclusive,inclusive).
+
+    This is akin to calling the |hop.yank_char1| Lua Function
                                                                    *hop-lua-api*
 Lua API~
 
@@ -792,6 +815,11 @@ below.
 
     Defaults:~
         `uppercase_labels = false`
+
+`yank_register`                                   *hop-config-yank_register*
+    Determines which one of the `registers` stores the yanked text.
+    Defaults:~
+        `yank_register = ''`
 
 `char2_fallback_key`                               *hop-config-char2_fallback_key*
     Enable a special key that breaks |hop.hint_char2| if only one key is
