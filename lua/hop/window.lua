@@ -20,12 +20,19 @@ local M = {}
 
 -- get information about the window and the cursor
 ---@param win_handle number
+---@param direction HintDirection
 ---@return WindowContext
-local function window_context(win_handle)
+local function window_context(win_handle, direction)
   vim.api.nvim_set_current_win(win_handle)
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
   local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
+
+  if direction == hint.HintDirection.BEFORE_CURSOR then
+    cursor_pos[2] = cursor_pos[2] - 1
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
+    cursor_pos[2] = cursor_pos[2] + 1
+  end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -64,7 +71,7 @@ function M.get_window_context(opts)
 
   contexts[1] = {
     buffer_handle = cur_hbuf,
-    contexts = { window_context(cur_hwin) },
+    contexts = { window_context(cur_hwin, opts.direction) },
   }
 
   if not opts.multi_windows then
@@ -83,7 +90,7 @@ function M.get_window_context(opts)
       then
         contexts[#contexts + 1] = {
           buffer_handle = b,
-          contexts = { window_context(w) },
+          contexts = { window_context(w, opts.direction) },
         }
       end
     end

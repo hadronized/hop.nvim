@@ -189,7 +189,7 @@ function M.jump_targets_by_scanning_lines(regex)
       -- Iterate all windows of a same buffer
       Context.buf_handle = bctx.buffer_handle
       for _, wctx in ipairs(bctx.contexts) do
-        window.clip_window_context(wctx, opts.direction)
+         window.clip_window_context(wctx, opts.direction)
 
         Context.win_handle = wctx.hwin
         Context.col_offset = wctx.col_offset
