@@ -38,6 +38,7 @@
 ---@class Regex
 ---@field oneshot boolean
 ---@field match function
+---@field linewise boolean determines if regex considers whole lines
 
 local hint = require('hop.hint')
 local window = require('hop.window')
@@ -199,9 +200,11 @@ function M.jump_targets_by_scanning_lines(regex)
         -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
         if opts.direction == hint.HintDirection.AFTER_CURSOR then
           -- the first line is to be checked first
-          Context.direction_mode = { cursor_col = wctx.cursor_pos[2], direction = opts.direction }
-          Context.line_context = lines[1]
-          create_jump_targets_for_line(Context, Locations)
+          if not Context.regex.linewise then
+            Context.direction_mode = { cursor_col = wctx.cursor_pos[2], direction = opts.direction }
+            Context.line_context = lines[1]
+            create_jump_targets_for_line(Context, Locations)
+          end
 
           Context.direction_mode = nil
           for i = 2, #lines do
@@ -216,14 +219,25 @@ function M.jump_targets_by_scanning_lines(regex)
             create_jump_targets_for_line(Context, Locations)
           end
 
-          Context.direction_mode = { cursor_col = wctx.cursor_pos[2], direction = opts.direction }
-          Context.line_context = lines[#lines]
-          create_jump_targets_for_line(Context, Locations)
+          if not Context.regex.linewise then
+            Context.direction_mode = { cursor_col = wctx.cursor_pos[2], direction = opts.direction }
+            Context.line_context = lines[#lines]
+            create_jump_targets_for_line(Context, Locations)
+          end
         else
           Context.direction_mode = nil
           for i = 1, #lines do
             Context.line_context = lines[i]
-            create_jump_targets_for_line(Context, Locations)
+            -- do not mark current line in active window
+            if
+              not (
+                Context.regex.linewise
+                and Context.line_context.line_nr == vim.api.nvim_win_get_cursor(Context.win_handle)[1] - 1
+                and vim.api.nvim_get_current_win() == Context.win_handle
+              )
+            then
+              create_jump_targets_for_line(Context, Locations)
+            end
           end
         end
       end
@@ -387,6 +401,7 @@ function M.by_line_start()
 
   return {
     oneshot = true,
+    linewise = true,
     match = function(s)
       local l = vim.fn.strdisplaywidth(s)
       if c > 0 and l == 0 then
@@ -406,6 +421,7 @@ function M.regex_by_vertical()
   local regex = vim.regex(string.format('^.\\{0,%d\\}\\(.\\|$\\)', col))
   return {
     oneshot = true,
+    linewise = true,
     match = function(s, ctx)
       if ctx.buffer == buf and ctx.line == line - 1 then
         return nil
@@ -422,6 +438,7 @@ function M.regex_by_line_start_skip_whitespace()
 
   return {
     oneshot = true,
+    linewise = true,
     match = function(s)
       return regex:match_str(s)
     end,
