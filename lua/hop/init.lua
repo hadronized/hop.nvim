@@ -59,10 +59,10 @@ local function create_hint_state(opts)
   local hint_state = {}
 
   -- get all window's context and buffer list
-  hint_state.all_ctxs = window.get_window_context(opts.multi_windows, opts.excluded_filetypes)
+  hint_state.all_ctxs = window.get_window_context(opts)
   hint_state.buf_list = {}
   for _, bctx in ipairs(hint_state.all_ctxs) do
-    hint_state.buf_list[#hint_state.buf_list + 1] = bctx.hbuf
+    hint_state.buf_list[#hint_state.buf_list + 1] = bctx.buffer_handle
     for _, wctx in ipairs(bctx.contexts) do
       window.clip_window_context(wctx, opts.direction)
     end
@@ -169,7 +169,7 @@ local function apply_dimming(hint_state, opts)
       window.clip_window_context(wctx, opts.direction)
       -- dim everything out, add the virtual cursor and hide diagnostics
       set_unmatched_lines(
-        bctx.hbuf,
+        bctx.buffer_handle,
         hint_state.dim_ns,
         wctx.top_line,
         wctx.bot_line,
@@ -181,7 +181,7 @@ local function apply_dimming(hint_state, opts)
 
     if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
       for ns in pairs(hint_state.diag_ns) do
-        vim.diagnostic.show(ns, bctx.hbuf, nil, { virtual_text = false })
+        vim.diagnostic.show(ns, bctx.buffer_handle, nil, { virtual_text = false })
       end
     end
   end

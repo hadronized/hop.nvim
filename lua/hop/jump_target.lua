@@ -202,7 +202,7 @@ end
 function M.jump_targets_by_scanning_lines(regex)
   return function(opts)
     -- get the window context; this is used to know which part of the visible buffer is to hint
-    local all_ctxs = window.get_window_context(opts.multi_windows, opts.excluded_filetypes)
+    local all_ctxs = window.get_window_context(opts)
     local jump_targets = {}
     local indirect_jump_targets = {}
 
@@ -212,13 +212,13 @@ function M.jump_targets_by_scanning_lines(regex)
       for _, wctx in ipairs(bctx.contexts) do
         window.clip_window_context(wctx, opts.direction)
         -- Get all lines' context
-        local lines = window.get_lines_context(bctx.hbuf, wctx)
+        local lines = window.get_lines_context(bctx.buffer_handle, wctx)
 
         -- in the case of a direction, we want to treat the first or last line (according to the direction) differently
         if opts.direction == hint.HintDirection.AFTER_CURSOR then
           -- the first line is to be checked first
           create_jump_targets_for_line({
-            buf_handle = bctx.hbuf,
+            buf_handle = bctx.buffer_handle,
             win_handle = wctx.hwin,
             regex = regex,
             col_offset = wctx.col_offset,
@@ -231,7 +231,7 @@ function M.jump_targets_by_scanning_lines(regex)
 
           for i = 2, #lines do
             create_jump_targets_for_line({
-              buf_handle = bctx.hbuf,
+              buf_handle = bctx.buffer_handle,
               win_handle = wctx.hwin,
               regex = regex,
               col_offset = wctx.col_offset,
@@ -246,7 +246,7 @@ function M.jump_targets_by_scanning_lines(regex)
           -- the last line is to be checked last
           for i = 1, #lines - 1 do
             create_jump_targets_for_line({
-              buf_handle = bctx.hbuf,
+              buf_handle = bctx.buffer_handle,
               win_handle = wctx.hwin,
               regex = regex,
               col_offset = wctx.col_offset,
@@ -258,7 +258,7 @@ function M.jump_targets_by_scanning_lines(regex)
             }, jump_targets, indirect_jump_targets)
           end
           create_jump_targets_for_line({
-            buf_handle = bctx.hbuf,
+            buf_handle = bctx.buffer_handle,
             win_handle = wctx.hwin,
             regex = regex,
             col_offset = wctx.col_offset,
@@ -271,7 +271,7 @@ function M.jump_targets_by_scanning_lines(regex)
         else
           for i = 1, #lines do
             create_jump_targets_for_line({
-              buf_handle = bctx.hbuf,
+              buf_handle = bctx.buffer_handle,
               win_handle = wctx.hwin,
               regex = regex,
               col_offset = wctx.col_offset,
@@ -297,7 +297,7 @@ end
 ---@return function
 function M.jump_targets_for_current_line(regex)
   return function(opts)
-    local context = window.get_window_context(false, opts.excluded_filetypes)[1].contexts[1]
+    local context = window.get_window_context(opts)[1].contexts[1]
     local line_n = context.cursor_pos[1]
     local line = vim.api.nvim_buf_get_lines(0, line_n - 1, line_n, false)
     local jump_targets = {}
