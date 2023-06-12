@@ -94,64 +94,45 @@ local function clear_namespace(buf_list, hl_ns)
 end
 
 -- Set the highlight of unmatched lines of the buffer.
---
--- - hl_ns is the highlight namespace.
--- - top_line is the top line in the buffer to start highlighting at
--- - bottom_line is the bottom line in the buffer to stop highlighting at
 ---@param buf_handle number
----@param hl_ns number
----@param top_line number
----@param bottom_line number
----@param cursor_pos any[]
----@param direction HintDirection
----@param current_line_only boolean
-local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
+---@param hl_ns number highlight namespace.
+---@param wctx  WindowContext
+---@param opts Options
+local function set_unmatched_lines(buf_handle, hl_ns, wctx, opts)
   local hint = require('hop.hint')
   local prio = require('hop.priority')
 
-  local start_line = top_line
-  local end_line = bottom_line
+  local start_line = wctx.top_line
+  local end_line = wctx.bot_line
   local start_col = 0
   local end_col = nil
-
-  if direction == hint.HintDirection.AFTER_CURSOR then
-    start_col = cursor_pos[2]
-  elseif direction == hint.HintDirection.BEFORE_CURSOR then
-    end_line = bottom_line - 1
-    if cursor_pos[2] ~= 0 then
-      end_col = cursor_pos[2]
-    end
+  if opts.direction == hint.HintDirection.BEFORE_CURSOR then
+    end_line = wctx.cursor_pos[1] - 1
+    end_col = wctx.cursor_pos[2] + 1
+  elseif opts.direction == hint.HintDirection.AFTER_CURSOR then
+    start_col = wctx.cursor_pos[2]
+    end_col = nil
   end
 
-  if current_line_only then
-    if direction == hint.HintDirection.BEFORE_CURSOR then
-      start_line = cursor_pos[1] - 1
-      end_line = cursor_pos[1] - 1
+  if opts.current_line_only then
+    if opts.direction == hint.HintDirection.BEFORE_CURSOR then
+      start_line = wctx.cursor_pos[1] - 1
+    elseif opts.direction == hint.HintDirection.AFTER_CURSOR then
+      end_line = wctx.cursor_pos[1]
     else
-      start_line = cursor_pos[1] - 1
-      end_line = cursor_pos[1]
+      end_line = wctx.cursor_pos[1]
+      start_line = wctx.cursor_pos[1] - 1
     end
   end
 
   local extmark_options = {
     end_line = end_line,
+    end_col = end_col,
     hl_group = 'HopUnmatched',
     hl_eol = true,
     priority = prio.DIM_PRIO,
   }
-
-  if end_col then
-    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
-    local current_width = vim.fn.strdisplaywidth(current_line)
-
-    if end_col > current_width then
-      end_col = current_width
-    end
-
-    extmark_options.end_col = end_col
-  end
-
-  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col - 1, extmark_options)
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col, extmark_options)
 end
 
 -- Dim everything out to prepare the Hop session for all windows.
@@ -168,15 +149,7 @@ local function apply_dimming(hint_state, opts)
     for _, wctx in ipairs(bctx.contexts) do
       window.clip_window_context(wctx, opts.direction)
       -- dim everything out, add the virtual cursor and hide diagnostics
-      set_unmatched_lines(
-        bctx.buffer_handle,
-        hint_state.dim_ns,
-        wctx.top_line,
-        wctx.bot_line,
-        wctx.cursor_pos,
-        opts.direction,
-        opts.current_line_only
-      )
+      set_unmatched_lines(bctx.buffer_handle, hint_state.dim_ns, wctx, opts)
     end
 
     if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
