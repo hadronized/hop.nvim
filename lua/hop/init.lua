@@ -50,6 +50,18 @@ local function getGenerator(jump_target, opts)
   return jump_target.jump_targets_by_scanning_lines
 end
 
+  ---@param buf_list number[] list of buffer handles
+  ---@param hl_ns number highlight namespace
+  local function clear_namespace(buf_list, hl_ns)
+    for _, buf in ipairs(buf_list) do
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+        -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
+        --vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+      end
+    end
+  end
+
 -- Create hint state
 ---@param opts Options
 ---@return HintState
@@ -72,6 +84,10 @@ local function create_hint_state(opts)
   hint_state.hl_ns = vim.api.nvim_create_namespace('hop_hl')
   hint_state.dim_ns = vim.api.nvim_create_namespace('hop_dim')
 
+  -- clear namespaces in case last hop operation failed before quitting
+  clear_namespace(hint_state.buf_list, hint_state.hl_ns)
+  clear_namespace(hint_state.buf_list, hint_state.dim_ns)
+
   -- backup namespaces of diagnostic
   if vim.version.gt(vim.version(), { 0, 5, 0 }) then
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
@@ -81,16 +97,6 @@ local function create_hint_state(opts)
   hint_state.cursorline = vim.api.nvim_win_get_option(vim.api.nvim_get_current_win(), 'cursorline')
 
   return hint_state
-end
-
--- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
-local function clear_namespace(buf_list, hl_ns)
-  for _, buf in ipairs(buf_list) do
-    if vim.api.nvim_buf_is_valid(buf) then
-      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-    end
-  end
 end
 
 -- Set the highlight of unmatched lines of the buffer.
