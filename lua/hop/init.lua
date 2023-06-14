@@ -50,6 +50,18 @@ local function getGenerator(jump_target, opts)
   return jump_target.jump_targets_by_scanning_lines
 end
 
+  ---@param buf_list number[] list of buffer handles
+  ---@param hl_ns number highlight namespace
+  local function clear_namespace(buf_list, hl_ns)
+    for _, buf in ipairs(buf_list) do
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+        -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
+        --vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+      end
+    end
+  end
+
 -- Create hint state
 ---@param opts Options
 ---@return HintState
@@ -59,10 +71,10 @@ local function create_hint_state(opts)
   local hint_state = {}
 
   -- get all window's context and buffer list
-  hint_state.all_ctxs = window.get_window_context(opts.multi_windows, opts.excluded_filetypes)
+  hint_state.all_ctxs = window.get_window_context(opts)
   hint_state.buf_list = {}
   for _, bctx in ipairs(hint_state.all_ctxs) do
-    hint_state.buf_list[#hint_state.buf_list + 1] = bctx.hbuf
+    hint_state.buf_list[#hint_state.buf_list + 1] = bctx.buffer_handle
     for _, wctx in ipairs(bctx.contexts) do
       window.clip_window_context(wctx, opts.direction)
     end
@@ -72,8 +84,12 @@ local function create_hint_state(opts)
   hint_state.hl_ns = vim.api.nvim_create_namespace('hop_hl')
   hint_state.dim_ns = vim.api.nvim_create_namespace('hop_dim')
 
+  -- clear namespaces in case last hop operation failed before quitting
+  clear_namespace(hint_state.buf_list, hint_state.hl_ns)
+  clear_namespace(hint_state.buf_list, hint_state.dim_ns)
+
   -- backup namespaces of diagnostic
-  if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
+  if vim.version.gt(vim.version(), { 0, 5, 0 }) then
     hint_state.diag_ns = vim.diagnostic.get_namespaces()
   end
 
@@ -83,105 +99,67 @@ local function create_hint_state(opts)
   return hint_state
 end
 
--- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
-local function clear_namespace(buf_list, hl_ns)
-  for _, buf in ipairs(buf_list) do
-    if vim.api.nvim_buf_is_valid(buf) then
-      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-    end
-  end
-end
-
 -- Set the highlight of unmatched lines of the buffer.
---
--- - hl_ns is the highlight namespace.
--- - top_line is the top line in the buffer to start highlighting at
--- - bottom_line is the bottom line in the buffer to stop highlighting at
 ---@param buf_handle number
----@param hl_ns number
----@param top_line number
----@param bottom_line number
----@param cursor_pos any[]
----@param direction HintDirection
----@param current_line_only boolean
-local function set_unmatched_lines(buf_handle, hl_ns, top_line, bottom_line, cursor_pos, direction, current_line_only)
+---@param hl_ns number highlight namespace.
+---@param wctx  WindowContext
+---@param opts Options
+local function set_unmatched_lines(buf_handle, hl_ns, wctx, opts)
   local hint = require('hop.hint')
   local prio = require('hop.priority')
 
-  local start_line = top_line
-  local end_line = bottom_line
+  local start_line = wctx.top_line
+  local end_line = wctx.bot_line
   local start_col = 0
   local end_col = nil
-
-  if direction == hint.HintDirection.AFTER_CURSOR then
-    start_col = cursor_pos[2]
-  elseif direction == hint.HintDirection.BEFORE_CURSOR then
-    end_line = bottom_line - 1
-    if cursor_pos[2] ~= 0 then
-      end_col = cursor_pos[2]
-    end
+  if opts.direction == hint.HintDirection.BEFORE_CURSOR then
+    end_line = wctx.cursor_pos[1] - 1
+    end_col = wctx.cursor_pos[2] + 1
+  elseif opts.direction == hint.HintDirection.AFTER_CURSOR then
+    start_col = wctx.cursor_pos[2]
+    end_col = nil
   end
 
-  if current_line_only then
-    if direction == hint.HintDirection.BEFORE_CURSOR then
-      start_line = cursor_pos[1] - 1
-      end_line = cursor_pos[1] - 1
+  if opts.current_line_only then
+    if opts.direction == hint.HintDirection.BEFORE_CURSOR then
+      start_line = wctx.cursor_pos[1] - 1
+    elseif opts.direction == hint.HintDirection.AFTER_CURSOR then
+      end_line = wctx.cursor_pos[1]
     else
-      start_line = cursor_pos[1] - 1
-      end_line = cursor_pos[1]
+      end_line = wctx.cursor_pos[1]
+      start_line = wctx.cursor_pos[1] - 1
     end
   end
 
   local extmark_options = {
     end_line = end_line,
+    end_col = end_col,
     hl_group = 'HopUnmatched',
     hl_eol = true,
     priority = prio.DIM_PRIO,
   }
-
-  if end_col then
-    local current_line = vim.api.nvim_buf_get_lines(buf_handle, cursor_pos[1] - 1, cursor_pos[1], true)[1]
-    local current_width = vim.fn.strdisplaywidth(current_line)
-
-    if end_col > current_width then
-      end_col = current_width
-    end
-
-    extmark_options.end_col = end_col
-  end
-
-  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col - 1, extmark_options)
+  vim.api.nvim_buf_set_extmark(buf_handle, hl_ns, start_line, start_col, extmark_options)
 end
 
 -- Dim everything out to prepare the Hop session for all windows.
 ---@param hint_state HintState
 ---@param opts Options
 local function apply_dimming(hint_state, opts)
-  local window = require('hop.window')
-
   if not opts.dim_unmatched then
     return
   end
 
+  local window = require('hop.window')
   for _, bctx in ipairs(hint_state.all_ctxs) do
     for _, wctx in ipairs(bctx.contexts) do
       window.clip_window_context(wctx, opts.direction)
       -- dim everything out, add the virtual cursor and hide diagnostics
-      set_unmatched_lines(
-        bctx.hbuf,
-        hint_state.dim_ns,
-        wctx.top_line,
-        wctx.bot_line,
-        wctx.cursor_pos,
-        opts.direction,
-        opts.current_line_only
-      )
+      set_unmatched_lines(bctx.buffer_handle, hint_state.dim_ns, wctx, opts)
     end
 
-    if vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
+    if vim.version.gt(vim.version(), { 0, 5, 0 }) then
       for ns in pairs(hint_state.diag_ns) do
-        vim.diagnostic.show(ns, bctx.hbuf, nil, { virtual_text = false })
+        vim.diagnostic.show(ns, bctx.buffer_handle, nil, { virtual_text = false })
       end
     end
   end
@@ -209,18 +187,11 @@ local function add_virt_cur(ns)
     vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), 'cursorline', false)
   end
 
-  -- first check to see if cursor is in a tab char or past end of line
-  if cur_offset ~= 0 then
+  -- first check to see if cursor is in a tab char or past end of line or in empty line
+  if cur_offset ~= 0 or #cur_line == cur_col then
     vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
       virt_text = { { '█', 'Normal' } },
       virt_text_win_col = virt_col,
-      priority = prio.CURSOR_PRIO,
-    })
-    -- otherwise check to see if cursor is at end of line or on empty line
-  elseif #cur_line == cur_col then
-    vim.api.nvim_buf_set_extmark(0, ns, cur_row, cur_col, {
-      virt_text = { { '█', 'Normal' } },
-      virt_text_pos = 'overlay',
       priority = prio.CURSOR_PRIO,
     })
   else
@@ -273,7 +244,7 @@ function M.get_input_pattern(prompt, maxchar, opts)
       end
     end
     vim.api.nvim_echo({}, false, {})
-    vim.cmd('redraw')
+    vim.cmd.redraw()
     vim.api.nvim_echo({ { prompt, 'Question' }, { pat } }, false, {})
 
     local ok, key = pcall(vim.fn.getchar)
@@ -313,47 +284,51 @@ function M.get_input_pattern(prompt, maxchar, opts)
     end
   end
   vim.api.nvim_echo({}, false, {})
-  vim.cmd('redraw')
+  vim.cmd.redraw()
   return pat
 end
 
--- Move the cursor at a given location.
---
--- Add option to shift cursor by column offset
---
+-- Move the cursor to a given location.
 -- This function will update the jump list.
-function M.move_cursor_to(w, line, column, hint_offset, direction)
+---@param w number window handle
+---@param line number line number
+---@param column number
+---@param opts Options Add option to shift cursor by column offset
+function M.move_cursor_to(w, line, column, opts)
   -- If we do not ask for an offset jump, we don’t have to retrieve any additional lines because we will jump to the
   -- actual jump target. If we do want a jump with an offset, we need to retrieve the line the jump target lies in so
   -- that we can compute the offset correctly. This is linked to the fact that currently, Neovim doesn’s have an API to
   -- « offset something by N visual columns. »
-
+  local hint = require('hop.hint')
   -- If it is pending for operator shift column to the right by 1
-  if vim.api.nvim_get_mode().mode == 'no' and direction ~= 1 then
+  if vim.api.nvim_get_mode().mode == 'no' and opts.direction ~= hint.HintDirection.BEFORE_CURSOR then
     column = column + 1
   end
 
-  if hint_offset ~= nil and not (hint_offset == 0) then
+  if opts.hint_offset ~= nil and not (opts.hint_offset == 0) then
     -- Add `hint_offset` based on `charidx`.
     local buf_line = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), line - 1, line, false)[1]
     -- Since `charidx` returns -1 when `column` is the tail, subtract 1 and add 1 to the return value to get
     -- the correct value.
-    local char_idx = vim.fn.charidx(buf_line, column - 1) + 1 + hint_offset
+    local char_idx = vim.fn.charidx(buf_line, column - 1) + 1 + opts.hint_offset
     column = vim.fn.byteidx(buf_line, char_idx)
   end
 
   -- update the jump list
-  vim.cmd("normal! m'")
   vim.api.nvim_set_current_win(w)
+  vim.api.nvim_buf_set_mark(0, "'", line, column, {})
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
 function M.hint_with(jump_target_gtr, opts)
   M.hint_with_callback(jump_target_gtr, opts, function(jt)
-    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset, opts.direction)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts)
   end)
 end
 
+---@param jump_target_gtr function
+---@param opts Options
+---@param callback function
 function M.hint_with_callback(jump_target_gtr, opts, callback)
   local hint = require('hop.hint')
 
@@ -398,7 +373,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
   apply_dimming(hs, opts)
   add_virt_cur(hs.hl_ns)
   hint.set_hint_extmarks(hs.hl_ns, hs.hints, opts)
-  vim.cmd('redraw')
+  vim.cmd.redraw()
 
   local h = nil
   while h == nil do
@@ -423,7 +398,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     if not_special_key and opts.keys:find(key, 1, true) then
       -- If this is a key used in Hop (via opts.keys), deal with it in Hop
       h = M.refine_hints(key, hs, callback, opts)
-      vim.cmd('redraw')
+      vim.cmd.redraw()
     else
       -- If it's not, quit Hop
       M.quit(hs)
@@ -459,9 +434,6 @@ function M.refine_hints(key, hint_state, callback, opts)
   else
     M.quit(hint_state)
 
-    -- prior to jump, register the current position into the jump list
-    vim.cmd("normal! m'")
-
     callback(h.jump_target)
     return h
   end
@@ -482,7 +454,7 @@ function M.quit(hint_state)
     -- sometimes, buffers might be unloaded; that’s the case with floats for instance (we can invoke Hop from them but
     -- then they disappear); we need to check whether the buffer is still valid before trying to do anything else with
     -- it
-    if vim.api.nvim_buf_is_valid(buf) and vim.version.gt(vim.version(), { 0, 5, 0 }) == 1 then
+    if vim.api.nvim_buf_is_valid(buf) and vim.version.gt(vim.version(), { 0, 5, 0 }) then
       for ns in pairs(hint_state.diag_ns) do
         vim.diagnostic.show(ns, buf)
       end
@@ -524,7 +496,7 @@ function M.hint_patterns(opts, pattern)
   if pattern then
     pat = pattern
   else
-    vim.cmd('redraw')
+    vim.cmd.redraw()
     vim.fn.inputsave()
     pat = M.get_input_pattern('Hop pattern: ', nil, opts)
     vim.fn.inputrestore()

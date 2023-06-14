@@ -9,7 +9,7 @@ local hint = require('hop.hint')
 ---@field col_offset number
 
 ---@class Context
----@field hbuf number
+---@field buffer_handle number
 ---@field contexts WindowContext
 
 ---@class LineContext
@@ -18,16 +18,21 @@ local hint = require('hop.hint')
 
 local M = {}
 
--- get a bunch of information about the window and the cursor
+-- get information about the window and the cursor
 ---@param win_handle number
----@param cursor_pos any[]
+---@param direction HintDirection
 ---@return WindowContext
-local function window_context(win_handle, cursor_pos)
+local function window_context(win_handle, direction)
   vim.api.nvim_set_current_win(win_handle)
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
-  local top_line = win_info.topline - 1
-  local bot_line = win_info.botline
+  local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
+
+  if direction == hint.HintDirection.BEFORE_CURSOR then
+    cursor_pos[2] = cursor_pos[2] - 1
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
+    cursor_pos[2] = cursor_pos[2] + 1
+  end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -46,66 +51,52 @@ local function window_context(win_handle, cursor_pos)
   return {
     hwin = win_handle,
     cursor_pos = cursor_pos,
-    top_line = top_line,
-    bot_line = bot_line,
+    top_line = win_info.topline - 1,
+    bot_line = win_info.botline,
     win_width = win_width,
     col_offset = win_view.leftcol,
   }
 end
 
--- Collect all multi-windows's context:
----@param multi_windows boolean
----@param excluded_filetypes string[]
+-- returns current window context or all visible windows context in multiwindow mode
+---@param opts Options
 ---@return Context[]
-function M.get_window_context(multi_windows, excluded_filetypes)
+function M.get_window_context(opts)
   ---@type Context[]
-  local all_ctxs = {}
+  local contexts = {}
 
   -- Generate contexts of windows
   local cur_hwin = vim.api.nvim_get_current_win()
   local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
 
-  all_ctxs[#all_ctxs + 1] = {
-    hbuf = cur_hbuf,
-    contexts = { window_context(cur_hwin, { vim.fn.line('.'), vim.fn.charcol('.') }) },
+  contexts[1] = {
+    buffer_handle = cur_hbuf,
+    contexts = { window_context(cur_hwin, opts.direction) },
   }
 
-  if not multi_windows then
-    return all_ctxs
+  if not opts.multi_windows then
+    return contexts
   end
 
+  -- Get the context for all the windows in current tab
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w).relative == '' then
       local b = vim.api.nvim_win_get_buf(w)
-      if w ~= cur_hwin then
-        if not vim.tbl_contains(excluded_filetypes, vim.api.nvim_buf_get_option(b, 'filetype')) then
-          -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
-          -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
-          local bctx = nil
-          for _, buffer_ctx in ipairs(all_ctxs) do
-            if b == buffer_ctx.hbuf then
-              bctx = buffer_ctx.contexts
-              break
-            end
-          end
 
-          if bctx then
-            bctx[#bctx + 1] = window_context(w, vim.api.nvim_win_get_cursor(w))
-          else
-            all_ctxs[#all_ctxs + 1] = {
-              hbuf = b,
-              contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) },
-            }
-          end
-        end
+      -- skips current window and excluded filetypes
+      if
+        w ~= cur_hwin
+        and not vim.tbl_contains(opts.excluded_filetypes, vim.api.nvim_buf_get_option(b, 'filetype'))
+      then
+        contexts[#contexts + 1] = {
+          buffer_handle = b,
+          contexts = { window_context(w, opts.direction) },
+        }
       end
     end
   end
 
-  -- Move cursor back to current window
-  vim.api.nvim_set_current_win(cur_hwin)
-
-  return all_ctxs
+  return contexts
 end
 
 -- Collect visible and unfold lines of window context
@@ -113,6 +104,7 @@ end
 ---@param context WindowContext
 ---@return LineContext[]
 function M.get_lines_context(buf_handle, context)
+  ---@type LineContext[]
   local lines = {}
 
   local lnr = context.top_line
@@ -120,18 +112,14 @@ function M.get_lines_context(buf_handle, context)
     local fold_end = vim.api.nvim_win_call(context.hwin, function()
       return vim.fn.foldclosedend(lnr + 1) -- `foldclosedend()` use 1-based line number
     end)
-    if fold_end == -1 then
+    if fold_end == -1 then -- line isn't folded
       lines[#lines + 1] = {
         line_nr = lnr,
-        line = vim.api.nvim_buf_get_lines(buf_handle, lnr, lnr + 1, false)[1], -- `nvim_buf_get_lines()` use 0-based line index
+        line = vim.api.nvim_buf_get_lines(buf_handle, lnr, lnr + 1, false)[1], -- `nvim_buf_get_lines()` uses 0-based line index
       }
       lnr = lnr + 1
     else
-      lines[#lines + 1] = {
-        line_nr = lnr,
-        line = '',
-      }
-      lnr = fold_end
+      lnr = fold_end -- skip folded lines
     end
   end
 
