@@ -2,6 +2,8 @@
 ---@field direction HintDirection
 local M = {}
 
+local hint = require('hop.hint')
+
 M.keys = 'asdghklqwertyuiopzxcvbnmfj'
 M.quit_key = '<Esc>'
 M.perm_method = require('hop.perm').TrieBacktrackFilling
@@ -14,10 +16,9 @@ M.current_line_only = false
 M.dim_unmatched = true
 M.uppercase_labels = false
 M.multi_windows = false
-local hint = require('hop.hint')
-M.hint_position = hint.HintPosition.BEGIN
+M.hint_position = hint.HintPosition.BEGIN ---@type HintPosition
 M.hint_offset = 0
-M.hint_type = hint.HintType.INLINE ---@type HintType
+M.hint_type = hint.HintType.OVERLAY ---@type HintType
 M.excluded_filetypes = {}
 M.yank_register = ''
 
