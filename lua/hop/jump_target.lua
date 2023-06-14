@@ -95,7 +95,8 @@ local function mark_jump_targets_line(ctx)
       window = ctx.win_handle,
     })
 
-    if b == nil then
+    -- match empty lines only in linewise regexes
+    if b == nil or ((b == 0 and e == 0) and not ctx.regex.linewise) then
       break
     end
     -- Preview need a length to highlight the matched string. Zero means nothing to highlight.
