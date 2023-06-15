@@ -50,17 +50,17 @@ local function getGenerator(jump_target, opts)
   return jump_target.jump_targets_by_scanning_lines
 end
 
-  ---@param buf_list number[] list of buffer handles
-  ---@param hl_ns number highlight namespace
-  local function clear_namespace(buf_list, hl_ns)
-    for _, buf in ipairs(buf_list) do
-      if vim.api.nvim_buf_is_valid(buf) then
-        vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-        -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
-        --vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
-      end
+---@param buf_list number[] list of buffer handles
+---@param hl_ns number highlight namespace
+local function clear_namespace(buf_list, hl_ns)
+  for _, buf in ipairs(buf_list) do
+    if vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
+      -- A hack to prevent #57 by deleting twice the namespace (it’s super weird).
+      --vim.api.nvim_buf_clear_namespace(buf, hl_ns, 0, -1)
     end
   end
+end
 
 -- Create hint state
 ---@param opts Options
@@ -316,7 +316,8 @@ function M.move_cursor_to(w, line, column, opts)
 
   -- update the jump list
   vim.api.nvim_set_current_win(w)
-  vim.api.nvim_buf_set_mark(0, "'", line, column, {})
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  vim.api.nvim_buf_set_mark(0, "'", cursor[1], cursor[2], {})
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
