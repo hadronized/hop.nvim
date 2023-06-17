@@ -723,6 +723,18 @@ below.
     Defaults:~
         `reverse_distribution = false`
 
+`x_bias`                                                     *hop-config-x_bias*
+    This Determines which hints get shorter key sequences. The default value
+    has a more balanced distribution around the cursor but increasing it
+    means that hints which are closer vertically will have a shorter key
+    sequences.
+    For instance, when `x_bias` is set to 100, hints located at the end of the
+    line will have shorter key sequence compared to hints in the lines above
+    or below.
+    
+    Defaults:~
+        `x_bias = 10`
+
 `teasing`                                                     *hop-config-teasing*
     Boolean value stating whether Hop should tease you when you do something
     you are not supposed to.

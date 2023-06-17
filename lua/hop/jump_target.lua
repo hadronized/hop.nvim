@@ -28,6 +28,7 @@
 ---@field buf_handle number
 ---@field win_handle number
 ---@field regex Regex
+---@field x_bias number
 ---@field line_context LineContext
 ---@field col_offset number
 ---@field cursor_pos any[]
@@ -49,11 +50,10 @@ local M = {}
 -- Manhattan distance with column and row, weighted on x so that results are more packed on y.
 ---@param a number[]
 ---@param b number[]
----@param x_bias? number
+---@param x_bias number
 ---@return number
 local function manh_dist(a, b, x_bias)
-  local bias = x_bias or 10
-  return bias * math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
+  return (x_bias * math.abs(b[1] - a[1])) + math.abs(b[2] - a[2])
 end
 
 -- Mark the current line with jump targets.
@@ -147,7 +147,7 @@ local function create_jump_targets_for_line(ctx, locations)
 
     locations.indirect_jump_targets[#locations.indirect_jump_targets + 1] = {
       index = #locations.jump_targets,
-      score = manh_dist(ctx.cursor_pos, { jump_target.line, jump_target.column }) + win_bias,
+      score = manh_dist(ctx.cursor_pos, { jump_target.line, jump_target.column }, ctx.x_bias) + win_bias,
     }
   end
 end
@@ -170,6 +170,8 @@ end
 ---@param regex Regex
 ---@return function
 function M.jump_targets_by_scanning_lines(regex)
+  ---@param opts Options
+  ---@return Locations
   return function(opts)
     -- get the window context; this is used to know which part of the visible buffer is to hint
     local all_ctxs = window.get_window_context(opts)
@@ -181,6 +183,7 @@ function M.jump_targets_by_scanning_lines(regex)
     }
     ---@type JumpContext
     local Context = {
+      x_bias = opts.x_bias,
       regex = regex,
       hint_position = opts.hint_position,
     }
@@ -254,6 +257,9 @@ end
 ---@param regex Regex
 ---@return function
 function M.jump_targets_for_current_line(regex)
+
+---@param opts Options
+---@return Locations
   return function(opts)
     local context = window.get_window_context(opts)[1].contexts[1]
     local line_n = context.cursor_pos[1]
@@ -267,6 +273,7 @@ function M.jump_targets_for_current_line(regex)
       buf_handle = 0,
       win_handle = 0,
       regex = regex,
+      x_bias = opts.x_bias,
       col_offset = context.col_offset,
       win_width = context.win_width,
       cursor_pos = context.cursor_pos,
@@ -282,7 +289,6 @@ function M.jump_targets_for_current_line(regex)
 end
 
 -- Apply a score function based on the Manhattan distance to indirect jump targets.
----
 ---@param indirect_jump_targets IndirectJumpTarget[]
 ---@param opts Options
 function M.sort_indirect_jump_targets(indirect_jump_targets, opts)
