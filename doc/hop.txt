@@ -1,4 +1,4 @@
-*hop.txt*    For Neovim version 0.5                  Last change: 2022 Oct 09
+*hop.txt*    For Neovim version 0.5                  Last change: 2023 Jun 17
 
                                  __
                                 / /_  ____  ____
@@ -7,7 +7,7 @@
                              /_/ /_/\____/ .___/
                                         /_/
                          · Neovim motions on speed! ·
-                                     v2.0.2
+                                     v2.2.0
 
 ==============================================================================
 CONTENTS                                                          *hop-contents*
@@ -114,7 +114,7 @@ creates a variant of the command that will only run for the current line.
 `:HopWordCurrentLineBC`                                    *:HopWordCurrentLineBC*
 `:HopWordCurrentLineAC`                                    *:HopWordCurrentLineAC*
 `:HopWordMW`                                                          *:HopWordMW*
-    Annotate all |word|s with key sequences. Typing a first key will visually
+    Hint all |word|s with key sequences. Typing a first key will visually
     filter the sequences and reduce them. Continue typing key sequences until
     you reduce a sequence completely, which will bring your cursor at that
     position.
@@ -193,7 +193,7 @@ creates a variant of the command that will only run for the current line.
 `:HopAnywhereCurrentLineBC`                            *:HopAnywhereCurrentLineBC*
 `:HopAnywhereCurrentLineAC`                            *:HopAnywhereCurrentLineAC*
 `:HopAnywhereMW`                                                  *:HopAnywhereMW*
-    Annotate anywhere with key sequences.
+    Hint anywhere with key sequences.
 
     This is akin to calling the |hop.hint_anywhere| Lua function.
 
@@ -204,8 +204,8 @@ creates a variant of the command that will only run for the current line.
 `:HopPasteChar1CurrentLineBC`                        *:HopPasteChar1CurrentLineBC*
 `:HopPasteChar1CurrentLineAC`                        *:HopPasteChar1CurrentLineAC*
 
-    Pastes the `defaults.yank_register` register contents by hinting the document like
-    `hop.hop_char1` without jumping to the target.
+    Pastes the `defaults.yank_register` register contents by hinting the document
+    like `hop.hop_char1` without jumping to the target.
 
     This is akin to calling the |hop.paste_char1| Lua Function
 `:HopYankChar1`                                                     *:HopYankChar1*
@@ -237,6 +237,7 @@ unstable.
 `hop.jump_target` Core module used to create jump targets.
 `hop.perm`        Permutation functions. Permutations are used as labels for
                 the hints.
+`hop.yank`        Yank and paste functions
 
 Main API~
 
@@ -623,16 +624,6 @@ below.
     you have to ensure to use enough characters in the string, otherwise you
     might get very long sequences and a not so pleasant experience.
 
-    Note:
-	This is only for the old permutation algorithm only, which is to get
-	deprecated soon.
-
-	Another important aspect is that the order of the characters you put
-        in your `keys` is important. Depending on the value you use in
-    	|hop-config-term_seq_bias|, the keys will be split in two and the first
-    	part of it will be used for terminal keys and the second part for
-        sequence keys.
-
     Defaults:~
         `keys = 'asdghklqwertyuiopzxcvbnmfj'`
 
@@ -666,28 +657,8 @@ below.
     Permutation method to use.
 
     Permutation methods allow to change the way permutations (i.e. hints
-    sequence labels) are generated internally. There are currently two
-    possible options:
-
-    Possible algorithms~
-        `TermSeqBias`
-            This algorithm splits your input key set (|hop-config-keys|) into
-            two separate sets, a terminal key set and a sequence key set.
-            Terminal keys will always be at the end of a sequence and then
-            typing them will always jump somewhere in your buffer, while
-            sequence keys will always be part of a prefix sequence before a
-            terminal key.
-
-            Additionally to |hop-config-keys|, this algorithm uses the
-            |hop-config-term_seq_bias| option to determine how to split
-            |hop-config-keys|. A good default value is `0.5` or `3 / 4` but
-            feel free to experiment with values between (exclusive) `0` and
-            `1`.
-
-	    Note:
-		This algorithm will be deprecated very soon. You are strongly
-		advised to switch to `TrieBacktrackFilling` if you haven’t
-		yet.
+    sequence labels) are generated internally. There is currently only
+    one possible option:
 
         `TrieBacktrackFilling`
             Permutation algorithm based on tries and backtrack filling.
@@ -833,17 +804,6 @@ below.
     Defaults:~
         `yank_register = ''`
 
-`char2_fallback_key`                               *hop-config-char2_fallback_key*
-    Enable a special key that breaks |hop.hint_char2| if only one key is
-    pressed, falling back to the same behavior as |hop.hint_char1|. It is
-    recommended that, if you set this option, you not use a key that is in
-    your |hop-config-keys| (because it would make those keys unreachable), and
-    not a character that you might jump to. A good fallback key could be
-    `<esc>` or `<cr>`, for instance.
-
-    Defaults:~
-        `char2_fallback_key = nil`
-
 `extensions`                                               *hop-config-extensions*
     List-table of extensions to enable (names). As described in |hop-extension|,
     extensions for which the name in that list must have a `register(opts)`
@@ -867,7 +827,7 @@ below.
     Skip hinting windows with the excluded filetypes. Those windows to check
     filetypes are collected only when you enable `multi_windows` or execute
     `MW`-commands. This option is useful to skip the windows which are only
-    for displaying something buf not for editing something.
+    for displaying something but not for editing.
 
     Defaults:~
         `excluded_filetypes = { }`
