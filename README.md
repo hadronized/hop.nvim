@@ -36,7 +36,7 @@ target in your document reachable in a few keystrokes.
 * [Getting started](#getting-started)
   * [Installation](#installation)
     * [Important note about versioning](#important-note-about-versioning)
-    * [Using vim-plug](#using-vim-plug)
+    * [Using lazy.nvim](#using-lazynvim)
     * [Using packer](#using-packer)
     * [Nightly users](#nightly-users)
 * [Usage](#usage)
@@ -107,22 +107,27 @@ Hop to ensure everything is all good.
 
 ### Important note about versioning
 
-This plugin implements [SemVer] via git branches and tags. Versions are prefixed with a `v`, and only patch versions
-are git tags. Major and minor versions are git branches. You are **very strongly advised** to use a major version
+This plugin implements [SemVer] via git tags. Versions are prefixed with a `v`. You are **advised** to use a major version
 dependency to be sure your config will not break when Hop gets updated.
 
-### Using vim-plug
+### Using lazy.nvim
 
-```vim
-Plug 'phaazon/hop.nvim'
+```lua
+{
+    'smoka7/hop.nvim',
+    version = "*"
+    config = function()
+        require 'hop'.setup()
+    end,
+}
 ```
 
 ### Using packer
 
 ```lua
 use {
-  'phaazon/hop.nvim',
-  branch = 'v2', -- optional but strongly recommended
+  'smoka7/hop.nvim',
+  tag = '*', -- optional but strongly recommended
   config = function()
     -- you can configure Hop the way you like here; see :h hop-config
     require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
@@ -166,7 +171,3 @@ end, {remap=true})
 # Chat
 
 Join the discussion on the official [Matrix room](https://matrix.to/#/#hop.nvim:matrix.org)!
-
-[EasyMotion]: https://github.com/easymotion/vim-easymotion
-[packer]: https://github.com/wbthomason/packer.nvim
-[SemVer]: https://semver.org
