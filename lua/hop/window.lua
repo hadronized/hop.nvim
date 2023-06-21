@@ -31,7 +31,7 @@ local function window_context(win_handle, direction)
   if direction == hint.HintDirection.BEFORE_CURSOR then
     cursor_pos[2] = cursor_pos[2] - 1
   elseif direction == hint.HintDirection.AFTER_CURSOR then
-    cursor_pos[2] = cursor_pos[2] + 1
+    cursor_pos[2] = cursor_pos[2]
   end
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
