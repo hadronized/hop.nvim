@@ -86,9 +86,9 @@ Neovim.
 
 This section will guide you through the list of steps you must take to be able to get started with **Hop**.
 
-This plugin was written against Neovim 0.5, which is currently a nightly version. This plugin will not work:
+This plugin was written against Neovim 0.9. This plugin will not work:
 
-- With a version of Neovim before 0.5.
+- With a version of Neovim before 0.9.
 - On Vim. **No support for Vim is planned.**
 
 ## Installation

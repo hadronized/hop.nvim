@@ -77,7 +77,7 @@ end
 -- If a pointer has components { 4, 1 } and the dimension is 4, this function will automatically complete the missing
 -- dimensions by adding the last index, i.e. { 4, 1, X, X }.
 ---@param depth number
----@param n Trie
+---@param n number
 ---@param p Trie
 ---@return Trie
 local function maintain_deep_pointer(depth, n, p)

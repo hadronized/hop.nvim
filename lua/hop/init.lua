@@ -89,12 +89,10 @@ local function create_hint_state(opts)
   clear_namespace(hint_state.buf_list, hint_state.dim_ns)
 
   -- backup namespaces of diagnostic
-  if vim.version.gt(vim.version(), { 0, 5, 0 }) then
-    hint_state.diag_ns = vim.diagnostic.get_namespaces()
-  end
+  hint_state.diag_ns = vim.diagnostic.get_namespaces()
 
   -- Store users cursorline state
-  hint_state.cursorline = vim.api.nvim_win_get_option(vim.api.nvim_get_current_win(), 'cursorline')
+  hint_state.cursorline = vim.wo.cursorline
 
   return hint_state
 end
@@ -157,10 +155,8 @@ local function apply_dimming(hint_state, opts)
       set_unmatched_lines(bctx.buffer_handle, hint_state.dim_ns, wctx, opts)
     end
 
-    if vim.version.gt(vim.version(), { 0, 5, 0 }) then
-      for ns in pairs(hint_state.diag_ns) do
-        vim.diagnostic.show(ns, bctx.buffer_handle, nil, { virtual_text = false })
-      end
+    for ns in pairs(hint_state.diag_ns) do
+      vim.diagnostic.show(ns, bctx.buffer_handle, nil, { virtual_text = false })
     end
   end
 end
@@ -182,9 +178,9 @@ local function add_virt_cur(ns)
   local cur_line = vim.api.nvim_get_current_line()
 
   -- toggle cursorline off if currently set
-  local cursorline_info = vim.api.nvim_win_get_option(vim.api.nvim_get_current_win(), 'cursorline')
+  local cursorline_info = vim.wo.cursorline
   if cursorline_info == true then
-    vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), 'cursorline', false)
+    vim.wo.cursorline = false
   end
 
   -- first check to see if cursor is in a tab char or past end of line or in empty line
@@ -247,16 +243,10 @@ function M.get_input_pattern(prompt, maxchar, opts)
     vim.cmd.redraw()
     vim.api.nvim_echo({ { prompt, 'Question' }, { pat } }, false, {})
 
-    local ok, key = pcall(vim.fn.getchar)
+    local ok, key = pcall(vim.fn.getcharstr)
     if not ok then -- Interrupted by <C-c>
       pat = nil
       break
-    end
-
-    if type(key) == 'number' then
-      key = vim.fn.nr2char(key)
-    elseif key:byte() == 128 then
-      -- It's a special key in string
     end
 
     if key == K_Esc then
@@ -448,14 +438,14 @@ function M.quit(hint_state)
 
   -- Restore users cursorline setting
   if hint_state.cursorline == true then
-    vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), 'cursorline', true)
+    vim.wo.cursorline = true
   end
 
   for _, buf in ipairs(hint_state.buf_list) do
     -- sometimes, buffers might be unloaded; that’s the case with floats for instance (we can invoke Hop from them but
     -- then they disappear); we need to check whether the buffer is still valid before trying to do anything else with
     -- it
-    if vim.api.nvim_buf_is_valid(buf) and vim.version.gt(vim.version(), { 0, 5, 0 }) then
+    if vim.api.nvim_buf_is_valid(buf) then
       for ns in pairs(hint_state.diag_ns) do
         vim.diagnostic.show(ns, buf)
       end

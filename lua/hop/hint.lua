@@ -12,7 +12,7 @@ local prio = require('hop.priority')
 ---@field hl_ns number
 ---@field dim_ns number
 ---@field diag_ns table
----@field cursorline number
+---@field cursorline boolean
 
 local M = {}
 
@@ -137,7 +137,7 @@ function M.set_hint_extmarks(hl_ns, hints, opts)
 
     local virt_text = { { label, 'HopNextKey' } }
     -- get the byte index of the second hint so that we can slice it correctly
-    if vim.fn.strdisplaywidth(label) ~= 1 and label ~= nil then
+    if label ~= nil and vim.fn.strdisplaywidth(label) ~= 1 then
       local snd_idx = vim.fn.byteidx(label, 1)
       virt_text = { { label:sub(1, snd_idx), 'HopNextKey1' }, { label:sub(snd_idx + 1), 'HopNextKey2' } }
     end

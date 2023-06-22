@@ -84,10 +84,7 @@ function M.get_window_context(opts)
       local b = vim.api.nvim_win_get_buf(w)
 
       -- skips current window and excluded filetypes
-      if
-        w ~= cur_hwin
-        and not vim.tbl_contains(opts.excluded_filetypes, vim.api.nvim_buf_get_option(b, 'filetype'))
-      then
+      if not (w == cur_hwin or vim.tbl_contains(opts.excluded_filetypes, vim.bo[b].filetype)) then
         contexts[#contexts + 1] = {
           buffer_handle = b,
           contexts = { window_context(w, opts.direction) },

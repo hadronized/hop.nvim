@@ -1,5 +1,5 @@
-if vim.version.lt(vim.version(), { 0, 5, 0 }) then
-  vim.notify('This plugin only works with Neovim >= v0.5.0', vim.log.levels.ERROR)
+if vim.version.lt(vim.version(), { 0, 9, 0 }) then
+  vim.notify('This plugin only works with Neovim >= v0.9.0', vim.log.levels.ERROR)
   return
 end
 

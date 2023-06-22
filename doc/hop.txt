@@ -1,4 +1,4 @@
-*hop.txt*    For Neovim version 0.5                  Last change: 2023 Jun 17
+*hop.txt*    For Neovim version 0.9                  Last change: 2023 Jun 17
 
                                  __
                                 / /_  ____  ____
@@ -7,7 +7,7 @@
                              /_/ /_/\____/ .___/
                                         /_/
                          · Neovim motions on speed! ·
-                                     v2.2.0
+                                     v2.2.2
 
 ==============================================================================
 CONTENTS                                                          *hop-contents*
@@ -53,8 +53,7 @@ Neovim version >0.5 – at least at the time of writing these lines:
 ==============================================================================
 REQUIREMENTS                                                  *hop-requirements*
 
-Hop works only with Neovim and was written with Neovim-0.5, so it is highly
-recommended to use Neovim version 0.5+.
+Hop works only with Neovim and was written with Neovim-0.9.
 
 Especially, hop uses |api-extended-marks|, which are not available before
 Neovim-0.5.
