@@ -164,6 +164,10 @@ local function add_virt_cur(ns)
   local virt_col = cur_info[5] - 1
   local cur_line = vim.api.nvim_get_current_line()
 
+  if vim.fn.type(cur_line) == vim.v.t_blob then
+    return {}
+  end
+
   -- toggle cursorline off if currently set
   local cursorline_info = vim.api.nvim_win_get_option(vim.api.nvim_get_current_win(), 'cursorline')
   if cursorline_info == true then

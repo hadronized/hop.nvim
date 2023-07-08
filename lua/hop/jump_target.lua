@@ -60,6 +60,11 @@ local function mark_jump_targets_line(buf_handle, win_handle, regex, line_contex
   local jump_targets = {}
   local end_index = nil
 
+
+  if vim.fn.type(line_context.line) == vim.v.t_blob then
+    return {}
+  end
+
   if win_width ~= nil then
     end_index = col_offset + win_width
   else
