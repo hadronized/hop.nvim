@@ -257,9 +257,8 @@ end
 ---@param regex Regex
 ---@return function
 function M.jump_targets_for_current_line(regex)
-
----@param opts Options
----@return Locations
+  ---@param opts Options
+  ---@return Locations
   return function(opts)
     local context = window.get_window_context(opts)[1].contexts[1]
     local line_n = context.cursor_pos[1]
@@ -424,13 +423,13 @@ end
 ---@return Regex
 function M.regex_by_vertical()
   local buf = vim.api.nvim_win_get_buf(0)
-  local line, col = table.unpack(vim.api.nvim_win_get_cursor(0))
-  local regex = vim.regex(string.format('^.\\{0,%d\\}\\(.\\|$\\)', col))
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local regex = vim.regex(string.format('^.\\{0,%d\\}\\(.\\|$\\)', cursor[2]))
   return {
     oneshot = true,
     linewise = true,
     match = function(s, ctx)
-      if ctx.buffer == buf and ctx.line == line - 1 then
+      if ctx.buffer == buf and ctx.line == cursor[1] - 1 then
         return nil
       end
       return regex:match_str(s)
