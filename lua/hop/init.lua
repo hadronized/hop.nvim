@@ -368,7 +368,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
 
   local h = nil
   while h == nil do
-    local ok, key = pcall(vim.fn.getchar)
+    local ok, key = pcall(vim.fn.getcharstr)
     if not ok then
       M.quit(hs)
       break
@@ -380,9 +380,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
     --
     -- Note of caution: Even though the result of `getchar()` might be a single
     -- character, that character might still be multiple bytes.
-    if type(key) == 'number' then
-      key = vim.fn.nr2char(key)
-    elseif key:byte() == 128 then
+    if key:byte() == 128 then
       not_special_key = false
     end
 
