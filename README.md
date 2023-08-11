@@ -7,18 +7,14 @@
                                       · Neovim motions on speed! ·
 
 <p align="center">
-  <img src="https://img.shields.io/github/issues/phaazon/hop.nvim?color=cyan&style=for-the-badge"/>
-  <img src="https://img.shields.io/github/issues-pr/phaazon/hop.nvim?color=green&style=for-the-badge"/>
-  <img src="https://img.shields.io/github/contributors-anon/phaazon/hop.nvim?color=blue&style=for-the-badge"/>
-  <img src="https://img.shields.io/github/last-commit/phaazon/hop.nvim?style=for-the-badge"/>
-  <img src="https://img.shields.io/github/v/tag/phaazon/hop.nvim?color=pink&label=release&style=for-the-badge"/>
+  <img src="https://img.shields.io/github/issues/smoka7/hop.nvim?color=cyan&style=for-the-badge"/>
+  <img src="https://img.shields.io/github/issues-pr/smoka7/hop.nvim?color=green&style=for-the-badge"/>
+  <img src="https://img.shields.io/github/contributors-anon/smoka7/hop.nvim?color=blue&style=for-the-badge"/>
+  <img src="https://img.shields.io/github/last-commit/smoka7/hop.nvim?style=for-the-badge"/>
+  <img src="https://img.shields.io/github/v/tag/smoka7/hop.nvim?color=pink&label=release&style=for-the-badge"/>
 </p>
 
-<p align="center">
-  <a href="#using-vim-plug">Install</a> · <a href="https://github.com/phaazon/hop.nvim/wiki">Wiki</a> · <a href="https://github.com/phaazon/hop.nvim/wiki/Screenshots">Screenshots</a> · <a href="https://matrix.to/#/#hop.nvim:matrix.org">Discuss</a>
-</p>
-
-**Hop** is an [EasyMotion]-like plugin allowing you to jump anywhere in a
+**Hop** is an [EasyMotion](https://github.com/easymotion/vim-easymotion)-like plugin allowing you to jump anywhere in a
 document with as few keystrokes as possible. It does so by annotating text in
 your buffer with hints, short string sequences for which each character
 represents a key to type to jump to the annotated text. Most of the time,
@@ -29,30 +25,16 @@ target in your document reachable in a few keystrokes.
   <img src="https://user-images.githubusercontent.com/506592/176885253-5f618593-77c5-4843-9101-a9de30f0a022.png"/>
 </p>
 
-<!-- vim-markdown-toc GFM -->
-
-* [Motivation](#motivation)
-* [Features](#features)
-* [Getting started](#getting-started)
-  * [Installation](#installation)
-    * [Important note about versioning](#important-note-about-versioning)
-    * [Using lazy.nvim](#using-lazynvim)
-    * [Using packer](#using-packer)
-    * [Nightly users](#nightly-users)
-* [Usage](#usage)
-* [Keybindings](#keybindings)
-* [Chat](#chat)
-
-<!-- vim-markdown-toc -->
+This is a fork of the [original hop.nvim repo](https://github.com/phaazon/hop.nvim)
 
 # Motivation
 
-**Hop** is a complete from-scratch rewrite of [EasyMotion], a famous plugin to
-enhance the native motions of Vim. Even though [EasyMotion] is usable in
+**Hop** is a complete from-scratch rewrite of [EasyMotion](https://github.com/easymotion/vim-easymotion), a famous plugin to
+enhance the native motions of Vim. Even though [EasyMotion](https://github.com/easymotion/vim-easymotion) is usable in
 Neovim, it suffers from a few drawbacks making it not comfortable to use with
 Neovim version >0.5 – at least at the time of writing these lines:
 
-- [EasyMotion] uses an old trick to annotate jump targets by saving the
+- [EasyMotion](https://github.com/easymotion/vim-easymotion) uses an old trick to annotate jump targets by saving the
   contents of the buffer, replacing it with the highlighted annotations and
   then restoring the initial buffer after jump. This trick is dangerous as it
   will change the contents of your buffer. A UI plugin should never do anything
@@ -116,9 +98,7 @@ dependency to be sure your config will not break when Hop gets updated.
 {
     'smoka7/hop.nvim',
     version = "*"
-    config = function()
-        require 'hop'.setup()
-    end,
+    opts = {},
 }
 ```
 
@@ -142,7 +122,7 @@ the last one**. If you are not, then you are exposed to compatibility issues / b
 
 # Usage
 
-See the [wiki](https://github.com/phaazon/hop.nvim/wiki).
+See the [wiki](https://github.com/smoka7/hop.nvim/wiki).
 
 # Keybindings
 
@@ -168,6 +148,18 @@ vim.keymap.set('', 'T', function()
 end, {remap=true})
 ```
 
-# Chat
 
-Join the discussion on the official [Matrix room](https://matrix.to/#/#hop.nvim:matrix.org)!
+# Other tools like hop.nvim
+
+* [sneak.nvim](https://github.com/justinmk/vim-sneak)
+* [EasyMotion](https://github.com/easymotion/vim-easymotion)
+* [Seek](https://github.com/goldfeld/vim-seek)
+* [smalls](https://github.com/t9md/vim-smalls)
+* [improvedft](https://github.com/chrisbra/improvedft)
+* [clever-f](https://github.com/rhysd/clever-f.vim)
+* [vim-extended-ft](https://github.com/svermeulen/vim-extended-ft)
+* [Fanf,ingTastic;](https://github.com/dahu/vim-fanfingtastic)
+* [IdeaVim-Sneak](https://plugins.jetbrains.com/plugin/15348-ideavim-sneak)
+* [leap.nvim](https://github.com/ggandor/leap.nvim)
+* [flash.nvim](https://github.com/folke/flash.nvim)
+
