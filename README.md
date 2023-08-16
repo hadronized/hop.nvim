@@ -97,7 +97,7 @@ dependency to be sure your config will not break when Hop gets updated.
 ```lua
 {
     'smoka7/hop.nvim',
-    version = "*"
+    version = "*",
     opts = {},
 }
 ```
