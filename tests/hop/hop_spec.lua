@@ -47,4 +47,28 @@ describe('Hop movement is correct', function()
 
     eq(end_pos[2], 28)
   end)
+
+  it('HopChar2AC', function()
+    vim.api.nvim_win_set_cursor(0, { 1, 1 })
+
+    local key_counter = 0
+    override_getcharstr(function()
+      key_counter = key_counter + 1
+      if key_counter == 1 then
+        return 'c'
+      end
+      if key_counter == 2 then
+        return 'd'
+      end
+      if key_counter == 3 then
+        return 's'
+      end
+    end, function()
+      hop.hint_char2({ direction = hop_hint.HintDirection.AFTER_CURSOR })
+    end)
+
+    local end_pos = api.nvim_win_get_cursor(0)
+
+    eq(end_pos[2], 28)
+  end)
 end)
