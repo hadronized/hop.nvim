@@ -10,13 +10,35 @@ local hint = require('hop.hint')
 
 ---@class Context
 ---@field buffer_handle number
----@field contexts WindowContext
+---@field contexts WindowContext[]
 
 ---@class LineContext
 ---@field line_nr number
 ---@field line string
 
 local M = {}
+
+--- Returns cursor position
+---@param win_handle integer
+---@param direction HintDirection
+---@return integer[]
+local function get_cursor_position(win_handle, direction)
+  local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
+
+  if direction == hint.HintDirection.BEFORE_CURSOR then
+    cursor_pos[2] = cursor_pos[2] - 1
+  elseif direction == hint.HintDirection.AFTER_CURSOR then
+    cursor_pos[2] = cursor_pos[2] + 1
+  end
+
+  -- on empty lines set cursor column position to zero
+  local line = vim.api.nvim_buf_get_lines(0, cursor_pos[1] - 1, cursor_pos[1], false)
+  if #line[1] == 0 then
+    cursor_pos[2] = 0
+  end
+
+  return cursor_pos
+end
 
 -- get information about the window and the cursor
 ---@param win_handle number
@@ -26,13 +48,7 @@ local function window_context(win_handle, direction)
   vim.api.nvim_set_current_win(win_handle)
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
-  local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
-
-  if direction == hint.HintDirection.BEFORE_CURSOR then
-    cursor_pos[2] = cursor_pos[2] - 1
-  elseif direction == hint.HintDirection.AFTER_CURSOR then
-    cursor_pos[2] = cursor_pos[2] + 1
-  end
+  local cursor_pos = get_cursor_position(win_handle, direction)
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
