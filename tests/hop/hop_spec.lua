@@ -76,10 +76,11 @@ describe('Hop movement is correct', function()
 
   it('Hop from empty line', function()
     vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+      'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy',
       '',
       'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy',
     })
-    vim.api.nvim_win_set_cursor(0, { 1, 1 })
+    vim.api.nvim_win_set_cursor(0, { 2, 1 })
 
     local key_counter = 0
     override_getcharstr(function()
@@ -97,6 +98,25 @@ describe('Hop movement is correct', function()
     local end_pos = api.nvim_win_get_cursor(0)
 
     eq(end_pos[2], 28)
-    eq(end_pos[1], 2)
+    eq(end_pos[1], 3)
+
+    vim.api.nvim_win_set_cursor(0, { 2, 1 })
+    key_counter = 0
+    override_getcharstr(function()
+      key_counter = key_counter + 1
+      if key_counter == 1 then
+        return 'c'
+      end
+      if key_counter == 2 then
+        return 's'
+      end
+    end, function()
+      hop.hint_char1({ direction = hop_hint.HintDirection.BEFORE_CURSOR })
+    end)
+
+    local end_pos = api.nvim_win_get_cursor(0)
+
+    eq(end_pos[2], 28)
+    eq(end_pos[1], 1)
   end)
-end)
+  end)

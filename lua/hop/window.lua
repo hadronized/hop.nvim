@@ -18,37 +18,14 @@ local hint = require('hop.hint')
 
 local M = {}
 
---- Returns cursor position
----@param win_handle integer
----@param direction HintDirection
----@return integer[]
-local function get_cursor_position(win_handle, direction)
-  local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
-
-  if direction == hint.HintDirection.BEFORE_CURSOR then
-    cursor_pos[2] = cursor_pos[2] - 1
-  elseif direction == hint.HintDirection.AFTER_CURSOR then
-    cursor_pos[2] = cursor_pos[2] + 1
-  end
-
-  -- on empty lines set cursor column position to zero
-  local line = vim.api.nvim_buf_get_lines(0, cursor_pos[1] - 1, cursor_pos[1], false)
-  if #line[1] == 0 then
-    cursor_pos[2] = 0
-  end
-
-  return cursor_pos
-end
-
 -- get information about the window and the cursor
 ---@param win_handle number
----@param direction HintDirection
 ---@return WindowContext
-local function window_context(win_handle, direction)
+local function window_context(win_handle)
   vim.api.nvim_set_current_win(win_handle)
   local win_info = vim.fn.getwininfo(win_handle)[1]
   local win_view = vim.fn.winsaveview()
-  local cursor_pos = get_cursor_position(win_handle, direction)
+  local cursor_pos = vim.api.nvim_win_get_cursor(win_handle)
 
   -- NOTE: due to an (unknown yet) bug in neovim, the sign_width is not correctly reported when shifting the window
   -- view inside a non-wrap window, so we can’t rely on this; for this reason, we have to implement a weird hack that
@@ -87,7 +64,7 @@ function M.get_window_context(opts)
 
   contexts[1] = {
     buffer_handle = cur_hbuf,
-    contexts = { window_context(cur_hwin, opts.direction) },
+    contexts = { window_context(cur_hwin) },
   }
 
   if not opts.multi_windows then
@@ -103,7 +80,7 @@ function M.get_window_context(opts)
       if not (w == cur_hwin or vim.tbl_contains(opts.excluded_filetypes, vim.bo[b].filetype)) then
         contexts[#contexts + 1] = {
           buffer_handle = b,
-          contexts = { window_context(w, opts.direction) },
+          contexts = { window_context(w) },
         }
       end
     end
