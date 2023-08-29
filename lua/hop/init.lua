@@ -107,7 +107,7 @@ local function set_unmatched_lines(buf_handle, hl_ns, wctx, opts)
   local prio = require('hop.priority')
 
   local line = vim.api.nvim_buf_get_lines(0, wctx.cursor_pos[1] - 1, wctx.cursor_pos[1], false)
-  if #line[1] == 0 then
+  if line[1] and #line[1] == 0 then
     if opts.direction == hint.HintDirection.BEFORE_CURSOR then
       wctx.cursor_pos[2] = 0
     elseif opts.direction == hint.HintDirection.AFTER_CURSOR then
