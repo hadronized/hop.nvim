@@ -320,25 +320,23 @@ function M.move_cursor_to(w, line, column, opts)
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
-function M.hint_with(jump_target_gtr, opts)
-  M.hint_with_callback(jump_target_gtr, opts, function(jt)
+function M.hint_with(jump_target_gtr, hs, opts)
+  M.hint_with_callback(jump_target_gtr, hs, opts, function(jt)
     M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts)
   end)
 end
 
 ---@param jump_target_gtr function
+---@param hs HintState
 ---@param opts Options
 ---@param callback function
-function M.hint_with_callback(jump_target_gtr, opts, callback)
+function M.hint_with_callback(jump_target_gtr, hs, opts, callback)
   local hint = require('hop.hint')
 
   if not M.initialized then
     vim.notify('Hop is not initialized; please call the setup function', 4)
     return
   end
-
-  -- create hint state
-  local hs = create_hint_state(opts)
 
   -- create jump targets
   local generated = jump_target_gtr(opts)
@@ -363,6 +361,7 @@ function M.hint_with_callback(jump_target_gtr, opts, callback)
 
     clear_namespace(hs.buf_list, hs.hl_ns)
     clear_namespace(hs.buf_list, hs.dim_ns)
+    M.quit(hs)
     return
   end
 
@@ -465,10 +464,11 @@ function M.hint_words(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_word_start()), opts)
+  M.hint_with(generator(jump_target.regex_by_word_start()), hs, opts)
 end
 
 function M.hint_camel_case(opts)
@@ -487,6 +487,7 @@ function M.hint_patterns(opts, pattern)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   -- The pattern to search is either retrieved from the (optional) argument
   -- or directly from user input.
@@ -510,13 +511,14 @@ function M.hint_patterns(opts, pattern)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_case_searching(pat, false, opts)), opts)
+  M.hint_with(generator(jump_target.regex_by_case_searching(pat, false, opts)), hs, opts)
 end
 
 function M.hint_char1(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local c = M.get_input_pattern('Hop 1 char: ', 1)
   if not c then
@@ -525,13 +527,14 @@ function M.hint_char1(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), opts)
+  M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), hs, opts)
 end
 
 function M.hint_char2(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local c = M.get_input_pattern('Hop 2 char: ', 2)
   if not c then
@@ -540,17 +543,18 @@ function M.hint_char2(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), opts)
+  M.hint_with(generator(jump_target.regex_by_case_searching(c, true, opts)), hs, opts)
 end
 
 function M.hint_lines(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.by_line_start()), opts)
+  M.hint_with(generator(jump_target.by_line_start()), hs, opts)
 end
 
 function M.hint_vertical(opts)
@@ -558,32 +562,35 @@ function M.hint_vertical(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
   -- only makes sense as end position given movement goal.
   opts.hint_position = hint.HintPosition.END
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_vertical()), opts)
+  M.hint_with(generator(jump_target.regex_by_vertical()), hs, opts)
 end
 
 function M.hint_lines_skip_whitespace(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_line_start_skip_whitespace()), opts)
+  M.hint_with(generator(jump_target.regex_by_line_start_skip_whitespace()), hs, opts)
 end
 
 function M.hint_anywhere(opts)
   local jump_target = require('hop.jump_target')
 
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local generator = getGenerator(jump_target, opts)
 
-  M.hint_with(generator(jump_target.regex_by_anywhere()), opts)
+  M.hint_with(generator(jump_target.regex_by_anywhere()), hs, opts)
 end
 
 -- Setup user settings.
@@ -621,6 +628,7 @@ end
 ---@param opts Options
 M.yank_char1 = function(opts)
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
   if opts.multi_windows then
     opts.multi_windows = false
     vim.notify('Cannot use yank across multiple windows', vim.log.levels.WARN)
@@ -641,7 +649,7 @@ M.yank_char1 = function(opts)
       return
     end
 
-    M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+    M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), hs, opts, function(jt)
       targets[key] = jt
     end)
   end
@@ -662,6 +670,7 @@ end
 
 M.paste_char1 = function(opts)
   opts = override_opts(opts)
+  local hs = create_hint_state(opts)
 
   local jump_target = require('hop.jump_target')
   local generator = getGenerator(jump_target, opts)
@@ -671,7 +680,7 @@ M.paste_char1 = function(opts)
     return
   end
 
-  M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), opts, function(jt)
+  M.hint_with_callback(generator(jump_target.regex_by_case_searching(c, true, opts)), hs, opts, function(jt)
     local target = jt
 
     if target == nil then
