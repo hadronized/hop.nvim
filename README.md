@@ -29,8 +29,7 @@ target in your document reachable in a few keystrokes.
   <img src="https://user-images.githubusercontent.com/506592/176885253-5f618593-77c5-4843-9101-a9de30f0a022.png"/>
 </p>
 
-<!-- vim-markdown-toc GFM -->
-
+* [Deprecation notice](#deprecation-notice)
 * [Motivation](#motivation)
 * [Features](#features)
 * [Getting started](#getting-started)
@@ -43,7 +42,15 @@ target in your document reachable in a few keystrokes.
 * [Keybindings](#keybindings)
 * [Chat](#chat)
 
-<!-- vim-markdown-toc -->
+# Deprecation notice
+
+The project is **unmaintained for probably forever.** No more commits will be made, and since Neovim continues to be
+updated, it is very likely that this plugin will break / have bugs.
+
+If you enjoyed `phaazon/hop.nvim`, you should really head over to the fork of [@smoka7](https://github.com/smoka7),
+[smoka7/hop.nvim](https://github.com/smoka7/hop.nvim). Many bugs were fixed and new features added.
+
+Thank you for being such a supportive and passionate community! ❤️
 
 # Motivation
 
