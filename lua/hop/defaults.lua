@@ -13,5 +13,7 @@ M.uppercase_labels = false
 M.multi_windows = false
 M.hint_position = require'hop.hint'.HintPosition.BEGIN
 M.hint_offset = 0
+M.excluded_filetypes = { }
 
 return M
+

@@ -806,6 +806,15 @@ below.
     Defaults:~
         `multi_windows = false`
 
+`excluded_filetypes`
+    Skip hinting windows with the excluded filetypes. Those windows to check
+    filetypes are collected only when you enable `multi_windows` or execute
+    `MW`-commands. This option is useful to skip the windows which are only
+    for displaying something buf not for editing something.
+
+    Defaults:~
+        `excluded_filetypes = { }`
+
 ==============================================================================
 EXTENSION                                                        *hop-extension*
 
