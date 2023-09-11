@@ -1,0 +1,6 @@
+{
+    "workspace.checkThirdParty": false,
+    "diagnostics.disable": [
+        "inject-field"
+    ]
+}

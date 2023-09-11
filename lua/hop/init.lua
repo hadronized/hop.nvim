@@ -91,9 +91,6 @@ local function create_hint_state(opts)
   -- backup namespaces of diagnostic
   hint_state.diag_ns = vim.diagnostic.get_namespaces()
 
-  -- Store users cursorline state
-  hint_state.cursorline = vim.wo.cursorline
-
   return hint_state
 end
 
@@ -185,12 +182,6 @@ local function add_virt_cur(ns)
   local cur_offset = cur_info[4]
   local virt_col = cur_info[5] - 1
   local cur_line = vim.api.nvim_get_current_line()
-
-  -- toggle cursorline off if currently set
-  local cursorline_info = vim.wo.cursorline
-  if cursorline_info == true then
-    vim.wo.cursorline = false
-  end
 
   -- first check to see if cursor is in a tab char or past end of line or in empty line
   if cur_offset ~= 0 or #cur_line == cur_col then
@@ -442,11 +433,6 @@ end
 function M.quit(hint_state)
   clear_namespace(hint_state.buf_list, hint_state.hl_ns)
   clear_namespace(hint_state.buf_list, hint_state.dim_ns)
-
-  -- Restore users cursorline setting
-  if hint_state.cursorline == true then
-    vim.wo.cursorline = true
-  end
 
   for _, buf in ipairs(hint_state.buf_list) do
     -- sometimes, buffers might be unloaded; that’s the case with floats for instance (we can invoke Hop from them but

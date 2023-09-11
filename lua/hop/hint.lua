@@ -12,7 +12,6 @@ local prio = require('hop.priority')
 ---@field hl_ns number
 ---@field dim_ns number
 ---@field diag_ns table
----@field cursorline boolean
 
 local M = {}
 
