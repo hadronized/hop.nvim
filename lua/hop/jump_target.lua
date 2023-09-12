@@ -365,12 +365,12 @@ function M.regex_by_case_searching(pat, plain_search, opts)
     pat = vim.fn.escape(pat, '\\/.$^~[]')
   end
 
-  if vim.o.smartcase then
-    if not starts_with_uppercase(pat) then
+  if opts.case_insensitive then
+    if vim.o.smartcase and not starts_with_uppercase(pat) then
+      pat = '\\c' .. pat
+    elseif not vim.o.smartcase then
       pat = '\\c' .. pat
     end
-  elseif opts.case_insensitive then
-    pat = '\\c' .. pat
   end
 
   local regex = vim.regex(pat)
