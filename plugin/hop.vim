@@ -14,6 +14,15 @@ command! HopWordCurrentLineBC lua require'hop'.hint_words({ direction = require'
 command! HopWordCurrentLineAC lua require'hop'.hint_words({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
 command! HopWordMW            lua require'hop'.hint_words({ multi_windows = true })
 
+" The jump-to-cammel-case-word command.
+command! HopCamelCase              lua require'hop'.hint_camel_case()
+command! HopCamelCaseBC            lua require'hop'.hint_camel_case({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
+command! HopCamelCaseAC            lua require'hop'.hint_camel_case({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR })
+command! HopCamelCaseCurrentLine   lua require'hop'.hint_camel_case({ current_line_only = true })
+command! HopCamelCaseCurrentLineBC lua require'hop'.hint_camel_case({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = true })
+command! HopCamelCaseCurrentLineAC lua require'hop'.hint_camel_case({ direction = require'hop.hint'.HintDirection.AFTER_CURSOR, current_line_only = true })
+command! HopCamelCaseMW            lua require'hop'.hint_camel_case({ multi_windows = true })
+
 " The jump-to-pattern command.
 command! HopPattern              lua require'hop'.hint_patterns()
 command! HopPatternBC            lua require'hop'.hint_patterns({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR })
