@@ -53,10 +53,17 @@ function M.get_window_context(multi_windows)
   -- Generate contexts of windows
   local cur_hwin = vim.api.nvim_get_current_win()
   local cur_hbuf = vim.api.nvim_win_get_buf(cur_hwin)
+  local cur_col
+
+  if vim.api.nvim_get_current_line() == '' then
+    cur_col = 0
+  else
+    cur_col = vim.fn.charcol('.')
+  end
 
   all_ctxs[#all_ctxs + 1] = {
     hbuf = cur_hbuf,
-    contexts = { window_context(cur_hwin, {vim.fn.line('.'), vim.fn.charcol('.')} ) },
+    contexts = { window_context(cur_hwin, {vim.fn.line('.'), cur_col} ) },
   }
 
   if not multi_windows then
