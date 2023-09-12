@@ -64,28 +64,32 @@ function M.get_window_context(multi_windows)
   end
 
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    local b = vim.api.nvim_win_get_buf(w)
-    if w ~= cur_hwin then
+    if vim.api.nvim_win_is_valid(w) then
+      if vim.api.nvim_win_get_config(w).relative == '' then
+        local b = vim.api.nvim_win_get_buf(w)
+        if w ~= cur_hwin then
 
-      -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
-      -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
-      local bctx = nil
-      for _, buffer_ctx in ipairs(all_ctxs) do
-        if b == buffer_ctx.hbuf then
-          bctx = buffer_ctx.contexts
-          break
+          -- check duplicated buffers; the way this is done is by accessing all the already known contexts and checking that
+          -- the buffer we are accessing is already present in; if it is, we then append the window context to that buffer
+          local bctx = nil
+          for _, buffer_ctx in ipairs(all_ctxs) do
+            if b == buffer_ctx.hbuf then
+              bctx = buffer_ctx.contexts
+              break
+            end
+          end
+
+          if bctx then
+            bctx[#bctx + 1] = window_context(w, vim.api.nvim_win_get_cursor(w))
+          else
+            all_ctxs[#all_ctxs + 1] = {
+              hbuf = b,
+              contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
+            }
+          end
+
         end
       end
-
-      if bctx then
-        bctx[#bctx + 1] = window_context(w, vim.api.nvim_win_get_cursor(w))
-      else
-        all_ctxs[#all_ctxs + 1] = {
-          hbuf = b,
-          contexts = { window_context(w, vim.api.nvim_win_get_cursor(w)) }
-        }
-      end
-
     end
   end
 
