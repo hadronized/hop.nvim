@@ -298,7 +298,9 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
 
   -- update the jump list
   vim.cmd("normal! m'")
-  vim.api.nvim_set_current_win(w)
+  if vim.fn.bufname() ~= "[Command Line]" then
+      vim.api.nvim_set_current_win(w)
+  end
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
