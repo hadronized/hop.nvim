@@ -13,5 +13,6 @@ M.uppercase_labels = false
 M.multi_windows = false
 M.hint_position = require'hop.hint'.HintPosition.BEGIN
 M.hint_offset = 0
+M.prompt = {char1 = 'Hop 1 char: ', char2 = 'Hop 2 char: ', pattern = 'Hop pattern: '}
 
 return M
