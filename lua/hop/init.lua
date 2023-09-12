@@ -312,6 +312,30 @@ function M.hint_with(jump_target_gtr, opts)
   end)
 end
 
+-- Run an arbitrary command at the target.
+--
+-- This will not update the jump list.
+function M.cmd_with(jump_target_gtr, cmd, opts)
+  if opts == nil then
+    opts = override_opts(opts)
+  end
+
+  if not cmd then
+    vim.notify('No command provided', 4)
+    return
+  end
+
+  M.hint_with_callback(jump_target_gtr, opts, function(jt)
+    local win = vim.api.nvim_get_current_win()
+    local pos = vim.api.nvim_win_get_position(0)
+
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset)
+    vim.cmd(cmd)
+    print('jumping back to', vim.inspect(pos))
+    M.move_cursor_to(win, pos[1] + 1, pos[2], 0)
+  end)
+end
+
 function M.hint_with_callback(jump_target_gtr, opts, callback)
   local hint = require'hop.hint'
 
@@ -622,6 +646,23 @@ function M.hint_anywhere(opts)
 
   M.hint_with(
     generator(jump_target.regex_by_anywhere()),
+    opts
+  )
+end
+
+function M.cmd_words(cmd, opts)
+  opts = override_opts(opts)
+
+  local generator
+  if opts.current_line_only then
+    generator = jump_target.jump_targets_for_current_line
+  else
+    generator = jump_target.jump_targets_by_scanning_lines
+  end
+
+  M.cmd_with(
+    generator(jump_target.regex_by_word_start()),
+    cmd,
     opts
   )
 end
